@@ -6,9 +6,10 @@ from PyQt4 import QtGui,QtCore
 from PyQt4.QtCore import Qt,QSettings
 from MainWindow import Ui_MainWindow
 from Configuration import Ui_confDialog
-from ActionSetup import Ui_actionDialog
 from CustomWidgets import TraceWidget
-from archive import getArchiveAvail,getTimeFromFileName,extractDataFromArchive
+from Preferences import defaultPreferences
+from Actions import defaultActions, Action, ActionSetupDialog
+from Archive import getArchiveAvail, getTimeFromFileName, extractDataFromArchive
 import numpy as np
 
 # Main window class
@@ -18,22 +19,24 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
         self.loadSettings()
+        self.applyPreferences()
         self.loadTest() ## Load values used for testing ##
         self.setFunctionality()
+    
+    # Go through all preferences, and call their update functions
+    def applyPreferences(self):
+        for key, aPref in self.pref.iteritems():
+            aPref.update(self,init=True)
         
     # Start setting up some functionality to the UI
     def setFunctionality(self):
         # Load in the archive
         self.setArchive()
-        self.loadPickFileList()
+        self.updatePickFileList()
         # Give ability to the archive displays
         self.archiveList.graph=self.archiveWidget
         self.archiveList.graph.addNewEventSignal.connect(self.addPickFile)
         self.archiveList.doubleClicked.connect(self.loadEvent)
-        # Set up the key-bindings for the main window
-        # Create the desired number of station widgets
-        self.staWidgets=[]
-        self.setStaPerPage()
         # Allow stdout to be sent to the Trace Log
         XStream.stdout().messageWritten.connect(self.textOutBrowser.insertPlainText)
         XStream.stderr().messageWritten.connect(self.textOutBrowser.insertPlainText)
@@ -51,7 +54,6 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
     def openConfiguration(self):
         self.dialog=ConfDialog(actions=self.act,pref=self.pref)
         self.dialog.exec_()
-        print self.act,'AtMain'
     
     # Add an empty pick file to the pick directory, also add to GUI list
     def addPickFile(self):
@@ -69,7 +71,7 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         newFile.close()
         
     # Load the pick file list for display
-    def loadPickFileList(self):
+    def updatePickFileList(self):
         # Clear the old list
         self.archiveList.clear()
         # Only accept files with proper naming convention
@@ -89,7 +91,7 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         # Get the wanted time, and query for the data
         newPickFile=self.archiveList.currentItem().text()
         aTime=getTimeFromFileName(newPickFile).timestamp
-        t1,t2=aTime+self.pref['evePreTime'],aTime+self.pref['evePostTime']
+        t1,t2=aTime+self.pref['evePreTime'].val,aTime+self.pref['evePostTime'].val
         self.stream=extractDataFromArchive(self.archive['dir'],t1,t2,self.archive['fileNames'],
                                            self.archive['fileTimes'],archiveFileLen=self.archive['fileLen'])
         # Make a copy for any filtering to be applied
@@ -101,10 +103,10 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         maxTime=np.max([tr.stats.endtime.timestamp for tr in self.stream])
         self.timeWidget.plotItem.setXRange(minTime,maxTime)
         # Add data to the trace widgets
-        self.loadPage()
+        self.updatePage()
     
-    # Given the current page number, data, and sorting
-    def loadPage(self):
+    # Update the entire page which includes data, picks, and sorting
+    def updatePage(self):
         # Sort traces by channel so they are added in same order (relative other stations)
         self.actVar['pltSt'].sort(keys=['channel'])
         # Clear away all previous lines, and set the limits to the data
@@ -114,15 +116,18 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         i=0
         stas=np.array([tr.stats.station for tr in self.actVar['pltSt']])
         numStas=len(np.unique(stas))
-        while self.actVar['curPage']*self.pref['staPerPage']+i<numStas:
-            if i==self.pref['staPerPage']:
+        while self.actVar['curPage']*self.pref['staPerPage'].val+i<numStas:
+            if i==self.pref['staPerPage'].val:
                 break
             # Figure out which traces are associated with the 
-            wantIdxs=np.where(stas==self.actVar['staSort'][self.actVar['curPage']*self.pref['staPerPage']+i])[0]
+            wantIdxs=np.where(stas==self.actVar['staSort'][self.actVar['curPage']*self.pref['staPerPage'].val+i])[0]
             for idx in wantIdxs:
                 self.staWidgets[i].plot(y=self.actVar['pltSt'][idx].data,
                                         x=self.actVar['pltSt'][idx].times()+self.actVar['pltSt'][idx].stats.starttime.timestamp)
             i+=1
+    
+#    def setCurPage(self,nextPage=False,prevPage=False,pageNum=0):
+        
     
     # Set the archive availability
     def setArchive(self):
@@ -146,15 +151,15 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         self.archiveWidget.t2=archiveTimes[-1]+self.archive['fileLen']
         self.archiveWidget.updateBoundaries()
         
-    # Set how many widgets are on the main page
-    def setStaPerPage(self):
+    # Update how many widgets are on the main page
+    def updateStaPerPage(self):
         # First remove the previous staWidgets
         for aWidget in self.staWidgets:
             aWidget.setParent(None)
             self.traceLayout.removeWidget(aWidget)
             self.staWidgets=[]
         # Add the desired number of staWidgets
-        while len(self.staWidgets)<self.pref['staPerPage']:
+        while len(self.staWidgets)<self.pref['staPerPage'].val:
             self.staWidgets.append(TraceWidget(self.mainLayout))
             self.staWidgets[-1].setXLink('timeAxis')
             self.traceLayout.addWidget(self.staWidgets[-1])
@@ -168,11 +173,6 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
     def initActVar(self):
         actVar={'staSort':[],'curPage':0,'pltSt':None}
         return actVar
-    
-    # If no preferences were available, use these defaults
-    def defaultPreferences(self):
-        pref={'staPerPage':8,'evePreTime':-60,'evePostTime':120}
-        return pref
         
     # If no previous archive was set, use these defaults
     def defaultArchive(self):
@@ -180,7 +180,7 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
                  'fileNames':[],'fileTimes':[]}
         return archive
         
-    # If no previous archive was set, use these defaults
+    # If no previous picks were set, use these defaults
     def defaultPicks(self):
         picks={'dir':'','files':[]}
         return picks
@@ -193,23 +193,40 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         self.settings = QSettings('settings.ini', QSettings.IniFormat)
         # ...UI size
         self.resize(self.settings.value('size', QtCore.QSize(1300, 700)))
-        # ...Actions
-        self.act=(self.settings.value('actions', {}))
+        # ...Actions, load in the custom actions enuring default actions are still present,
+        self.act=self.settings.value('actions', {})
+        origActions=defaultActions()
+        for key,action in origActions.iteritems():
+            if key not in self.act.keys():
+                self.act[key]=action
+        # then link all actions to their appropriate functions
+        for key,action in self.act.iteritems():
+            action.linkToFunction(self)
         # ...Preferences
-        self.pref=self.settings.value('pref', self.defaultPreferences())
+        self.pref=defaultPreferences(self)
+        prefVals=self.settings.value('prefVals', {})
+        for aKey in prefVals.keys():
+            self.pref[aKey].val=prefVals[aKey]
         # ...Archive information
         self.archive=self.settings.value('archive', self.defaultArchive())
         # ...Picks information
         self.picks=self.settings.value('picks', self.defaultPicks())
+        # Create the desired number of station widgets
+        self.staWidgets=[]
         
     # Save all settings from current run...
     def saveSettings(self):
         # ...UI size
         self.settings.setValue('size', self.size())
-        # ...Actions
+        # ...Actions, cannot save functions (will be linked again upon loading)
+        for key in self.act.keys():
+            self.act[key].func=None
         self.settings.setValue('actions',self.act)
         # ...Preferences
-        self.settings.setValue('pref',self.pref)
+        prefVals={}
+        for aKey in self.pref.keys():
+            prefVals[self.pref[aKey].tag]=self.pref[aKey].val
+        self.settings.setValue('prefVals',prefVals)
         # ...Archive information
         self.settings.setValue('archive',self.archive)
         # ...Picks information
@@ -245,7 +262,7 @@ class ConfDialog(QtGui.QDialog, Ui_confDialog):
     
     # Load in all of the lists from previous state
     def loadLists(self):
-        self.confPrefList.loadList([key for key in self.pref.keys()])
+        self.confPrefList.loadList(sorted([key for key in self.pref.keys()]))
         self.confActiveList.loadList([key for key in self.act.keys() if not self.act[key].passive])
         self.confPassiveList.loadList([key for key in self.act.keys() if self.act[key].passive])
         
@@ -261,7 +278,7 @@ class ConfDialog(QtGui.QDialog, Ui_confDialog):
             # Creating a new action (Insert Key)
             elif curList.key==Qt.Key_Insert:
                 if self.confActiveList.hasFocus():
-                    action=self.openActionSetup(Action(passive=False))
+                    action=self.openActionSetup(Action(passive=False,trigger=Qt.Key_questiondown))
                 else:
                     action=self.openActionSetup(Action(passive=True))
             # Skip if no action was selected
@@ -290,13 +307,9 @@ class ConfDialog(QtGui.QDialog, Ui_confDialog):
             
         # If the preference list had focus
         if self.confPrefList.hasFocus() and self.confPrefList.key==Qt.Key_Backspace:
-            ## Testing just one for now ##
-            ## Should to make a preference class to assist with below comment
-            ## Later have a dictionary for what is required (ie. key:tag,datatype,text in dialog suggestion,update function) ##
+            # Grab the key, and update if possible
             curKey=self.confPrefList.currentItem().text()
-            if curKey=='staPerPage':
-                name,ok=QtGui.QInputDialog.getText(self, 'Update '+curKey, 'Input an integer number')
-                self.pref[curKey]=int(name)
+            self.pref[curKey].update(self)
                 
     # Open the setup action dialog
     def openActionSetup(self,action):
@@ -305,52 +318,7 @@ class ConfDialog(QtGui.QDialog, Ui_confDialog):
             action=self.dialog.returnAction()
             return action
         
-# Action setup dialog
-class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
-    def __init__(self,action,actDict,parent=None):
-        QtGui.QDialog.__init__(self,parent)
-        self.setupUi(self)
-        self.action=action # The action to update
-        self.actDict=actDict # All other actions
-        # Give the dialog some functionaly
-        self.setFunctionality()
-        # Load in the text to the related action
-        self.fillDialog()
-     
-    # Set up some functionality to the action set up dialog
-    def setFunctionality(self):
-        self.actPassiveRadio.clicked.connect(self.togglePassiveActive)
-        self.actActiveRadio.clicked.connect(self.togglePassiveActive)
-    
-    # Fill the dialog with text relating to the action
-    def fillDialog(self):
-        self.actTagLineEdit.setText(self.action.tag)
-        self.actNameLineEdit.setText(self.action.name)
-        self.actPathLineEdit.setText(self.action.path)
-        self.actTriggerLineEdit.setText(self.action.trigger)
-        
-    def togglePassiveActive(self):
-        print 'howdo'
-        print self.actActiveRadio.isChecked()
-        print self.actPassiveRadio.isChecked()
-    
-    # Upon close, fill in the action with all of the selected information and return
-    def returnAction(self):
-        self.action.tag=self.actTagLineEdit.text()
-        self.action.name=self.actNameLineEdit.text()
-        self.action.path=self.actPathLineEdit.text()
-        self.action.trigger=self.actTriggerLineEdit.text()
-        return self.action
 
-# Capabilities of an action
-class Action(object):
-    def __init__(self,passive=False):
-        self.tag='New action'
-        self.name='Function name'
-        self.path='Add path to function'
-        self.passive=passive
-        self.beforeTrigger=False
-        self.trigger='Add trigger'
 
 # Class for logging
 class QtHandler(logging.Handler):
