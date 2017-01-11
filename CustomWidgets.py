@@ -140,10 +140,8 @@ class KeyListWidget(QtGui.QListWidget):
         self.setDragDropMode(self.InternalMove)
     
     # Load a list of strings to be added to gui list
-    def loadSettings(self):
-        if self.loadList==None:
-            self.loadList=[]
-        for aEntry in self.loadList:
+    def loadList(self,strArr):
+        for aEntry in strArr:
             self.addItem(aEntry)
     
     # Update this widgets last pressed key, and return a signal

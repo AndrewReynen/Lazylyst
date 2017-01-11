@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>590</width>
-    <height>517</height>
+    <width>722</width>
+    <height>369</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -162,33 +162,30 @@
        <item>
         <widget class="QListWidget" name="actTriggerList"/>
        </item>
+       <item>
+        <widget class="QDialogButtonBox" name="actButtonBox">
+         <property name="layoutDirection">
+          <enum>Qt::LeftToRight</enum>
+         </property>
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="standardButtons">
+          <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+         </property>
+         <property name="centerButtons">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
       </layout>
      </item>
      <item>
       <layout class="QGridLayout" name="actReturnLayout">
-       <item row="1" column="1">
-        <widget class="QListWidget" name="actSelectReturnList"/>
-       </item>
-       <item row="1" column="0">
-        <widget class="QListWidget" name="actAvailReturnList"/>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="actAvailReturnLabel">
-         <property name="font">
-          <font>
-           <weight>50</weight>
-           <bold>false</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Available Returns</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
+       <property name="spacing">
+        <number>1</number>
+       </property>
+       <item row="2" column="1">
         <widget class="QLabel" name="actSelectReturnLabel">
          <property name="font">
           <font>
@@ -204,6 +201,66 @@
          </property>
         </widget>
        </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="actAvailReturnLabel">
+         <property name="font">
+          <font>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Available Returns</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QListWidget" name="actSelectReturnList"/>
+       </item>
+       <item row="3" column="0">
+        <widget class="QListWidget" name="actAvailReturnList"/>
+       </item>
+       <item row="1" column="0">
+        <widget class="QListWidget" name="actAvailInputsList"/>
+       </item>
+       <item row="1" column="1">
+        <widget class="QListWidget" name="actSelectInputList"/>
+       </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="actAvailInputLabel">
+         <property name="font">
+          <font>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Available Inputs</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="actSelectInputLabel">
+         <property name="font">
+          <font>
+           <weight>50</weight>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Selected Inputs</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
+         </property>
+        </widget>
+       </item>
       </layout>
      </item>
     </layout>
@@ -211,5 +268,38 @@
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>actButtonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>actionDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>actButtonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>actionDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>
