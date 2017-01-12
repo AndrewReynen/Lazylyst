@@ -5,11 +5,13 @@ sip.setapi('QVariant', 2)
 from PyQt4 import QtGui,QtCore
 from PyQt4.QtCore import Qt,QSettings
 from MainWindow import Ui_MainWindow
-from Configuration import Ui_confDialog
-from CustomWidgets import TraceWidget
+from Configuration import Ui_ConfDialog
+from ChangeSource import Ui_ChangeSource
+from CustomWidgets import TraceWidget, keyPressToString
+from HotVariables import initHotVar
 from Preferences import defaultPreferences
 from Actions import defaultActions, Action, ActionSetupDialog
-from Archive import getArchiveAvail, getTimeFromFileName, extractDataFromArchive
+from Archive import SaveSource, getArchiveAvail, getTimeFromFileName, extractDataFromArchive
 import numpy as np
 
 # Main window class
@@ -30,36 +32,52 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         
     # Start setting up some functionality to the UI
     def setFunctionality(self):
-        # Load in the archive
-        self.setArchive()
+        ## Load in the archive and picks ##
+        self.updateArchive()
         self.updatePickFileList()
         # Give ability to the archive displays
         self.archiveList.graph=self.archiveWidget
         self.archiveList.graph.addNewEventSignal.connect(self.addPickFile)
+        self.archiveList.clicked.connect(self.setFocus) # Do not let it steal focus from keybinds
         self.archiveList.doubleClicked.connect(self.loadEvent)
         # Allow stdout to be sent to the Trace Log
         XStream.stdout().messageWritten.connect(self.textOutBrowser.insertPlainText)
         XStream.stderr().messageWritten.connect(self.textOutBrowser.insertPlainText)
         self.textOutBrowser.textChanged.connect(self.scrollTextOut)
-        
+    
+    # Function to handle key board input from user
     def keyPressEvent(self, ev):
         super(WaveViewer000, self).keyPressEvent(ev)
-        # Set up the forced key-bindings
-        if ev.key()==Qt.Key_O:
-            self.openConfiguration()
-        else:
+        keyname=keyPressToString(ev)
+        if keyname==None:
             return
+        # Loop through all actions and see if one is activated
+        for tag,action in self.act.iteritems():
+            if not action.passive and action.trigger.toString()==keyname:
+                action.func(**action.optionals)
     
     # Open the configuration window
     def openConfiguration(self):
         self.dialog=ConfDialog(actions=self.act,pref=self.pref)
         self.dialog.exec_()
+        
+    # Open the change source window
+    def openChangeSource(self):
+        self.dialog=CsDialog(savedSources=self.saveSource)
+        # Extract the wanted source
+        if self.dialog.exec_():
+            source=self.dialog.returnSource()
+            # If the files exist, update the hot variables
+            print 'SourcePathExist?',source.pathExist()
+##            if source.pathsExist():
+                
     
     # Add an empty pick file to the pick directory, also add to GUI list
     def addPickFile(self):
         aTimeStr=self.archiveList.graph.newEveStr
         # Assign an ID to the new event
-        seenIDs=[int(aFile.split('_')[0]) for aFile in os.listdir(self.picks['dir'])]
+        seenIDs=[int(aFile.split('_')[0]) for aFile in os.listdir(self.hotVar['pickDir'].val)]
+        ## Currently assigning ID where one is missing
         i=0
         while i in seenIDs:
             i+=1
@@ -67,7 +85,7 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         # Add to GUI list
         self.archiveList.addItem(newPickFile)
         # Add to the picks directory
-        newFile=open(self.picks['dir']+'/'+newPickFile,'w')
+        newFile=open(self.hotVar['pickDir'].val+'/'+newPickFile,'w')
         newFile.close()
         
     # Load the pick file list for display
@@ -75,7 +93,7 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         # Clear the old list
         self.archiveList.clear()
         # Only accept files with proper naming convention
-        for aFile in sorted(os.listdir(self.picks['dir'])):
+        for aFile in sorted(os.listdir(self.hotVar['pickDir'].val)):
             splitFile=aFile.split('_')
             if len(splitFile)!=2 or aFile.split('.')[-1]!='picks':
                 continue
@@ -92,69 +110,68 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         newPickFile=self.archiveList.currentItem().text()
         aTime=getTimeFromFileName(newPickFile).timestamp
         t1,t2=aTime+self.pref['evePreTime'].val,aTime+self.pref['evePostTime'].val
-        self.stream=extractDataFromArchive(self.archive['dir'],t1,t2,self.archive['fileNames'],
-                                           self.archive['fileTimes'],archiveFileLen=self.archive['fileLen'])
+        self.hotVar['stream'].val=extractDataFromArchive(self.hotVar['archDir'].val,t1,t2,self.hotVar['archFiles'].val,
+                                                         self.hotVar['archFileTimes'].val,
+                                                         archiveFileLen=self.pref['archiveFileLen'].val)
         # Make a copy for any filtering to be applied
-        self.actVar['pltSt']=self.stream.copy()
+        self.hotVar['pltSt'].val=self.hotVar['stream'].val.copy()
         # Sort traces by channel so they are added in same order (relative other stations)
-        self.actVar['pltSt'].sort(keys=['channel'])
+        self.hotVar['pltSt'].val.sort(keys=['channel'])
         ## Alphabetical sorting for now ##
-        self.actVar['staSort']=np.sort(np.unique([tr.stats.station for tr in self.stream]))
+        self.hotVar['staSort'].val=np.sort(np.unique([tr.stats.station for tr in self.hotVar['stream'].val]))
         # Move the axis time limit to the appropriate position
-        minTime=np.min([tr.stats.starttime.timestamp for tr in self.stream])
-        maxTime=np.max([tr.stats.endtime.timestamp for tr in self.stream])
+        minTime=np.min([tr.stats.starttime.timestamp for tr in self.hotVar['stream'].val])
+        maxTime=np.max([tr.stats.endtime.timestamp for tr in self.hotVar['stream'].val])
         self.timeWidget.plotItem.setXRange(minTime,maxTime)
         # Add data to the trace widgets
         self.updatePage()
     
     # Update the entire page which includes data, picks, and sorting
     def updatePage(self):
-        # Clear away all previous lines, and set the limits to the data
+        # Clear away all previous lines and references to the station
         for i in range(len(self.staWidgets)):
             self.staWidgets[i].clear()
+            self.staWidgets[i].sta=None
+            self.staWidgets[i].pltItem.setLabel(axis='left',text='empty')
         # Add in the trace data for the current page
         i=0
-        stas=np.array([tr.stats.station for tr in self.actVar['pltSt']])
+        stas=np.array([tr.stats.station for tr in self.hotVar['pltSt'].val])
         numStas=len(np.unique(stas))
-        while self.actVar['curPage']*self.pref['staPerPage'].val+i<numStas:
+        while self.hotVar['curPage'].val*self.pref['staPerPage'].val+i<numStas:
             if i==self.pref['staPerPage'].val:
                 break
             # Figure out which traces are associated with the next station in staSort
-            wantIdxs=np.where(stas==self.actVar['staSort'][self.actVar['curPage']*self.pref['staPerPage'].val+i])[0]
+            thisSta=self.hotVar['staSort'].val[self.hotVar['curPage'].val*self.pref['staPerPage'].val+i]
+            wantIdxs=np.where(stas==thisSta)[0]
             # Also set the y-limits
-            ymin=np.min([np.min(self.actVar['pltSt'][idx].data) for idx in wantIdxs])
-            ymax=np.max([np.max(self.actVar['pltSt'][idx].data) for idx in wantIdxs])
+            ymin=np.min([np.min(self.hotVar['pltSt'].val[idx].data) for idx in wantIdxs])
+            ymax=np.max([np.max(self.hotVar['pltSt'].val[idx].data) for idx in wantIdxs])
             self.staWidgets[i].setYRange(ymin,ymax)
+            # Assign the widget a station code
+            self.staWidgets[i].sta=thisSta
+            self.staWidgets[i].pltItem.setLabel(axis='left',text=thisSta)
             # Plot the data
             for idx in wantIdxs:
-                self.staWidgets[i].plot(y=self.actVar['pltSt'][idx].data,
-                                        x=self.actVar['pltSt'][idx].times()+self.actVar['pltSt'][idx].stats.starttime.timestamp)
+                self.staWidgets[i].plot(y=self.hotVar['pltSt'].val[idx].data,
+                                        x=self.hotVar['pltSt'].val[idx].times()+self.hotVar['pltSt'].val[idx].stats.starttime.timestamp)
             i+=1
     
-#    def setCurPage(self,nextPage=False,prevPage=False,pageNum=0):
-        
-    
-    # Set the archive availability
-    def setArchive(self):
-        if not os.path.exists(self.archive['dir']):
-            return
-        # Load in all of the start times of the archive
-        archiveFiles,archiveTimes=getArchiveAvail(self.archive['dir'])
-        self.archive['fileNames']=archiveFiles
-        self.archive['fileTimes']=archiveTimes
-        if len(archiveFiles)==0:
-            return
-        # Update the time boxes
-        if self.archive['loadMethod']=='fast':
-            ranges=[[t,t+self.archive['fileLen']] for t in archiveTimes]
-            self.archiveWidget.updateBoxes(ranges)
+    # Set the current page number
+    def setCurPage(self,nextPage=False,prevPage=False,pageNum=0):
+        maxPageNum=(len(self.hotVar['staSort'].val)-1)/self.pref['staPerPage'].val
+        # If the next or previous page, ensure still in bounds
+        if nextPage and self.hotVar['curPage'].val+1<=maxPageNum:
+            self.hotVar['curPage'].val+=1
+        elif prevPage and self.hotVar['curPage'].val-1>=0:
+            self.hotVar['curPage'].val-=1
+        # If neither next nor previous page, set the specific if in bounds
+        elif (not nextPage and not prevPage and pageNum!=self.hotVar['curPage'].val and
+              pageNum>=0 and pageNum<=maxPageNum):
+            self.hotVar['curPage'].val=pageNum
         else:
-            print 'unsupported archive load method'
             return
-        # Show the boundaries
-        self.archiveWidget.t1=archiveTimes[0]
-        self.archiveWidget.t2=archiveTimes[-1]+self.archive['fileLen']
-        self.archiveWidget.updateBoundaries()
+        # If got to the end, the page number must have changed, update the page
+        self.updatePage()
         
     # Update how many widgets are on the main page
     def updateStaPerPage(self):
@@ -168,35 +185,43 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
             self.staWidgets.append(TraceWidget(self.mainLayout))
             self.staWidgets[-1].setXLink('timeAxis')
             self.traceLayout.addWidget(self.staWidgets[-1])
-        # Finally reset the data on the page
-        if self.stream!=None:
-            self.updatePage()
+        self.updatePage()
+        
+    # Set the archive availability
+    def updateArchive(self):
+        if not os.path.exists(self.hotVar['archDir'].val):
+            print 'Archive directory: '+self.hotVar['archDir'].val+' does not exist'
+            return
+        # Load in all of the start times of the archive
+        archiveFiles,archiveTimes=getArchiveAvail(self.hotVar['archDir'].val)
+        self.hotVar['archFiles'].val=archiveFiles
+        self.hotVar['archFileTimes'].val=archiveTimes
+        if len(archiveFiles)==0:
+            print 'No miniseed files in '+self.hotVar['archDir'].val
+            return
+        # Update the time boxes
+        if self.pref['archiveLoadMethod'].val=='fast':
+            ranges=[[t,t+self.pref['archiveFileLen'].val] for t in archiveTimes]
+            self.archiveWidget.updateBoxes(ranges)
+        else:
+            print 'Unsupported archive load method'
+            return
+        # Show the boundaries
+        self.archiveWidget.t1=archiveTimes[0]
+        self.archiveWidget.t2=archiveTimes[-1]+self.pref['archiveFileLen'].val
+        self.archiveWidget.updateBoundaries()
         
     # Scroll the trace log to the bottom if an error occurs
     def scrollTextOut(self):
         scrollBar=self.textOutBrowser.verticalScrollBar()
         scrollBar.setValue(scrollBar.maximum())
-        
-    # Initialize variables which can be updated through actions ("hot variables")
-    def initActVar(self):
-        actVar={'staSort':[],'curPage':0,'pltSt':None}
-        return actVar
-        
-    # If no previous archive was set, use these defaults
-    def defaultArchive(self):
-        archive={'dir':'','fileLen':1800,'loadMethod':'fast',
-                 'fileNames':[],'fileTimes':[]}
-        return archive
-        
-    # If no previous picks were set, use these defaults
-    def defaultPicks(self):
-        picks={'dir':'','files':[]}
-        return picks
     
     # Load setting from previous run, and initialize base variables
     def loadSettings(self):
+        # Get this scripts path, as functions will be relative to this
+        self.path=os.path.dirname(__file__)
         # Load the hot variables
-        self.actVar=self.initActVar()
+        self.hotVar=initHotVar(self)
         # Get all values from settings
         self.settings = QSettings('settings.ini', QSettings.IniFormat)
         # ...UI size
@@ -215,12 +240,9 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         prefVals=self.settings.value('prefVals', {})
         for aKey in prefVals.keys():
             self.pref[aKey].val=prefVals[aKey]
-        # ...Archive information
-        self.archive=self.settings.value('archive', self.defaultArchive())
-        # ...Picks information
-        self.picks=self.settings.value('picks', self.defaultPicks())
+        # ...Saved sources
+        self.saveSource=self.settings.value('savedSources', {})
         # Create empty variables
-        self.stream=None
         self.staWidgets=[]
         
     # Save all settings from current run...
@@ -236,10 +258,8 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         for aKey in self.pref.keys():
             prefVals[self.pref[aKey].tag]=self.pref[aKey].val
         self.settings.setValue('prefVals',prefVals)
-        # ...Archive information
-        self.settings.setValue('archive',self.archive)
-        # ...Picks information
-        self.settings.setValue('picks',self.picks)
+        # ...Saved sources
+        self.settings.setValue('savedSources',self.saveSource)
 
     # When the GUI closes, will save to settings
     def closeEvent(self,event):
@@ -248,11 +268,11 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         
     ## Test values ##
     def loadTest(self):
-        self.archive['dir']='../../Archive'
-        self.picks['dir']='./Picks'
+        self.hotVar['archDir'].val='../../Archive'
+        self.hotVar['pickDir'].val='./Picks'
         
 # Configuration dialog
-class ConfDialog(QtGui.QDialog, Ui_confDialog):
+class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
     def __init__(self,parent=None,actions={},pref={}):
         QtGui.QDialog.__init__(self,parent)
         self.setupUi(self)
@@ -326,9 +346,77 @@ class ConfDialog(QtGui.QDialog, Ui_confDialog):
         if self.dialog.exec_():
             action=self.dialog.returnAction()
             return action
+            
+# Change source dialog
+class CsDialog(QtGui.QDialog, Ui_ChangeSource):
+    def __init__(self,parent=None,savedSources=None):
+        QtGui.QDialog.__init__(self,parent)
+        self.setupUi(self)
+        self.saveSource=savedSources
+        # Give the dialog some functionaly
+        self.setFunctionality()
+        # Show the list of previous saved sources
+        self.csSaveSourceList.addItems(sorted([key for key in self.saveSource.keys()]))
         
-
-
+    # Set up some functionality to the configuration dialog
+    def setFunctionality(self):
+        self.csSaveSourceList.itemDoubleClicked.connect(self.loadSaveSource)
+        self.csSaveSourceList.keyPressedSignal.connect(self.delSaveSource)
+        self.csSaveSourceButton.clicked.connect(self.addSavedSource)
+        # Allow double click on paths to open up dialogs to extract path names
+#        self.csArchiveLineEdit.mouseDoubleClickEvent.connect(self.getPathName)
+#        self.csPickLineEdit.mouseDoubleClickEvent.connect(self.getPathName)
+#        self.csStationLineEdit.mouseDoubleClickEvent.connect(self.getPathName)
+#        self.csStationLineEdit.mouse
+        
+    # Put the saved source into the saved source list and dictionary
+    def loadSaveSource(self):
+        source=self.saveSource[self.csSaveSourceList.currentItem().text()]
+        self.csTagLineEdit.setText(source.tag)
+        self.csArchiveLineEdit.setText(source.archDir)
+        self.csPickLineEdit.setText(source.pickDir)
+        self.csStationLineEdit.setText(source.staFile)
+    
+    # Delete the selected saved source
+    def delSaveSource(self):
+        if self.csSaveSourceList.key != Qt.Key_Delete or self.csSaveSourceList.currentItem()==None:
+            return
+        tag=self.csSaveSourceList.currentItem().text()
+        # Remove from the saved sources dictionary...
+        self.saveSource.pop(tag)
+        # ...and the gui list
+        self.csSaveSourceList.takeItem(self.csSaveSourceList.currentRow())
+    
+    # Using the current text
+    def addSavedSource(self):
+        source=self.curSource()
+        # Add this to the saved sources list
+        if source.tag not in [key for key in self.saveSource.keys()]:
+            self.csSaveSourceList.addItem(source.tag)
+        self.saveSource[source.tag]=source
+        
+#    # Function to open a dialog and get the path name
+#    def getPathName(self):
+#        print self.csStationLineEdit.isFocused()
+#        if self.csStationFileLineEdit.isFocused():
+#            name=str(QtGui.QFileDialog.getOpenFileName(self, "Select File"))
+#        elif self.type=='Folder':
+#            name=str(QtGui.QFileDialog.getExistingDirectory(self, "Select Folder"))
+#        name=name.replace('\\','/')
+#        return name
+        
+    # Create a source object from the line edit
+    def curSource(self):
+        source=SaveSource(tag=self.csTagLineEdit.text(),
+                          archDir=self.csArchiveLineEdit.text(),
+                          pickDir=self.csPickLineEdit.text(),
+                          staFile=self.csStationLineEdit.text())
+        return source
+        
+    # Upon close, return the source currently in the line edits
+    def returnSource(self):
+        return self.curSource()
+            
 # Class for logging
 class QtHandler(logging.Handler):
     def __init__(self):

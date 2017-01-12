@@ -22,16 +22,16 @@ except AttributeError:
     def _translate(context, text, disambig):
         return QtGui.QApplication.translate(context, text, disambig)
 
-class Ui_confDialog(object):
-    def setupUi(self, confDialog):
-        confDialog.setObjectName(_fromUtf8("confDialog"))
-        confDialog.resize(634, 535)
-        self.horizontalLayout = QtGui.QHBoxLayout(confDialog)
+class Ui_ConfDialog(object):
+    def setupUi(self, ConfDialog):
+        ConfDialog.setObjectName(_fromUtf8("ConfDialog"))
+        ConfDialog.resize(634, 535)
+        self.horizontalLayout = QtGui.QHBoxLayout(ConfDialog)
         self.horizontalLayout.setObjectName(_fromUtf8("horizontalLayout"))
         self.confPrefLayout = QtGui.QVBoxLayout()
         self.confPrefLayout.setSpacing(1)
         self.confPrefLayout.setObjectName(_fromUtf8("confPrefLayout"))
-        self.confPrefLabel = QtGui.QLabel(confDialog)
+        self.confPrefLabel = QtGui.QLabel(ConfDialog)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -41,7 +41,7 @@ class Ui_confDialog(object):
         self.confPrefLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.confPrefLabel.setObjectName(_fromUtf8("confPrefLabel"))
         self.confPrefLayout.addWidget(self.confPrefLabel)
-        self.confPrefList = KeyListWidget(confDialog)
+        self.confPrefList = KeyListWidget(ConfDialog)
         self.confPrefList.setObjectName(_fromUtf8("confPrefList"))
         self.confPrefLayout.addWidget(self.confPrefList)
         self.horizontalLayout.addLayout(self.confPrefLayout)
@@ -51,7 +51,7 @@ class Ui_confDialog(object):
         self.confPassiveLayout = QtGui.QVBoxLayout()
         self.confPassiveLayout.setSpacing(1)
         self.confPassiveLayout.setObjectName(_fromUtf8("confPassiveLayout"))
-        self.confPassiveLabel = QtGui.QLabel(confDialog)
+        self.confPassiveLabel = QtGui.QLabel(ConfDialog)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -61,14 +61,14 @@ class Ui_confDialog(object):
         self.confPassiveLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.confPassiveLabel.setObjectName(_fromUtf8("confPassiveLabel"))
         self.confPassiveLayout.addWidget(self.confPassiveLabel)
-        self.confPassiveList = KeyListWidget(confDialog)
+        self.confPassiveList = KeyListWidget(ConfDialog)
         self.confPassiveList.setObjectName(_fromUtf8("confPassiveList"))
         self.confPassiveLayout.addWidget(self.confPassiveList)
         self.confActionsLayout.addLayout(self.confPassiveLayout)
         self.confActiveLayout = QtGui.QVBoxLayout()
         self.confActiveLayout.setSpacing(1)
         self.confActiveLayout.setObjectName(_fromUtf8("confActiveLayout"))
-        self.confActiveLabel = QtGui.QLabel(confDialog)
+        self.confActiveLabel = QtGui.QLabel(ConfDialog)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -78,19 +78,19 @@ class Ui_confDialog(object):
         self.confActiveLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.confActiveLabel.setObjectName(_fromUtf8("confActiveLabel"))
         self.confActiveLayout.addWidget(self.confActiveLabel)
-        self.confActiveList = KeyListWidget(confDialog)
+        self.confActiveList = KeyListWidget(ConfDialog)
         self.confActiveList.setObjectName(_fromUtf8("confActiveList"))
         self.confActiveLayout.addWidget(self.confActiveList)
         self.confActionsLayout.addLayout(self.confActiveLayout)
         self.horizontalLayout.addLayout(self.confActionsLayout)
 
-        self.retranslateUi(confDialog)
-        QtCore.QMetaObject.connectSlotsByName(confDialog)
+        self.retranslateUi(ConfDialog)
+        QtCore.QMetaObject.connectSlotsByName(ConfDialog)
 
-    def retranslateUi(self, confDialog):
-        confDialog.setWindowTitle(_translate("confDialog", "Configuration", None))
-        self.confPrefLabel.setText(_translate("confDialog", "Preferences", None))
-        self.confPassiveLabel.setText(_translate("confDialog", "Passive Actions Ordering", None))
-        self.confActiveLabel.setText(_translate("confDialog", "Active Actions Ordering", None))
+    def retranslateUi(self, ConfDialog):
+        ConfDialog.setWindowTitle(_translate("ConfDialog", "Configuration", None))
+        self.confPrefLabel.setText(_translate("ConfDialog", "Preferences", None))
+        self.confPassiveLabel.setText(_translate("ConfDialog", "Passive Actions Ordering", None))
+        self.confActiveLabel.setText(_translate("ConfDialog", "Active Actions Ordering", None))
 
 from CustomWidgets import KeyListWidget

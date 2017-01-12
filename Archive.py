@@ -3,6 +3,26 @@ from obspy import read, UTCDateTime
 from obspy import Stream as EmptyStream
 import os
 
+# Saved sources class, for reading in old (or adding new) archive/pick/station information
+class SaveSource(object):
+    def __init__(self,tag=None,archDir=None,
+                 pickDir=None,staFile=None):
+        self.tag=tag
+        self.archDir=archDir
+        self.pickDir=pickDir
+        self.staFile=staFile
+    
+    # A check to see if all files can be read
+    def pathExist(self):
+        allPathsExist=True
+        for txt,path in [['archive directory',self.archDir],
+                         ['pick directory',self.pickDir],
+                         ['station file',self.staFile]]:
+            if not os.path.exists(path):
+                print 'The '+txt+' does not exist at: '+path
+                allPathsExist=False
+        return allPathsExist
+
 # Read in all the start and stop times of the files
 def getArchiveAvail(archiveDir):
     # Make a list of event times from the folder, for easier searching later

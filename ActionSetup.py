@@ -25,7 +25,7 @@ except AttributeError:
 class Ui_actionDialog(object):
     def setupUi(self, actionDialog):
         actionDialog.setObjectName(_fromUtf8("actionDialog"))
-        actionDialog.resize(829, 516)
+        actionDialog.resize(470, 516)
         self.verticalLayout = QtGui.QVBoxLayout(actionDialog)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.actShortInputLayout = QtGui.QGridLayout()
@@ -53,7 +53,7 @@ class Ui_actionDialog(object):
         self.actNameLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.actNameLabel.setObjectName(_fromUtf8("actNameLabel"))
         self.actShortInputLayout.addWidget(self.actNameLabel, 1, 1, 1, 1)
-        self.actTagLineEdit = QtGui.QLineEdit(actionDialog)
+        self.actTagLineEdit = HoverLineEdit(actionDialog)
         self.actTagLineEdit.setObjectName(_fromUtf8("actTagLineEdit"))
         self.actShortInputLayout.addWidget(self.actTagLineEdit, 0, 2, 1, 1)
         self.actTagLabel = QtGui.QLabel(actionDialog)
@@ -160,9 +160,9 @@ class Ui_actionDialog(object):
         self.actAvailReturnList = QtGui.QListWidget(actionDialog)
         self.actAvailReturnList.setObjectName(_fromUtf8("actAvailReturnList"))
         self.actReturnLayout.addWidget(self.actAvailReturnList, 3, 0, 1, 1)
-        self.actAvailInputsList = QtGui.QListWidget(actionDialog)
-        self.actAvailInputsList.setObjectName(_fromUtf8("actAvailInputsList"))
-        self.actReturnLayout.addWidget(self.actAvailInputsList, 1, 0, 1, 1)
+        self.actAvailInputList = QtGui.QListWidget(actionDialog)
+        self.actAvailInputList.setObjectName(_fromUtf8("actAvailInputList"))
+        self.actReturnLayout.addWidget(self.actAvailInputList, 1, 0, 1, 1)
         self.actSelectInputList = QtGui.QListWidget(actionDialog)
         self.actSelectInputList.setObjectName(_fromUtf8("actSelectInputList"))
         self.actReturnLayout.addWidget(self.actSelectInputList, 1, 1, 1, 1)
@@ -205,4 +205,4 @@ class Ui_actionDialog(object):
         self.actAvailInputLabel.setText(_translate("actionDialog", "Available Inputs", None))
         self.actSelectInputLabel.setText(_translate("actionDialog", "Selected Inputs", None))
 
-from CustomWidgets import KeyBindLineEdit
+from CustomWidgets import HoverLineEdit, KeyBindLineEdit

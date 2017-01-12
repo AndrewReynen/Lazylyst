@@ -106,7 +106,7 @@ class TraceWidget(pg.PlotWidget):
         self.pltItem.hideButtons()
         self.pltItem.getAxis('left').setWidth(70)
         # Assign this widget a station
-        self.sta=sta   
+        self.sta=sta
         # Assign key to delete a pick off this widget
         self.delPickKey=delPickKey
         # Give this widget a set of vertical lines (represents a pick)
@@ -156,6 +156,19 @@ class KeyListWidget(QtGui.QListWidget):
         super(KeyListWidget, self).enterEvent(ev)
         self.setFocus()
     
+def keyPressToString(ev):
+    MOD_MASK = (Qt.CTRL | Qt.ALT | Qt.SHIFT | Qt.META)
+    keyname = None
+    key = ev.key()
+    modifiers = int(ev.modifiers())
+    if key in [Qt.Key_Shift,Qt.Key_Alt,Qt.Key_Control,Qt.Key_Meta]:
+        pass
+    elif (modifiers and modifiers & MOD_MASK==modifiers and key>0):
+        keyname=QtGui.QKeySequence(modifiers+key).toString()
+    else:
+        keyname=QtGui.QKeySequence(key).toString()
+    return keyname
+    
 # Line edit which returns key-bind strings
 class KeyBindLineEdit(QtGui.QLineEdit):
     keyPressed = QtCore.pyqtSignal(str)
@@ -165,14 +178,27 @@ class KeyBindLineEdit(QtGui.QLineEdit):
         self.MOD_MASK = (Qt.CTRL | Qt.ALT | Qt.SHIFT | Qt.META)
     
     # If any usual key bind was pressed, return the human recognizable string
-    def keyPressEvent(self, event):
-        keyname = ''
-        key = event.key()
-        modifiers = int(event.modifiers())
-        if key in [Qt.Key_Shift,Qt.Key_Alt,Qt.Key_Control,Qt.Key_Meta]:
+    def keyPressEvent(self, ev):
+        keyname = keyPressToString(ev)
+        if keyname==None:
             return
-        elif (modifiers and modifiers & self.MOD_MASK==modifiers and key>0):
-            keyname=QtGui.QKeySequence(modifiers+key).toString()
-        else:
-            keyname=QtGui.QKeySequence(key).toString()
         self.keyPressed.emit(keyname)
+        
+# Line edit which returns a signal upon being hovered out of
+class HoverLineEdit(QtGui.QLineEdit):
+    hoverOut = QtCore.pyqtSignal()
+    
+    def __init__(self, parent=None):
+        super(HoverLineEdit, self).__init__(parent)   
+        self.changeState=False        
+        self.textChanged.connect(self.updateChangeState)
+        
+    def leaveEvent(self, ev):
+        # Only emit if the text was changed
+        if self.changeState:
+            self.hoverOut.emit()
+            self.changeState=False
+    
+    def updateChangeState(self,ev):
+        self.changeState=True
+        

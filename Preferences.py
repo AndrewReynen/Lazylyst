@@ -6,7 +6,9 @@ def defaultPreferences(main):
     'staPerPage':Pref(tag='staPerPage',val=6,dataType=int,
                       func=main.updateStaPerPage),
     'evePreTime':Pref(tag='evePreTime',val=-60,dataType=int),
-    'evePostTime':Pref(tag='evePostTime',val=120,dataType=int)
+    'evePostTime':Pref(tag='evePostTime',val=120,dataType=int),
+    'archiveFileLen':Pref(tag='archiveFileLen',val=1800,dataType=int),
+    'archiveLoadMethod':Pref(tag='archiveLoadMethod',val='fast')
     }
     return pref
 
