@@ -99,6 +99,8 @@ class TraceWidget(pg.PlotWidget):
         # Speed up the panning and zooming
         self.pltItem.setClipToView(True)
         self.pltItem.setDownsampling(True, True, 'peak')
+        # Turn off the auto ranging
+        self.pltItem.vb.disableAutoRange()
         # Only show the left axis
         self.pltItem.hideAxis('bottom')
         self.pltItem.hideButtons()
@@ -153,3 +155,24 @@ class KeyListWidget(QtGui.QListWidget):
     def enterEvent(self,ev):
         super(KeyListWidget, self).enterEvent(ev)
         self.setFocus()
+    
+# Line edit which returns key-bind strings
+class KeyBindLineEdit(QtGui.QLineEdit):
+    keyPressed = QtCore.pyqtSignal(str)
+    
+    def __init__(self, parent=None):
+        super(KeyBindLineEdit, self).__init__(parent)    
+        self.MOD_MASK = (Qt.CTRL | Qt.ALT | Qt.SHIFT | Qt.META)
+    
+    # If any usual key bind was pressed, return the human recognizable string
+    def keyPressEvent(self, event):
+        keyname = ''
+        key = event.key()
+        modifiers = int(event.modifiers())
+        if key in [Qt.Key_Shift,Qt.Key_Alt,Qt.Key_Control,Qt.Key_Meta]:
+            return
+        elif (modifiers and modifiers & self.MOD_MASK==modifiers and key>0):
+            keyname=QtGui.QKeySequence(modifiers+key).toString()
+        else:
+            keyname=QtGui.QKeySequence(key).toString()
+        self.keyPressed.emit(keyname)

@@ -25,7 +25,7 @@ except AttributeError:
 class Ui_actionDialog(object):
     def setupUi(self, actionDialog):
         actionDialog.setObjectName(_fromUtf8("actionDialog"))
-        actionDialog.resize(829, 621)
+        actionDialog.resize(829, 516)
         self.verticalLayout = QtGui.QVBoxLayout(actionDialog)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.actShortInputLayout = QtGui.QGridLayout()
@@ -120,7 +120,7 @@ class Ui_actionDialog(object):
         self.actTriggerLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.actTriggerLabel.setObjectName(_fromUtf8("actTriggerLabel"))
         self.actTriggerTopLayout.addWidget(self.actTriggerLabel)
-        self.actTriggerLineEdit = QtGui.QLineEdit(actionDialog)
+        self.actTriggerLineEdit = KeyBindLineEdit(actionDialog)
         self.actTriggerLineEdit.setObjectName(_fromUtf8("actTriggerLineEdit"))
         self.actTriggerTopLayout.addWidget(self.actTriggerLineEdit)
         self.actTriggerLayout.addLayout(self.actTriggerTopLayout)
@@ -205,3 +205,4 @@ class Ui_actionDialog(object):
         self.actAvailInputLabel.setText(_translate("actionDialog", "Available Inputs", None))
         self.actSelectInputLabel.setText(_translate("actionDialog", "Selected Inputs", None))
 
+from CustomWidgets import KeyBindLineEdit

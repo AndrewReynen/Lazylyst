@@ -186,7 +186,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QLineEdit" name="actTriggerLineEdit"/>
+          <widget class="KeyBindLineEdit" name="actTriggerLineEdit"/>
          </item>
         </layout>
        </item>
@@ -298,6 +298,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>KeyBindLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>CustomWidgets.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>

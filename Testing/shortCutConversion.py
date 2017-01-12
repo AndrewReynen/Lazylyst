@@ -1,6 +1,8 @@
 import sys
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+from PyQt4 import QtGui,QtCore
+from PyQt4.QtCore import Qt
 
 def main():
     app = QApplication(sys.argv)
@@ -8,9 +10,9 @@ def main():
     w.show()
     sys.exit(app.exec_())
 
-class MyWindow(QWidget):
+class MyWindow(QtGui.QWidget):
     def __init__(self, *args):
-        QWidget.__init__(self, *args)
+        QtGui.QWidget.__init__(self, *args)
 
         self.la = QLabel("Press tab in this box:")
         self.le = MyLineEdit()
@@ -27,21 +29,20 @@ class MyWindow(QWidget):
 
 MOD_MASK = (Qt.CTRL | Qt.ALT | Qt.SHIFT | Qt.META)
 
-class MyLineEdit(QLineEdit):
-    keyPressed = pyqtSignal(str)
+class KeyBindLineEdit(QtGui.QLineEdit):
+    keyPressed = QtCore.pyqtSignal(str)
 
+    # If any usual key bind was pressed, return the human recognizable string
     def keyPressEvent(self, event):
         keyname = ''
         key = event.key()
         modifiers = int(event.modifiers())
-        if (modifiers and modifiers & MOD_MASK == modifiers and
-            key > 0 and key != Qt.Key_Shift and key != Qt.Key_Alt and
-            key != Qt.Key_Control and key != Qt.Key_Meta):
-
-            keyname = QKeySequence(modifiers + key).toString()
-
-            print('event.text(): %r' % event.text())
-            print('event.key(): %d, %#x, %s' % (key, key, keyname))
+        if key in [Qt.Key_Shift,Qt.Key_Alt,Qt.Key_Control,Qt.Key_Meta]:
+            return
+        elif (modifiers and modifiers & MOD_MASK==modifiers and key>0):
+            keyname=QtGui.QKeySequence(modifiers+key).toString()
+        else:
+            keyname=QtGui.QKeySequence(key).toString()
         self.keyPressed.emit(keyname)
 
 if __name__ == "__main__":

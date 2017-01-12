@@ -96,6 +96,8 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
                                            self.archive['fileTimes'],archiveFileLen=self.archive['fileLen'])
         # Make a copy for any filtering to be applied
         self.actVar['pltSt']=self.stream.copy()
+        # Sort traces by channel so they are added in same order (relative other stations)
+        self.actVar['pltSt'].sort(keys=['channel'])
         ## Alphabetical sorting for now ##
         self.actVar['staSort']=np.sort(np.unique([tr.stats.station for tr in self.stream]))
         # Move the axis time limit to the appropriate position
@@ -107,8 +109,6 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
     
     # Update the entire page which includes data, picks, and sorting
     def updatePage(self):
-        # Sort traces by channel so they are added in same order (relative other stations)
-        self.actVar['pltSt'].sort(keys=['channel'])
         # Clear away all previous lines, and set the limits to the data
         for i in range(len(self.staWidgets)):
             self.staWidgets[i].clear()
@@ -119,8 +119,13 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         while self.actVar['curPage']*self.pref['staPerPage'].val+i<numStas:
             if i==self.pref['staPerPage'].val:
                 break
-            # Figure out which traces are associated with the 
+            # Figure out which traces are associated with the next station in staSort
             wantIdxs=np.where(stas==self.actVar['staSort'][self.actVar['curPage']*self.pref['staPerPage'].val+i])[0]
+            # Also set the y-limits
+            ymin=np.min([np.min(self.actVar['pltSt'][idx].data) for idx in wantIdxs])
+            ymax=np.max([np.max(self.actVar['pltSt'][idx].data) for idx in wantIdxs])
+            self.staWidgets[i].setYRange(ymin,ymax)
+            # Plot the data
             for idx in wantIdxs:
                 self.staWidgets[i].plot(y=self.actVar['pltSt'][idx].data,
                                         x=self.actVar['pltSt'][idx].times()+self.actVar['pltSt'][idx].stats.starttime.timestamp)
@@ -163,6 +168,9 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
             self.staWidgets.append(TraceWidget(self.mainLayout))
             self.staWidgets[-1].setXLink('timeAxis')
             self.traceLayout.addWidget(self.staWidgets[-1])
+        # Finally reset the data on the page
+        if self.stream!=None:
+            self.updatePage()
         
     # Scroll the trace log to the bottom if an error occurs
     def scrollTextOut(self):
@@ -211,7 +219,8 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         self.archive=self.settings.value('archive', self.defaultArchive())
         # ...Picks information
         self.picks=self.settings.value('picks', self.defaultPicks())
-        # Create the desired number of station widgets
+        # Create empty variables
+        self.stream=None
         self.staWidgets=[]
         
     # Save all settings from current run...

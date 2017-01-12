@@ -18,6 +18,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
     def setFunctionality(self):
         self.actPassiveRadio.clicked.connect(self.togglePassiveActive)
         self.actActiveRadio.clicked.connect(self.togglePassiveActive)
+        self.actTriggerLineEdit.keyPressed.connect(self.updateKeyBind)
     
     # Fill the dialog with info relating to action
     def fillDialog(self):
@@ -42,7 +43,21 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # If started as a passive or action, do not allow the swap
         self.actPassiveRadio.setEnabled(False)
         self.actActiveRadio.setEnabled(False)
-        
+    
+    # Update the key bind to what the user pressed
+    def updateKeyBind(self,keyBindText):
+        # Key binds are only used for active actions
+        if self.actPassiveRadio.isChecked():
+            return
+        # If the key-bind is already in use, do not allow update
+        for tag,action in self.actDict.iteritems():
+            if action.trigger.toString()==keyBindText and action.tag!=self.action.tag:
+                print action.tag+' already uses key-bind '+keyBindText
+                return
+        # Otherwise, update the trigger line edit (trigger value is updated upon close)
+        self.actTriggerLineEdit.setText(keyBindText)
+    
+    # Depending on if this is an active or passive action, turn on/off some widgets
     def togglePassiveActive(self):
         if self.actActiveRadio.isChecked():
             self.passiveBeforeCheck.setEnabled(False)
