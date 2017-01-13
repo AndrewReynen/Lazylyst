@@ -91,6 +91,6 @@ class Ui_ConfDialog(object):
         ConfDialog.setWindowTitle(_translate("ConfDialog", "Configuration", None))
         self.confPrefLabel.setText(_translate("ConfDialog", "Preferences", None))
         self.confPassiveLabel.setText(_translate("ConfDialog", "Passive Actions Ordering", None))
-        self.confActiveLabel.setText(_translate("ConfDialog", "Active Actions Ordering", None))
+        self.confActiveLabel.setText(_translate("ConfDialog", "Active Actions", None))
 
 from CustomWidgets import KeyListWidget

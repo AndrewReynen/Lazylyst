@@ -143,8 +143,7 @@ class KeyListWidget(QtGui.QListWidget):
     
     # Load a list of strings to be added to gui list
     def loadList(self,strArr):
-        for aEntry in strArr:
-            self.addItem(aEntry)
+        self.addItems(strArr)
     
     # Update this widgets last pressed key, and return a signal
     def keyPressEvent(self, ev):
@@ -171,7 +170,7 @@ def keyPressToString(ev):
     
 # Line edit which returns key-bind strings
 class KeyBindLineEdit(QtGui.QLineEdit):
-    keyPressed = QtCore.pyqtSignal(str)
+    keyPressed=QtCore.pyqtSignal(str)
     
     def __init__(self, parent=None):
         super(KeyBindLineEdit, self).__init__(parent)    
@@ -183,6 +182,16 @@ class KeyBindLineEdit(QtGui.QLineEdit):
         if keyname==None:
             return
         self.keyPressed.emit(keyname)
+
+# Line edit which returns signal upon being double cliced     
+class DblClickLineEdit(QtGui.QLineEdit):
+    doubleClicked=QtCore.pyqtSignal()  
+    
+    def __init__(self, parent=None):
+        super(DblClickLineEdit, self).__init__(parent)   
+    
+    def mouseDoubleClickEvent(self,ev):
+        self.doubleClicked.emit()
         
 # Line edit which returns a signal upon being hovered out of
 class HoverLineEdit(QtGui.QLineEdit):

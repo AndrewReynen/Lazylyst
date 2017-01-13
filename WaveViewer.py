@@ -6,12 +6,12 @@ from PyQt4 import QtGui,QtCore
 from PyQt4.QtCore import Qt,QSettings
 from MainWindow import Ui_MainWindow
 from Configuration import Ui_ConfDialog
-from ChangeSource import Ui_ChangeSource
 from CustomWidgets import TraceWidget, keyPressToString
 from HotVariables import initHotVar
 from Preferences import defaultPreferences
 from Actions import defaultActions, Action, ActionSetupDialog
-from Archive import SaveSource, getArchiveAvail, getTimeFromFileName, extractDataFromArchive
+from Archive import getArchiveAvail, getTimeFromFileName, extractDataFromArchive
+from SaveSource import CsDialog
 import numpy as np
 
 # Main window class
@@ -22,8 +22,8 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         self.setupUi(self)
         self.loadSettings()
         self.applyPreferences()
-        self.loadTest() ## Load values used for testing ##
         self.setFunctionality()
+        self.introduction()
     
     # Go through all preferences, and call their update functions
     def applyPreferences(self):
@@ -32,9 +32,6 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         
     # Start setting up some functionality to the UI
     def setFunctionality(self):
-        ## Load in the archive and picks ##
-        self.updateArchive()
-        self.updatePickFileList()
         # Give ability to the archive displays
         self.archiveList.graph=self.archiveWidget
         self.archiveList.graph.addNewEventSignal.connect(self.addPickFile)
@@ -45,14 +42,21 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         XStream.stderr().messageWritten.connect(self.textOutBrowser.insertPlainText)
         self.textOutBrowser.textChanged.connect(self.scrollTextOut)
     
+    # Report the current keybinds for the configuration and change source actions
+    def introduction(self):
+        print 'Press: '+self.act['ChangeSource'].trigger.toString()+' to change source (archive/picks/station metadata)'
+        print 'Press: '+self.act['OpenOptions'].trigger.toString()+' to open the configuration dialog'
+    
     # Function to handle key board input from user
     def keyPressEvent(self, ev):
         super(WaveViewer000, self).keyPressEvent(ev)
         keyname=keyPressToString(ev)
         if keyname==None:
             return
-        # Loop through all actions and see if one is activated
-        for tag,action in self.act.iteritems():
+        # Loop through all actions and see if one is activated...
+        # ... use the original set (an action may be added part way through, so can mess with the loop)
+        actions=[action for key,action in self.act.iteritems()]
+        for action in actions:
             if not action.passive and action.trigger.toString()==keyname:
                 action.func(**action.optionals)
     
@@ -63,14 +67,24 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         
     # Open the change source window
     def openChangeSource(self):
-        self.dialog=CsDialog(savedSources=self.saveSource)
+        self.dialog=CsDialog(self.hotVar,self.saveSource)
         # Extract the wanted source
         if self.dialog.exec_():
             source=self.dialog.returnSource()
             # If the files exist, update the hot variables
-            print 'SourcePathExist?',source.pathExist()
-##            if source.pathsExist():
-                
+            if source.pathExist():
+                for key,val in [['sourceTag',source.tag],
+                                ['archDir',source.archDir],
+                                ['pickDir',source.pickDir],
+                                ['staFile',source.staFile]]:
+                    # Do not bother updating a hot variable if it is the same as before
+                    if self.hotVar[key].val==val:
+                        continue
+                    self.hotVar[key].val=val
+                    self.hotVar[key].update()
+                ## Must now also get the staMeta np.array, and update() ##
+            else:
+                print 'Source update skipped'
     
     # Add an empty pick file to the pick directory, also add to GUI list
     def addPickFile(self):
@@ -87,22 +101,6 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         # Add to the picks directory
         newFile=open(self.hotVar['pickDir'].val+'/'+newPickFile,'w')
         newFile.close()
-        
-    # Load the pick file list for display
-    def updatePickFileList(self):
-        # Clear the old list
-        self.archiveList.clear()
-        # Only accept files with proper naming convention
-        for aFile in sorted(os.listdir(self.hotVar['pickDir'].val)):
-            splitFile=aFile.split('_')
-            if len(splitFile)!=2 or aFile.split('.')[-1]!='picks':
-                continue
-            try:
-                int(splitFile[0])
-                getTimeFromFileName(aFile)
-            except:
-                continue
-            self.archiveList.addItem(aFile)
             
     # Load the current event
     def loadEvent(self):
@@ -189,9 +187,6 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         
     # Set the archive availability
     def updateArchive(self):
-        if not os.path.exists(self.hotVar['archDir'].val):
-            print 'Archive directory: '+self.hotVar['archDir'].val+' does not exist'
-            return
         # Load in all of the start times of the archive
         archiveFiles,archiveTimes=getArchiveAvail(self.hotVar['archDir'].val)
         self.hotVar['archFiles'].val=archiveFiles
@@ -211,6 +206,24 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         self.archiveWidget.t2=archiveTimes[-1]+self.pref['archiveFileLen'].val
         self.archiveWidget.updateBoundaries()
         
+    # Load the pick file list for display
+    def updatePickFileList(self):
+        # Clear the old list
+        self.archiveList.clear()
+        self.hotVar['pickFiles'].val=[]
+        # Only accept files with proper naming convention
+        for aFile in sorted(os.listdir(self.hotVar['pickDir'].val)):
+            splitFile=aFile.split('_')
+            if len(splitFile)!=2 or aFile.split('.')[-1]!='picks':
+                continue
+            try:
+                int(splitFile[0])
+                getTimeFromFileName(aFile)
+            except:
+                continue
+            self.hotVar['pickFiles'].val.append(aFile)
+            self.archiveList.addItem(aFile)
+        
     # Scroll the trace log to the bottom if an error occurs
     def scrollTextOut(self):
         scrollBar=self.textOutBrowser.verticalScrollBar()
@@ -222,17 +235,15 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         self.path=os.path.dirname(__file__)
         # Load the hot variables
         self.hotVar=initHotVar(self)
+        for key,hotVar in self.hotVar.iteritems():
+            hotVar.linkToFunction(self)
         # Get all values from settings
         self.settings = QSettings('settings.ini', QSettings.IniFormat)
         # ...UI size
         self.resize(self.settings.value('size', QtCore.QSize(1300, 700)))
-        # ...Actions, load in the custom actions enuring default actions are still present,
-        self.act=self.settings.value('actions', {})
-        origActions=defaultActions()
-        for key,action in origActions.iteritems():
-            if key not in self.act.keys():
-                self.act[key]=action
-        # then link all actions to their appropriate functions
+        # ...Actions
+        self.act=self.settings.value('actions', defaultActions())
+        # Link all actions to their appropriate functions
         for key,action in self.act.iteritems():
             action.linkToFunction(self)
         # ...Preferences
@@ -262,14 +273,9 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         self.settings.setValue('savedSources',self.saveSource)
 
     # When the GUI closes, will save to settings
-    def closeEvent(self,event):
+    def closeEvent(self,ev):
         self.saveSettings()
-        event.accept()
-        
-    ## Test values ##
-    def loadTest(self):
-        self.hotVar['archDir'].val='../../Archive'
-        self.hotVar['pickDir'].val='./Picks'
+        ev.accept()
         
 # Configuration dialog
 class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
@@ -288,6 +294,7 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         self.confPrefList.keyPressedSignal.connect(self.listCalled)
         self.confActiveList.keyPressedSignal.connect(self.listCalled)
         self.confPassiveList.keyPressedSignal.connect(self.listCalled)
+        self.confActiveList.setSortingEnabled(True)
     
     # Load in all of the lists from previous state
     def loadLists(self):
@@ -295,15 +302,16 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         self.confActiveList.loadList([key for key in self.act.keys() if not self.act[key].passive])
         self.confPassiveList.loadList([key for key in self.act.keys() if self.act[key].passive])
         
-    # Open the setup action dialog
+    # Function to handle calls to the configuration lists
     def listCalled(self):
         # If either of the action lists had focus
         action=None
         if self.confActiveList.hasFocus() or self.confPassiveList.hasFocus():
             curList=self.confActiveList if self.confActiveList.hasFocus() else self.confPassiveList
+            startList='active' if self.confActiveList.hasFocus() else 'passive'
             # Skip if no accepted keys were passed
             if curList.key not in [Qt.Key_Insert,Qt.Key_Backspace,Qt.Key_Delete]:
-                pass
+                return
             # Creating a new action (Insert Key)
             elif curList.key==Qt.Key_Insert:
                 if self.confActiveList.hasFocus():
@@ -319,18 +327,37 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
             # Delete an action (Delete Key)
             elif curList.key==Qt.Key_Delete:
                 actTag=curList.currentItem().text()
+                # If this is a locked action, the user cannot delete it
+                if self.act[actTag].locked:
+                    print actTag+' is a built-in action, it cannot be deleted'
+                    return
                 # Remove from the list
                 curList.takeItem(curList.currentRow())
                 # As well as from the action dictionary
                 self.act.pop(actTag)
         if action!=None:
-            # If a new action was added, add the item to list...
+            # If a new action was added, add the item to the appropriate list
             if curList.key==Qt.Key_Insert:
-                curList.addItem(action.tag)
+                if action.passive:
+                    self.confPassiveList.addItem(action.tag)
+                else:
+                    self.confActiveList.addItem(action.tag)
             # ...otherwise, update the name of the new action
             else:
+                # Remove the old action
                 self.act.pop(curList.currentItem().text())
-                curList.currentItem().setText(action.tag)
+                # Check to see if the edit made it swap lists...
+                # ...going from active to passive
+                if (startList=='active' and action.passive):
+                    curList.takeItem(curList.currentRow())
+                    self.confPassiveList.addItem(action.tag)
+                # ...going from passive to active
+                elif (startList=='passive' and not action.passive):
+                    curList.takeItem(curList.currentRow())
+                    self.confActiveList.addItem(action.tag)
+                # ...updating the original list
+                else:
+                    curList.currentItem().setText(action.tag)
             # Finally add to the action dictionary
             self.act[action.tag]=action
             
@@ -346,76 +373,6 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         if self.dialog.exec_():
             action=self.dialog.returnAction()
             return action
-            
-# Change source dialog
-class CsDialog(QtGui.QDialog, Ui_ChangeSource):
-    def __init__(self,parent=None,savedSources=None):
-        QtGui.QDialog.__init__(self,parent)
-        self.setupUi(self)
-        self.saveSource=savedSources
-        # Give the dialog some functionaly
-        self.setFunctionality()
-        # Show the list of previous saved sources
-        self.csSaveSourceList.addItems(sorted([key for key in self.saveSource.keys()]))
-        
-    # Set up some functionality to the configuration dialog
-    def setFunctionality(self):
-        self.csSaveSourceList.itemDoubleClicked.connect(self.loadSaveSource)
-        self.csSaveSourceList.keyPressedSignal.connect(self.delSaveSource)
-        self.csSaveSourceButton.clicked.connect(self.addSavedSource)
-        # Allow double click on paths to open up dialogs to extract path names
-#        self.csArchiveLineEdit.mouseDoubleClickEvent.connect(self.getPathName)
-#        self.csPickLineEdit.mouseDoubleClickEvent.connect(self.getPathName)
-#        self.csStationLineEdit.mouseDoubleClickEvent.connect(self.getPathName)
-#        self.csStationLineEdit.mouse
-        
-    # Put the saved source into the saved source list and dictionary
-    def loadSaveSource(self):
-        source=self.saveSource[self.csSaveSourceList.currentItem().text()]
-        self.csTagLineEdit.setText(source.tag)
-        self.csArchiveLineEdit.setText(source.archDir)
-        self.csPickLineEdit.setText(source.pickDir)
-        self.csStationLineEdit.setText(source.staFile)
-    
-    # Delete the selected saved source
-    def delSaveSource(self):
-        if self.csSaveSourceList.key != Qt.Key_Delete or self.csSaveSourceList.currentItem()==None:
-            return
-        tag=self.csSaveSourceList.currentItem().text()
-        # Remove from the saved sources dictionary...
-        self.saveSource.pop(tag)
-        # ...and the gui list
-        self.csSaveSourceList.takeItem(self.csSaveSourceList.currentRow())
-    
-    # Using the current text
-    def addSavedSource(self):
-        source=self.curSource()
-        # Add this to the saved sources list
-        if source.tag not in [key for key in self.saveSource.keys()]:
-            self.csSaveSourceList.addItem(source.tag)
-        self.saveSource[source.tag]=source
-        
-#    # Function to open a dialog and get the path name
-#    def getPathName(self):
-#        print self.csStationLineEdit.isFocused()
-#        if self.csStationFileLineEdit.isFocused():
-#            name=str(QtGui.QFileDialog.getOpenFileName(self, "Select File"))
-#        elif self.type=='Folder':
-#            name=str(QtGui.QFileDialog.getExistingDirectory(self, "Select Folder"))
-#        name=name.replace('\\','/')
-#        return name
-        
-    # Create a source object from the line edit
-    def curSource(self):
-        source=SaveSource(tag=self.csTagLineEdit.text(),
-                          archDir=self.csArchiveLineEdit.text(),
-                          pickDir=self.csPickLineEdit.text(),
-                          staFile=self.csStationLineEdit.text())
-        return source
-        
-    # Upon close, return the source currently in the line edits
-    def returnSource(self):
-        return self.curSource()
             
 # Class for logging
 class QtHandler(logging.Handler):
