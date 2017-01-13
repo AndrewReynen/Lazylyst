@@ -41,7 +41,8 @@ class Ui_ConfDialog(object):
         self.confPrefLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.confPrefLabel.setObjectName(_fromUtf8("confPrefLabel"))
         self.confPrefLayout.addWidget(self.confPrefLabel)
-        self.confPrefList = KeyListWidget(ConfDialog)
+        self.confPrefList = MixListWidget(ConfDialog)
+        self.confPrefList.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
         self.confPrefList.setObjectName(_fromUtf8("confPrefList"))
         self.confPrefLayout.addWidget(self.confPrefList)
         self.horizontalLayout.addLayout(self.confPrefLayout)
@@ -61,7 +62,8 @@ class Ui_ConfDialog(object):
         self.confPassiveLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.confPassiveLabel.setObjectName(_fromUtf8("confPassiveLabel"))
         self.confPassiveLayout.addWidget(self.confPassiveLabel)
-        self.confPassiveList = KeyListWidget(ConfDialog)
+        self.confPassiveList = MixListWidget(ConfDialog)
+        self.confPassiveList.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
         self.confPassiveList.setObjectName(_fromUtf8("confPassiveList"))
         self.confPassiveLayout.addWidget(self.confPassiveList)
         self.confActionsLayout.addLayout(self.confPassiveLayout)
@@ -78,7 +80,7 @@ class Ui_ConfDialog(object):
         self.confActiveLabel.setAlignment(QtCore.Qt.AlignCenter)
         self.confActiveLabel.setObjectName(_fromUtf8("confActiveLabel"))
         self.confActiveLayout.addWidget(self.confActiveLabel)
-        self.confActiveList = KeyListWidget(ConfDialog)
+        self.confActiveList = MixListWidget(ConfDialog)
         self.confActiveList.setObjectName(_fromUtf8("confActiveList"))
         self.confActiveLayout.addWidget(self.confActiveList)
         self.confActionsLayout.addLayout(self.confActiveLayout)
@@ -92,5 +94,6 @@ class Ui_ConfDialog(object):
         self.confPrefLabel.setText(_translate("ConfDialog", "Preferences", None))
         self.confPassiveLabel.setText(_translate("ConfDialog", "Passive Actions Ordering", None))
         self.confActiveLabel.setText(_translate("ConfDialog", "Active Actions", None))
+        self.confActiveList.setSortingEnabled(True)
 
-from CustomWidgets import KeyListWidget
+from CustomWidgets import MixListWidget

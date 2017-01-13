@@ -19,9 +19,9 @@ def defaultActions():
     'PrevPage':Action(tag='PrevPage',name='setCurPage',
                       path='$main',optionals={'prevPage':True},
                       trigger=Qt.Key_A,locked=True),  
-    'Test':Action(tag='Test',name='testMe',
-                      path='Functions.Testing.Testing',optionals={'value':True,'val2':5},
-                      trigger=Qt.Key_T)  
+    'FiltHP1':Action(tag='FiltHP1',name='streamFilter',
+                      path='Functions.Filters',optionals={'type':'highpass','freq':1,'corners':1,'zerophase':True},
+                      trigger=QtGui.QKeySequence('Shift+Q'),inputs=['stream'],returns=['pltSt'])
     }
     return act
 
@@ -30,19 +30,22 @@ class Action(object):
     def __init__(self,tag='New action',name='Function name',
                  path='Add path to function',optionals={},
                  passive=False,beforeTrigger=False,
-                 trigger='Add Trigger',func=None,locked=False):
-        self.tag=tag
-        self.name=name
-        self.path=path
-        self.optionals=optionals
-        self.passive=passive
-        self.beforeTrigger=beforeTrigger
-        self.trigger=trigger
+                 trigger='Add Trigger',inputs=[],returns=[],
+                 func=None,locked=False):
+        self.tag=tag # User visible name for the action
+        self.name=name # Function name
+        self.path=path # Function path (uses "." instead of "\", path is relative main script location)
+        self.optionals=optionals # Dictionary of the optional values which can be sent to the function
+        self.passive=passive # If the action is passive, this is true
+        self.beforeTrigger=beforeTrigger # If the passive function should be applied before/after the function
+        self.trigger=trigger # Trigger of the action
+        self.inputs=inputs # Hot variables to be sent as inputs to the function (in the correct order)
+        self.returns=returns # Hot variables to be returned for update
+        self.func=func # Function which is called upon trigger
+        self.locked=locked # If the action is allowed to be altered (other than the trigger)
         # convert the trigger to a key sequence, if the trigger was a key
         if type(trigger)==type(Qt.Key_1):
             self.trigger=QtGui.QKeySequence(self.trigger)
-        self.func=func
-        self.locked=locked
     
     # When loading the previous settings, must link the action to its functions again
     def linkToFunction(self,main):
@@ -53,7 +56,7 @@ class Action(object):
             funcDir=modPath[:-(len(self.path.split('.')[-1])+1)]
             if not os.path.exists(modPath+'.py'):
                 print self.tag+' related module does not exist at path '+self.path
-                return False
+                return
             # Next ensure that this path includes a __init__.py file
             elif not os.path.exists(funcDir+'/__init__.py'):
                 print 'created __init__.py at '+funcDir
@@ -64,7 +67,7 @@ class Action(object):
                 func = getattr(importlib.import_module(self.path),self.name)
             except:
                 print self.tag+' did not load from '+self.path+'.'+self.name
-                return False
+                return
         # Otherwise, grab function from predefined location
         else:
             try:
@@ -72,19 +75,21 @@ class Action(object):
                     func=getattr(main,self.name)
             except:
                 print self.tag+' did not load from '+self.path+'.'+self.name
-                return False
+                return
         # Assign the function to the action
         self.func=func
-        return True
+        return
         
 # Action setup dialog
 class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
-    def __init__(self,action,actDict,parent=None):
+    def __init__(self,main,action,actDict,hotVar,parent=None):
         QtGui.QDialog.__init__(self,parent)
         self.setupUi(self)
         self.trigReminder=False # Used for reminder to user if toggling between active/passive
+        self.main=main # The main window
         self.action=action # The action to update
         self.actDict=actDict # All other actions
+        self.hotVar=hotVar # Inputs/returns to go to/from function
         # Give the dialog some functionaly
         self.setFunctionality()
         # Load in the text to the related action
@@ -95,11 +100,19 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
      
     # Set up some functionality to the action set up dialog
     def setFunctionality(self):
+        # For radio buttons, passive/active
         self.actActiveRadio.clicked.connect(lambda: self.togglePassiveActive())
         self.actPassiveRadio.clicked.connect(lambda: self.togglePassiveActive())
+        # For the tag line edit, to remind if a tag is already being used
         self.actTagLineEdit.hoverOut.connect(self.unqTagName)
+        # For the trigger line and list (which operate differently if action is passive/active)
         self.actTriggerLineEdit.keyPressed.connect(self.updateKeyBind)
         self.actTriggerList.itemDoubleClicked.connect(self.updatePassiveTrigger)
+        # For the input/return, avail/select lists
+        self.actAvailInputList.itemDoubleClicked.connect(lambda: self.addAvailHotVar('input'))
+        self.actAvailReturnList.itemDoubleClicked.connect(lambda: self.addAvailHotVar('return'))
+        self.actSelectInputList.keyPressedSignal.connect(lambda: self.removeHotVar('input'))
+        self.actSelectReturnList.keyPressedSignal.connect(lambda: self.removeHotVar('return'))
     
     # Fill the dialog with info relating to action
     def fillDialog(self):
@@ -134,6 +147,14 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
             self.passiveBeforeCheck.setChecked(False)
         # Toggle the appropriate radio button
         self.togglePassiveActive(init=True)
+        # Fill in the available inputs and returns
+        for key, hotVar in self.hotVar.iteritems():
+            self.actAvailInputList.addItem(key)
+            if hotVar.returnable:
+                self.actAvailReturnList.addItem(key)
+        # Fill in the selected inputs and returns
+        self.actSelectInputList.addItems(self.action.inputs)
+        self.actSelectReturnList.addItems(self.action.returns)
     
     # Lock the dialog so that values cannot be updated, for some built-in actions
     def lockDialog(self):
@@ -165,6 +186,30 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
     def updatePassiveTrigger(self):
         self.actTriggerLineEdit.setText(self.actTriggerList.currentItem().text())
     
+    # Move the user chosen available hot variable to the selected list
+    def addAvailHotVar(self,listTag):
+        # See which pair of lists was called
+        if listTag=='return':
+            fromList=self.actAvailReturnList
+            toList=self.actSelectReturnList
+        else:
+            fromList=self.actAvailInputList
+            toList=self.actSelectInputList
+        # Add to the selected list, if the item is not already there
+        text=fromList.currentItem().text()
+        if text not in [toList.item(i).text() for i in range(toList.count())]:
+            toList.addItem(text)
+    
+    # Removes the current item from a selected hot variable list
+    def removeHotVar(self,listTag):
+        # See which pair of lists was called
+        if (listTag=='return' and self.actSelectReturnList.currentItem!=None and 
+            self.actSelectReturnList.key==Qt.Key_Delete):
+            self.actSelectReturnList.takeItem(self.actSelectReturnList.currentRow())
+        elif (listTag=='input' and self.actSelectInputList.currentItem!=None and 
+              self.actSelectInputList.key==Qt.Key_Delete):
+            self.actSelectInputList.takeItem(self.actSelectInputList.currentRow())
+            
     # Depending on if this is an active or passive action, turn on/off some widgets
     def togglePassiveActive(self,init=False):
         if self.actActiveRadio.isChecked():
@@ -250,7 +295,14 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # If the action should be applied before the trigger (used for passive only)
         if self.passiveBeforeCheck.isChecked():
             self.action.beforeTrigger=True
-        # Note: linking to function will occur when self==$main
+        # Collect the tags of the inputs and returns associated with the action
+        self.action.inputs=[self.actSelectInputList.item(i).text() for i in range(self.actSelectInputList.count())]
+        self.action.returns=[self.actSelectReturnList.item(i).text() for i in range(self.actSelectReturnList.count())]
+        # Try to link to the function (given the new path, and name)
+        try:
+            self.action.linkToFunction(self.main)
+        except:
+            print 'Failed to link '+self.action.tag+' to '+self.action.name+' at '+self.action.path 
         return self.action
         
         

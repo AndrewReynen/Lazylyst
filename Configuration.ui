@@ -39,7 +39,11 @@
       </widget>
      </item>
      <item>
-      <widget class="KeyListWidget" name="confPrefList"/>
+      <widget class="MixListWidget" name="confPrefList">
+       <property name="dragDropMode">
+        <enum>QAbstractItemView::InternalMove</enum>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
@@ -73,7 +77,11 @@
         </widget>
        </item>
        <item>
-        <widget class="KeyListWidget" name="confPassiveList"/>
+        <widget class="MixListWidget" name="confPassiveList">
+         <property name="dragDropMode">
+          <enum>QAbstractItemView::InternalMove</enum>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>
@@ -102,7 +110,11 @@
         </widget>
        </item>
        <item>
-        <widget class="KeyListWidget" name="confActiveList"/>
+        <widget class="MixListWidget" name="confActiveList">
+         <property name="sortingEnabled">
+          <bool>true</bool>
+         </property>
+        </widget>
        </item>
       </layout>
      </item>
@@ -112,7 +124,7 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>KeyListWidget</class>
+   <class>MixListWidget</class>
    <extends>QListWidget</extends>
    <header>CustomWidgets.h</header>
   </customwidget>

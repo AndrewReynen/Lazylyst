@@ -132,14 +132,13 @@ class TraceWidget(pg.PlotWidget):
         super(TraceWidget, self).enterEvent(ev)
         self.setFocus()
         
-# Generic widget for QListWidget with add/remove/insert keyPresses, and list loading
-class KeyListWidget(QtGui.QListWidget):       
+# Widget which return key presses, however double click replace backspace
+class MixListWidget(QtGui.QListWidget):       
     # Return signal if key was pressed while in focus
     keyPressedSignal = QtCore.pyqtSignal()  
     
     def __init__(self, parent=None):
-        super(KeyListWidget, self).__init__(parent)
-        self.setDragDropMode(self.InternalMove)
+        super(MixListWidget, self).__init__(parent)
     
     # Load a list of strings to be added to gui list
     def loadList(self,strArr):
@@ -148,6 +147,34 @@ class KeyListWidget(QtGui.QListWidget):
     # Update this widgets last pressed key, and return a signal
     def keyPressEvent(self, ev):
         self.key=ev.key()
+        if self.key not in [Qt.Key_Insert,Qt.Key_Delete]:
+            return
+        self.keyPressedSignal.emit()
+        
+    # Swapping a double click with the backspace button...
+    # ...wanted to transmit double click as a key
+    def mouseDoubleClickEvent(self,ev):
+        self.key=Qt.Key_Backspace
+        self.keyPressedSignal.emit()
+    
+    # Ensure that key presses are sent to the widget which the mouse is hovering over
+    def enterEvent(self,ev):
+        super(MixListWidget, self).enterEvent(ev)
+        self.setFocus()
+        
+# Generic widget for QListWidget with remove only keyPresses
+class KeyListWidget(QtGui.QListWidget):       
+    # Return signal if key was pressed while in focus
+    keyPressedSignal = QtCore.pyqtSignal()  
+    
+    def __init__(self, parent=None):
+        super(KeyListWidget, self).__init__(parent)
+    
+    # Update this widgets last pressed key, and return a signal
+    def keyPressEvent(self, ev):
+        self.key=ev.key()
+        if self.key not in [Qt.Key_Delete]:
+            return
         self.keyPressedSignal.emit()
     
     # Ensure that key presses are sent to the widget which the mouse is hovering over

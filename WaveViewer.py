@@ -58,11 +58,38 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         actions=[action for key,action in self.act.iteritems()]
         for action in actions:
             if not action.passive and action.trigger.toString()==keyname:
-                action.func(**action.optionals)
+                inputs=[]
+                for key in action.inputs:
+                    if key=='stream': ## May want to add in copy variable to hotVar object ##
+                        inputs.append(self.hotVar[key].val.copy())
+                    else:
+                        inputs.append(self.hotVar[key].val)
+                returns=action.func(*inputs,**action.optionals)
+                # If nothing was returned, but was expected - let user know
+                if returns==None and len(action.returns)!=0:
+                    print 'No parameters were returned'
+                    return
+                # Skip if no returns
+                if returns==None:
+                    return
+                # Update all return (hot variable) values
+                # If just one return, returns is not a list
+                if len(action.returns)==1:
+                    self.hotVar[action.returns[0]].val=returns
+                    self.hotVar[action.returns[0]].update()
+                # Otherwise go through each of the returns in order, and update...
+                # ...check first to see the number of returns are correct
+                elif len(action.returns)==len(returns):
+                    print 'Add in multiple returns' ## Add in multiple returns ##
+                else:
+                    print 'The number of return values does not match the expected, skipped updates'
+                    
+
+            ## Still have to add in passive function ability ##
     
     # Open the configuration window
     def openConfiguration(self):
-        self.dialog=ConfDialog(actions=self.act,pref=self.pref)
+        self.dialog=ConfDialog(actions=self.act,main=self,pref=self.pref,hotVar=self.hotVar)
         self.dialog.exec_()
         
     # Open the change source window
@@ -234,43 +261,46 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         # Get this scripts path, as functions will be relative to this
         self.path=os.path.dirname(__file__)
         # Load the hot variables
-        self.hotVar=initHotVar(self)
+        self.hotVar=initHotVar()
         for key,hotVar in self.hotVar.iteritems():
             hotVar.linkToFunction(self)
         # Get all values from settings
-        self.settings = QSettings('settings.ini', QSettings.IniFormat)
+        self.setGen=QSettings('setGen.ini', QSettings.IniFormat)
+        self.setAct= QSettings('setAct.ini', QSettings.IniFormat)
+        self.setPref=QSettings('setPref.ini', QSettings.IniFormat)
+        self.setSource=QSettings('setSource.ini', QSettings.IniFormat)
         # ...UI size
-        self.resize(self.settings.value('size', QtCore.QSize(1300, 700)))
+        self.resize(self.setGen.value('size', QtCore.QSize(1300, 700)))
         # ...Actions
-        self.act=self.settings.value('actions', defaultActions())
+        self.act=self.setAct.value('actions', defaultActions())
         # Link all actions to their appropriate functions
         for key,action in self.act.iteritems():
             action.linkToFunction(self)
         # ...Preferences
         self.pref=defaultPreferences(self)
-        prefVals=self.settings.value('prefVals', {})
+        prefVals=self.setPref.value('prefVals', {})
         for aKey in prefVals.keys():
             self.pref[aKey].val=prefVals[aKey]
         # ...Saved sources
-        self.saveSource=self.settings.value('savedSources', {})
+        self.saveSource=self.setSource.value('savedSources', {})
         # Create empty variables
         self.staWidgets=[]
         
     # Save all settings from current run...
     def saveSettings(self):
         # ...UI size
-        self.settings.setValue('size', self.size())
+        self.setGen.setValue('size', self.size())
         # ...Actions, cannot save functions (will be linked again upon loading)
         for key in self.act.keys():
             self.act[key].func=None
-        self.settings.setValue('actions',self.act)
+        self.setAct.setValue('actions',self.act)
         # ...Preferences
         prefVals={}
         for aKey in self.pref.keys():
             prefVals[self.pref[aKey].tag]=self.pref[aKey].val
-        self.settings.setValue('prefVals',prefVals)
+        self.setPref.setValue('prefVals',prefVals)
         # ...Saved sources
-        self.settings.setValue('savedSources',self.saveSource)
+        self.setSource.setValue('savedSources',self.saveSource)
 
     # When the GUI closes, will save to settings
     def closeEvent(self,ev):
@@ -279,11 +309,13 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         
 # Configuration dialog
 class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
-    def __init__(self,parent=None,actions={},pref={}):
+    def __init__(self,parent=None,main=None,actions={},pref={},hotVar={}):
         QtGui.QDialog.__init__(self,parent)
         self.setupUi(self)
+        self.main=main
         self.pref=pref
         self.act=actions
+        self.hotVar=hotVar
         # Give the dialog some functionaly
         self.setFunctionality()
         # Load in the previous lists of preferences and actions
@@ -321,7 +353,7 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
             # Skip if no action was selected
             elif curList.currentItem()==None:
                 print 'No action was selected'
-            # Updating an action (Backspace Key)
+            # Updating an action (Backspace Key -> which is triggered by double click)
             elif curList.key==Qt.Key_Backspace:
                 action=self.openActionSetup(self.act[curList.currentItem().text()])   
             # Delete an action (Delete Key)
@@ -369,7 +401,7 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
                 
     # Open the setup action dialog
     def openActionSetup(self,action):
-        self.dialog=ActionSetupDialog(action,self.act)
+        self.dialog=ActionSetupDialog(self.main,action,self.act,self.hotVar)
         if self.dialog.exec_():
             action=self.dialog.returnAction()
             return action

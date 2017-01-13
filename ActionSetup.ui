@@ -249,16 +249,35 @@
         </widget>
        </item>
        <item row="3" column="1">
-        <widget class="QListWidget" name="actSelectReturnList"/>
+        <widget class="KeyListWidget" name="actSelectReturnList">
+         <property name="dragDropMode">
+          <enum>QAbstractItemView::InternalMove</enum>
+         </property>
+        </widget>
        </item>
        <item row="3" column="0">
-        <widget class="QListWidget" name="actAvailReturnList"/>
+        <widget class="QListWidget" name="actAvailReturnList">
+         <property name="sortingEnabled">
+          <bool>true</bool>
+         </property>
+        </widget>
        </item>
        <item row="1" column="0">
-        <widget class="QListWidget" name="actAvailInputList"/>
+        <widget class="QListWidget" name="actAvailInputList">
+         <property name="viewMode">
+          <enum>QListView::ListMode</enum>
+         </property>
+         <property name="sortingEnabled">
+          <bool>true</bool>
+         </property>
+        </widget>
        </item>
        <item row="1" column="1">
-        <widget class="QListWidget" name="actSelectInputList"/>
+        <widget class="KeyListWidget" name="actSelectInputList">
+         <property name="dragDropMode">
+          <enum>QAbstractItemView::InternalMove</enum>
+         </property>
+        </widget>
        </item>
        <item row="0" column="0">
         <widget class="QLabel" name="actAvailInputLabel">
@@ -299,6 +318,11 @@
   </layout>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>KeyListWidget</class>
+   <extends>QListWidget</extends>
+   <header>CustomWidgets.h</header>
+  </customwidget>
   <customwidget>
    <class>KeyBindLineEdit</class>
    <extends>QLineEdit</extends>
