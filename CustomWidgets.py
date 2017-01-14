@@ -2,6 +2,7 @@ from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt
 import pyqtgraph as pg
 from obspy import UTCDateTime
+import numpy as np
 
 # Custom axis labels for the archive widget
 class TimeAxisItemArchive(pg.AxisItem):
@@ -131,18 +132,15 @@ class TraceWidget(pg.PlotWidget):
     def enterEvent(self,ev):
         super(TraceWidget, self).enterEvent(ev)
         self.setFocus()
-        
+     
 # Widget which return key presses, however double click replace backspace
 class MixListWidget(QtGui.QListWidget):       
     # Return signal if key was pressed while in focus
-    keyPressedSignal = QtCore.pyqtSignal()  
+    keyPressedSignal=QtCore.pyqtSignal()  
+    leaveSignal=QtCore.pyqtSignal()
     
     def __init__(self, parent=None):
         super(MixListWidget, self).__init__(parent)
-    
-    # Load a list of strings to be added to gui list
-    def loadList(self,strArr):
-        self.addItems(strArr)
     
     # Update this widgets last pressed key, and return a signal
     def keyPressEvent(self, ev):
@@ -155,12 +153,22 @@ class MixListWidget(QtGui.QListWidget):
     # ...wanted to transmit double click as a key
     def mouseDoubleClickEvent(self,ev):
         self.key=Qt.Key_Backspace
-        self.keyPressedSignal.emit()
-    
+        self.keyPressedSignal.emit()    
+
     # Ensure that key presses are sent to the widget which the mouse is hovering over
     def enterEvent(self,ev):
         super(MixListWidget, self).enterEvent(ev)
         self.setFocus()
+
+    # If ever the list if left by the mouse, emit (used to trigger ordering of passive functions)
+    def leaveEvent(self,ev):
+        self.leaveSignal.emit()
+        
+    # Return a lists entries in the order which is appears
+    def visualListOrder(self):
+        txt=np.array([self.item(i).text() for i in range(self.count())])
+        args=np.array([self.indexFromItem(self.item(i)).row() for i in range(self.count())])
+        return list(txt[np.argsort(args)])
         
 # Generic widget for QListWidget with remove only keyPresses
 class KeyListWidget(QtGui.QListWidget):       
@@ -181,7 +189,14 @@ class KeyListWidget(QtGui.QListWidget):
     def enterEvent(self,ev):
         super(KeyListWidget, self).enterEvent(ev)
         self.setFocus()
-    
+
+    # Return a lists entries in the order which is appears
+    def visualListOrder(self):
+        txt=np.array([self.item(i).text() for i in range(self.count())])
+        args=np.array([self.indexFromItem(self.item(i)).row() for i in range(self.count())])
+        return list(txt[np.argsort(args)])
+
+# Convert any key press signal to a human readable string (ignores modifiers like shift, ctrl)
 def keyPressToString(ev):
     MOD_MASK = (Qt.CTRL | Qt.ALT | Qt.SHIFT | Qt.META)
     keyname = None

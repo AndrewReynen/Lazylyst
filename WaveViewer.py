@@ -9,7 +9,7 @@ from Configuration import Ui_ConfDialog
 from CustomWidgets import TraceWidget, keyPressToString
 from HotVariables import initHotVar
 from Preferences import defaultPreferences
-from Actions import defaultActions, Action, ActionSetupDialog
+from Actions import defaultActions, defaultPassiveOrder, Action, ActionSetupDialog
 from Archive import getArchiveAvail, getTimeFromFileName, extractDataFromArchive
 from SaveSource import CsDialog
 import numpy as np
@@ -58,38 +58,75 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         actions=[action for key,action in self.act.iteritems()]
         for action in actions:
             if not action.passive and action.trigger.toString()==keyname:
-                inputs=[]
-                for key in action.inputs:
-                    if key=='stream': ## May want to add in copy variable to hotVar object ##
-                        inputs.append(self.hotVar[key].val.copy())
-                    else:
-                        inputs.append(self.hotVar[key].val)
-                returns=action.func(*inputs,**action.optionals)
-                # If nothing was returned, but was expected - let user know
-                if returns==None and len(action.returns)!=0:
-                    print 'No parameters were returned'
-                    return
-                # Skip if no returns
-                if returns==None:
-                    return
-                # Update all return (hot variable) values
-                # If just one return, returns is not a list
-                if len(action.returns)==1:
-                    self.hotVar[action.returns[0]].val=returns
-                    self.hotVar[action.returns[0]].update()
-                # Otherwise go through each of the returns in order, and update...
-                # ...check first to see the number of returns are correct
-                elif len(action.returns)==len(returns):
-                    print 'Add in multiple returns' ## Add in multiple returns ##
-                else:
-                    print 'The number of return values does not match the expected, skipped updates'
-                    
+                # First check to see if there are any (passive) actions which relate
+                actQueue=self.collectActQueue(action)   
+                for oAct in actQueue:
+                    self.executeAction(oAct)
 
-            ## Still have to add in passive function ability ##
+    # Get the appropriate order of passive functions before and after their triggered active action
+    def collectActQueue(self,action):
+        beforeActive=[] # Passive actions with beforeTrigger
+        afterActive=[] # Passive actions without beforeTrigger
+        # Collect all the passive actions which have this active action as the trigger...
+        # ...in the order specified within the configuration list
+        for actTag in self.actPassiveOrder:
+            if self.act[actTag].trigger!=action.tag:
+                continue
+            if self.act[actTag].beforeTrigger:
+                beforeActive.append(self.act[actTag])
+            else:
+                afterActive.append(self.act[actTag])
+        return beforeActive+[action]+afterActive
+
+    # Function to handle the execution of an action already queued
+    def executeAction(self,action):
+        # If the actions function wasn't initialized, skip
+        if action.func==None:
+            return
+        # Collect the required inputs
+        inputs=[]
+        for key in action.inputs:
+            if key=='stream':
+                inputs.append(self.hotVar[key].val.copy())
+            else:
+                inputs.append(self.hotVar[key].val)
+        # Call the function with args and kwargs
+        returnVals=action.func(*inputs,**action.optionals)
+        # If nothing was returned, but was expected - let user know
+        if returnVals==None and len(action.returns)!=0:
+            print 'For action '+action.tag+' got 0 return values, expected '+len(action.returns)
+            return
+        # Skip if no returns
+        if returnVals==None:
+            return
+        # Update all return (hot variable) values...
+        # ...if just one return, convert to list to treat the same as multiple
+        if len(action.returns)==1:
+            returnVals=[returnVals]
+        # Go through each of the returns in order, and update
+        # ...check first to see the number of returns are correct
+        # ...and that the previous/new types match
+        if len(action.returns)==len(returnVals):
+            skipUpdates=False
+            # Ensure all the variable types match before updating any hot variables
+            for i,aReturnKey in enumerate(action.returns):
+                if type(self.hotVar[aReturnKey].val)!=type(returnVals[i]):
+                    print ('Action '+action.tag+' expected variable '+str(type(self.hotVar[aReturnKey].val))+
+                           ' for hot variable '+aReturnKey+', got '+str(type(returnVals[i])))
+                    skipUpdates=True
+            if skipUpdates: return
+            # Process the return keys in order 
+            for i,aReturnKey in enumerate(action.returns):
+                self.hotVar[aReturnKey].val=returnVals[i]
+                self.hotVar[aReturnKey].update()
+        else:
+            print ('For action '+action.tag+' got '+str(len(returnVals))+
+                   ' return values, expected '+len(action.returns))
     
     # Open the configuration window
     def openConfiguration(self):
-        self.dialog=ConfDialog(actions=self.act,main=self,pref=self.pref,hotVar=self.hotVar)
+        self.dialog=ConfDialog(actions=self.act,main=self,
+                               pref=self.pref,hotVar=self.hotVar)
         self.dialog.exec_()
         
     # Open the change source window
@@ -273,6 +310,7 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         self.resize(self.setGen.value('size', QtCore.QSize(1300, 700)))
         # ...Actions
         self.act=self.setAct.value('actions', defaultActions())
+        self.actPassiveOrder=self.setAct.value('actPassiveOrder', defaultPassiveOrder(self.act))
         # Link all actions to their appropriate functions
         for key,action in self.act.iteritems():
             action.linkToFunction(self)
@@ -294,6 +332,7 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         for key in self.act.keys():
             self.act[key].func=None
         self.setAct.setValue('actions',self.act)
+        self.setAct.setValue('actPassiveOrder',self.actPassiveOrder)
         # ...Preferences
         prefVals={}
         for aKey in self.pref.keys():
@@ -309,7 +348,8 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         
 # Configuration dialog
 class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
-    def __init__(self,parent=None,main=None,actions={},pref={},hotVar={}):
+    def __init__(self,parent=None,main=None,actions=None,
+                 pref=None,hotVar=None):
         QtGui.QDialog.__init__(self,parent)
         self.setupUi(self)
         self.main=main
@@ -326,15 +366,17 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         self.confPrefList.keyPressedSignal.connect(self.listCalled)
         self.confActiveList.keyPressedSignal.connect(self.listCalled)
         self.confPassiveList.keyPressedSignal.connect(self.listCalled)
-        self.confActiveList.setSortingEnabled(True)
+        # If the ordering of the passive list ever changes, update actPassiveOrder
+        self.confPassiveList.leaveSignal.connect(self.updatePassiveOrder)
     
     # Load in all of the lists from previous state
     def loadLists(self):
-        self.confPrefList.loadList(sorted([key for key in self.pref.keys()]))
-        self.confActiveList.loadList([key for key in self.act.keys() if not self.act[key].passive])
-        self.confPassiveList.loadList([key for key in self.act.keys() if self.act[key].passive])
+        self.confPrefList.addItems(sorted([key for key in self.pref.keys()]))
+        self.confActiveList.addItems([key for key in self.act.keys() if not self.act[key].passive])
+        self.confPassiveList.addItems(self.main.actPassiveOrder)
         
     # Function to handle calls to the configuration lists
+    ## May want to split this up... getting pretty rediculous ##
     def listCalled(self):
         # If either of the action lists had focus
         action=None
@@ -346,6 +388,7 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
                 return
             # Creating a new action (Insert Key)
             elif curList.key==Qt.Key_Insert:
+                # If the action is sent from user, but has not changed - ignore
                 if self.confActiveList.hasFocus():
                     action=self.openActionSetup(Action(passive=False,trigger=Qt.Key_questiondown))
                 else:
@@ -392,12 +435,20 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
                     curList.currentItem().setText(action.tag)
             # Finally add to the action dictionary
             self.act[action.tag]=action
+            # Update the passive order every time (ie. do not care how configuration dialog is closed)...
+            # ...a passive action is added or edited
+            if action.passive:
+                self.updatePassiveOrder()
             
         # If the preference list had focus
         if self.confPrefList.hasFocus() and self.confPrefList.key==Qt.Key_Backspace:
             # Grab the key, and update if possible
             curKey=self.confPrefList.currentItem().text()
             self.pref[curKey].update(self)
+    
+    # Update the passive list ordering to what it seen by the user
+    def updatePassiveOrder(self):
+        self.main.actPassiveOrder=self.confPassiveList.visualListOrder()
                 
     # Open the setup action dialog
     def openActionSetup(self,action):
@@ -405,6 +456,7 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         if self.dialog.exec_():
             action=self.dialog.returnAction()
             return action
+
             
 # Class for logging
 class QtHandler(logging.Handler):

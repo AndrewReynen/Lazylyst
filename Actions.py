@@ -24,7 +24,13 @@ def defaultActions():
                       trigger=QtGui.QKeySequence('Shift+Q'),inputs=['stream'],returns=['pltSt'])
     }
     return act
-
+    
+# Return the action tags in alphabetical order...
+# ...may be more customized later (by default)
+def defaultPassiveOrder(actions):
+    order=sorted([act.tag for tag,act in actions.iteritems() if act.passive])
+    return order
+    
 # Capabilities of an action
 class Action(object):
     def __init__(self,tag='New action',name='Function name',
@@ -252,10 +258,16 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
     # Upon close, fill in the action with all of the selected information and return
     def returnAction(self):
         # First check to see that the new parameters make sense and the action is to be updated,
-        # ... for now just checking that the tag is unique, and the trigger is appropriate
-        if (not self.unqTagName()) or (not self.appropTrigger()):
-            print 'Action update declined'
-            return self.action
+        # ... for now just checking that the tag and the trigger are appropriate
+        if self.actTagLineEdit.text()=='New action':
+            print 'Action update declined, tag was still default'
+            return None
+        elif not self.unqTagName():
+            print 'Action update declined, tag is not unique'
+            return None
+        elif not self.appropTrigger():
+            print 'Action update declined, trigger was not set'
+            return None
         # Set information from line edits...
         self.action.tag=self.actTagLineEdit.text()
         self.action.name=self.actNameLineEdit.text()
@@ -296,8 +308,8 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         if self.passiveBeforeCheck.isChecked():
             self.action.beforeTrigger=True
         # Collect the tags of the inputs and returns associated with the action
-        self.action.inputs=[self.actSelectInputList.item(i).text() for i in range(self.actSelectInputList.count())]
-        self.action.returns=[self.actSelectReturnList.item(i).text() for i in range(self.actSelectReturnList.count())]
+        self.action.inputs=self.actSelectInputList.visualListOrder()
+        self.action.returns=self.actSelectReturnList.visualListOrder()
         # Try to link to the function (given the new path, and name)
         try:
             self.action.linkToFunction(self.main)
