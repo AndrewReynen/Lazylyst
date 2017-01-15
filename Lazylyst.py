@@ -243,7 +243,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.updatePage()
     
     # Update the entire page which includes data, picks, and sorting
-    def updatePage(self):
+    def updatePage(self,init=False):
         # Clear away all previous lines and references to the station
         for i in range(len(self.staWidgets)):
             self.staWidgets[i].clear()
@@ -423,11 +423,13 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             if tag in curPickColors:
                 continue
             # Otherwise add the color
-            self.pref[tag]=Pref(tag=tag,val=4294967295,dataType=int,dialog='ColorDialog')
-            # If Lazylyst is starting, still have to load in the previous pick colors
+            self.pref[tag]=Pref(tag=tag,val=4294967295,dataType=int,
+                                dialog='ColorDialog',func=self.updatePage)
+            # If Lazylyst is starting, still have to load in the previous pick colors (if set already)
             if init:
                 prefVals=self.setPref.value('prefVals', {})
-                self.pref[tag].val=prefVals[tag]
+                if tag in [key for key in prefVals.keys()]:
+                    self.pref[tag].val=prefVals[tag]
         # Remove any entries which may have been taken away from curPickTypes
         for tag in curPickColors:
             if tag.split('_')[1] not in curPickTypes:
