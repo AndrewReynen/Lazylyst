@@ -105,7 +105,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QListWidget" name="archiveList"/>
+      <widget class="ArchiveListWidget" name="archiveList"/>
      </item>
     </layout>
    </widget>
@@ -141,6 +141,11 @@
   <customwidget>
    <class>ArchiveWidget</class>
    <extends>QGraphicsView</extends>
+   <header>CustomWidgets.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ArchiveListWidget</class>
+   <extends>QListWidget</extends>
    <header>CustomWidgets.h</header>
   </customwidget>
  </customwidgets>

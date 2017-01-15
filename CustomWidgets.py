@@ -46,6 +46,10 @@ class ArchiveWidget(pg.PlotWidget):
         else:
             return
         self.updateBoundaries()
+    
+    # Disable any scroll in/scroll out motions
+    def wheelEvent(self,ev):
+        return
         
     # Update the line positions
     def updateBoundaries(self):
@@ -74,6 +78,17 @@ class ArchiveWidget(pg.PlotWidget):
     def makeEmptyPickFile(self,time):
         self.newEveStr=UTCDateTime(time).strftime('%Y%m%d.%H%M%S.%f')
         self.addNewEventSignal.emit()
+
+# List widget which holds all current pick files
+class ArchiveListWidget(QtGui.QListWidget):       
+    def __init__(self, parent=None):
+        super(ArchiveListWidget, self).__init__(parent)
+        
+    # Return the list entries in the order which it appears
+    def visualListOrder(self):
+        aList=np.array([self.item(i).text() for i in range(self.count())])
+        args=np.array([self.indexFromItem(self.item(i)).row() for i in range(self.count())])
+        return [str(aFile) for aFile in aList[np.argsort(args)]]
         
 # Custom axis labels for the time widget        
 class TimeAxisItem(pg.AxisItem):
@@ -158,7 +173,7 @@ class MixListWidget(QtGui.QListWidget):
     def leaveEvent(self,ev):
         self.leaveSignal.emit()
         
-    # Return a lists entries in the order which is appears
+    # Return the lists entries in the order which it appears
     def visualListOrder(self):
         txt=np.array([self.item(i).text() for i in range(self.count())])
         args=np.array([self.indexFromItem(self.item(i)).row() for i in range(self.count())])

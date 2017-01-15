@@ -79,7 +79,7 @@ class Ui_MainWindow(object):
         self.archiveWidget.setMaximumSize(QtCore.QSize(16777215, 50))
         self.archiveWidget.setObjectName(_fromUtf8("archiveWidget"))
         self.verticalLayout_2.addWidget(self.archiveWidget)
-        self.archiveList = QtGui.QListWidget(self.archiveLayout)
+        self.archiveList = ArchiveListWidget(self.archiveLayout)
         self.archiveList.setObjectName(_fromUtf8("archiveList"))
         self.verticalLayout_2.addWidget(self.archiveList)
         self.archiveDock.setWidget(self.archiveLayout)
@@ -105,4 +105,4 @@ class Ui_MainWindow(object):
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow", None))
 
-from CustomWidgets import ArchiveWidget, TimeWidget
+from CustomWidgets import ArchiveListWidget, ArchiveWidget, TimeWidget

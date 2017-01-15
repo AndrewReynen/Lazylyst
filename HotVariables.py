@@ -11,10 +11,11 @@ def initHotVar():
     'curPage':HotVar(tag='curPage',val=0,dataType=int),
     'sourceTag':HotVar(tag='sourceTag',val='',dataType=str),
     'pickDir':HotVar(tag='pickDir',val='',dataType=str,
-                     funcName='updatePickFileList'),
-    'pickFiles':HotVar(tag='pickFiles',val=[],dataType=list,returnable=False),
+                     funcName='updatePickDir'),
+    'pickFiles':HotVar(tag='pickFiles',val=[],dataType=list,
+                       funcName='updatePickFiles'),
     'curPickFile':HotVar(tag='curPickFile',val='',dataType=str,
-                         funcName='loadEvent'),
+                         funcName='updateEvent'),
     'pickSet':HotVar(tag='pickSet',val=np.empty((0,3)),dataType=np.array), # Must be in string format, row=[Sta,Type,TimeStamp]
     'pickMode':HotVar(tag='pickMode',val='',dataType=str),
     'archDir':HotVar(tag='archDir',val='',dataType=str,
@@ -25,10 +26,6 @@ def initHotVar():
     'staMeta':HotVar(tag='staMeta',val=[],dataType=np.array,returnable=False)
     }
     return hotVar
-
-## Load in the archive and picks
-#self.updateArchive()
-#self.updatePickFileList()
 
 # Class for hot variables, which have defined update functions
 class HotVar(object):

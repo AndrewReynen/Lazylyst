@@ -75,7 +75,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     
     # Function to handle double clicks from the archive widget
     def archiveListDoubleClickEvent(self):
-        action=self.act['LoadEvent']
+        action=self.act['PickFileSetToClick']
         self.processAction(action)
     
     # Create and activate the queue of actions following the initiation of an active action
@@ -185,11 +185,12 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         while i in seenIDs:
             i+=1
         newPickFile=str(i).zfill(10)+'_'+aTimeStr+'.picks'
-        # Add to GUI list
-        self.archiveList.addItem(newPickFile)
         # Add to the picks directory
         newFile=open(self.hotVar['pickDir'].val+'/'+newPickFile,'w')
         newFile.close()
+        # Add to GUI list, and internal list
+        self.archiveList.addItem(newPickFile)
+        self.hotVar['pickFiles'].val=self.archiveList.visualListOrder()
         
     # Load a specific pick file
     def loadPickFile(self):
@@ -202,43 +203,49 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         elif os.path.getsize(path)==0:
             return
         pickSet=np.genfromtxt(path,delimiter=',',dtype=str)
+        # Put into proper dimensions if only one pick was present
+        if len(pickSet.shape)==1:
+            pickSet=pickSet.reshape((1,3))
         self.hotVar['pickSet'].val=pickSet
         self.pltLines=[None]*len(pickSet)
         
-    # Save the current picks
-    def savePickFile(self):
-        # If the current pick file was not yet initiated, nothing to save
-        if self.hotVar['curPickFile'].val=='':
-            return
-        path=self.hotVar['pickDir'].val+'/'+self.hotVar['curPickFile'].val
-        np.savetxt(path,self.hotVar['pickSet'].val,fmt='%s',delimiter=',')
-
+    # Set the current pick file, called from double click an event in the archive list
+    def setCurPickFile(self):
+        return str(self.archiveList.currentItem().text())
+        
     # Load the current event
-    def loadEvent(self):
-        self.hotVar['curPickFile'].val=self.archiveList.currentItem().text() ## Have to change how this is updated ##
-                                                                             ## Maybe a optional input to say where from? ##
-        curPickFile=self.hotVar['curPickFile'].val
+    def updateEvent(self):
         # Clear away the previous set of picks
         self.hotVar['pickSet'].val=np.empty((0,3))
         self.pltLines=[]
-        # Load the picks from given pick file
-        self.loadPickFile()
-        # Get the wanted time, and query for the data
-        aTime=getTimeFromFileName(curPickFile).timestamp
-        t1,t2=aTime+self.pref['evePreTime'].val,aTime+self.pref['evePostTime'].val
-        self.hotVar['stream'].val=extractDataFromArchive(self.hotVar['archDir'].val,t1,t2,self.hotVar['archFiles'].val,
-                                                         self.hotVar['archFileTimes'].val,
-                                                         archiveFileLen=self.pref['archiveFileLen'].val)
-        # Make a copy for any filtering to be applied
-        self.hotVar['pltSt'].val=self.hotVar['stream'].val.copy()
-        # Sort traces by channel so they are added in same order (relative other stations)
-        self.hotVar['pltSt'].val.sort(keys=['channel'])
-        ## Alphabetical sorting for now ##
-        self.hotVar['staSort'].val=np.sort(np.unique([tr.stats.station for tr in self.hotVar['stream'].val]))
-        # Move the axis time limit to the appropriate position
-        minTime=np.min([tr.stats.starttime.timestamp for tr in self.hotVar['stream'].val])
-        maxTime=np.max([tr.stats.endtime.timestamp for tr in self.hotVar['stream'].val])
-        self.timeWidget.plotItem.setXRange(minTime,maxTime)
+        # Go back to the first page
+        self.hotVar['curPage'].val=0
+        # Set the title of the event
+        self.timeWidget.getPlotItem().setLabels(title=self.hotVar['curPickFile'].val)
+        # Load the picks from given pick file, if it has been initialized...
+        if self.hotVar['curPickFile'].val!='':
+            self.loadPickFile()
+            # Get the wanted time, and query for the data
+            aTime=getTimeFromFileName(self.hotVar['curPickFile'].val).timestamp
+            t1,t2=aTime+self.pref['evePreTime'].val,aTime+self.pref['evePostTime'].val
+            self.hotVar['stream'].val=extractDataFromArchive(self.hotVar['archDir'].val,t1,t2,self.hotVar['archFiles'].val,
+                                                             self.hotVar['archFileTimes'].val,
+                                                             archiveFileLen=self.pref['archiveFileLen'].val)
+            # Make a copy for any filtering to be applied
+            self.hotVar['pltSt'].val=self.hotVar['stream'].val.copy()
+            # Sort traces by channel so they are added in same order (relative other stations)
+            self.hotVar['pltSt'].val.sort(keys=['channel'])
+            ## Alphabetical sorting for now ##
+            self.hotVar['staSort'].val=np.sort(np.unique([tr.stats.station for tr in self.hotVar['stream'].val]))
+            # Move the axis time limit to the appropriate position
+            minTime=np.min([tr.stats.starttime.timestamp for tr in self.hotVar['stream'].val])
+            maxTime=np.max([tr.stats.endtime.timestamp for tr in self.hotVar['stream'].val])
+            self.timeWidget.plotItem.setXRange(minTime,maxTime)
+        # ...Otherwise load the default hot variables values, and reset values relating to curPickFile
+        else:
+            defaultHot=initHotVar()
+            for key in ['stream','pltSt','staSort','pickSet']:
+                self.hotVar[key].val=defaultHot[key].val
         # Add data to the trace widgets
         self.updatePage()
     
@@ -392,14 +399,19 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.archiveWidget.t2=archiveTimes[-1]+self.pref['archiveFileLen'].val
         self.archiveWidget.updateBoundaries()
         
-    # Load the pick file list for display
-    def updatePickFileList(self):
+    # Load the pick file list for display, given completly new pick directory
+    def updatePickDir(self):
         # Clear the old list
         self.archiveList.clear()
         self.hotVar['pickFiles'].val=[]
+        # Reset the current pick file
+        self.hotVar['curPickFile'].val=''
+        self.hotVar['curPickFile'].update()
         # Only accept files with proper naming convention
         for aFile in sorted(os.listdir(self.hotVar['pickDir'].val)):
+            aFile=str(aFile)
             splitFile=aFile.split('_')
+            # Make sure has the proper extension '.picks'
             if len(splitFile)!=2 or aFile.split('.')[-1]!='picks':
                 continue
             try:
@@ -409,6 +421,30 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 continue
             self.hotVar['pickFiles'].val.append(aFile)
             self.archiveList.addItem(aFile)
+    
+    # With the same pick directory, force an update on the pick files...
+    # ...this allows for addition of empty pick files and deletion of pick files
+    def updatePickFiles(self):
+        # Clear the old GUI list, and add the new items
+        self.archiveList.clear()
+        self.archiveList.addItems(self.hotVar['pickFiles'].val)
+        # See which files were present prior to the update
+        prevFiles=sorted(os.listdir(self.hotVar['pickDir'].val))
+        # Delete events which are no longer present
+        for aFile in prevFiles:
+            path=self.hotVar['pickDir'].val+'/'+aFile
+            if (aFile not in self.hotVar['pickFiles'].val) and os.path.exists(path):
+                os.remove(path)
+        # Add blank pick files which were not present before
+        for aFile in self.hotVar['pickFiles'].val:
+            if aFile not in prevFiles:
+                newFile=open(self.hotVar['pickDir'].val+'/'+aFile,'w')
+                newFile.close()
+        # If the current pick file no longer exists, update it
+        if self.hotVar['curPickFile'].val not in self.hotVar['pickFiles'].val:
+            self.hotVar['curPickFile'].val=''
+            self.hotVar['curPickFile'].update()
+        
     
     # As the number of pick types can change in the settings...
     # ...show less/more pick type color preferences
