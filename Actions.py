@@ -23,8 +23,16 @@ def defaultActions():
     'FiltHP1':Action(tag='FiltHP1',name='streamFilter',
                       path='Functions.Filters',optionals={'type':'highpass','freq':1,'corners':1,'zerophase':True},
                       trigger=QtGui.QKeySequence('Shift+Q'),inputs=['stream'],returns=['pltSt']),
+    'ChangePickMode':Action(tag='ChangePickMode',name='togglePickMode',
+                      path='Functions.General',
+                      trigger=QtGui.QKeySequence('1'),inputs=['pickMode','pickTypesMaxCountPerSta'],returns=['pickMode']),
     'AddPick':Action(tag='AddPick',name='addClickPick',
-                      path='$main',trigger='DoubleClick',locked=True),  # Double click is here just for user to see
+                      path='$main',trigger='DoubleClick',locked=True),
+    'LoadEvent':Action(tag='LoadEvent',name='loadEvent',
+                      path='$main',trigger='DoubleClick',locked=True),
+    'SavePickSet':Action(tag='SavePickSet',name='savePickFile',
+                         path='$main',passive=True,
+                         trigger='LoadEvent',beforeTrigger=True),
     }
     return act
     
@@ -104,11 +112,11 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         self.setFunctionality()
         # Load in the text to the related action
         self.fillDialog()
-        # Disable the majority of this gui if the action is locked
+        # Disable the majority of this gui if the action is locked...
         if self.action.locked:
             self.lockDialog()
-        # Also, if this is only click event (double click for adding one pick)
-        if self.action.tag=='AddPick':
+        # ...also, if this is only click event (double click for adding one pick)
+        if self.action.trigger=='DoubleClick':
             self.actTriggerLineEdit.setEnabled(False)
      
     # Set up some functionality to the action set up dialog
@@ -137,7 +145,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # ...optionals line edit
         self.actOptionalsLineEdit.setText(dict2Text(self.action.optionals))
         # ...trigger line edit entry
-        if self.action.passive or self.action.tag=='AddPick':
+        if self.action.passive or self.action.trigger=='DoubleClick':
             self.actTriggerLineEdit.setText(self.action.trigger)
         else:
             self.actTriggerLineEdit.setText(self.action.trigger.toString())
@@ -187,7 +195,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # If the key-bind is already in use, do not allow update
         for tag,action in self.actDict.iteritems():
             # Only active actions have key-binds (do not need to check passive)
-            if action.passive or action.tag=='AddPick':
+            if action.passive or action.trigger=='DoubleClick':
                 continue
             if action.trigger.toString()==keyBindText and action.tag!=self.action.tag:
                 print action.tag+' already uses key-bind '+keyBindText
@@ -266,8 +274,8 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
     def returnAction(self):
         # First check to see that the new parameters make sense and the action is to be updated,
         # ... for now just checking that the tag and the trigger are appropriate
-        if self.action.tag=='AddPick':
-            print 'No changes can be made to AddPick'
+        if self.action.trigger=='DoubleClick':
+            print 'No changes can be made to actions with DoubleClick triggers'
             return None
         elif self.actTagLineEdit.text()=='New action':
             print 'Action update declined, tag was still default'

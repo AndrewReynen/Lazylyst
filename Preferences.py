@@ -12,7 +12,7 @@ def defaultPreferences(main):
     'archiveFileLen':Pref(tag='archiveFileLen',val=1800,dataType=float),
     'archiveLoadMethod':Pref(tag='archiveLoadMethod',val='fast'),
     'pickTypesMaxCountPerSta':Pref(tag='pickTypesMaxCountPerSta',val={'P':1,'S':1},dataType=dict,
-                             condition={'bound':[1,999]})
+                                   func=main.updatePickColorPrefs,condition={'bound':[1,999]})
     }
     return pref
 
@@ -22,9 +22,9 @@ class Pref(object):
                  dialog='LineEditDialog',
                  func=None,condition={}):
         self.tag=tag # The preference key, and user visible name
-        self.dataType=dataType # What kind of data is expected upon update
         self.val=val # The preference value
-        self.dialog='LineEditDialog' # The dialog which will pop up to return a value
+        self.dataType=dataType # What kind of data is expected upon update
+        self.dialog=dialog # The dialog which will pop up to return a value
         self.func=func # Function which is called on successful updates
         self.condition=condition # Key-word conditionals (see "LineEditDialog" in this file)
     
@@ -38,9 +38,16 @@ class Pref(object):
                     initText=dict2Text(self.val)
                 else:
                     initText=str(self.val)
-                val,ok=LineEditDialog.returnValue(initText=initText,
+                val,ok=LineEditDialog.returnValue(tag=self.tag,initText=initText,
                                                   condition=self.condition,
                                                   dataType=self.dataType)
+            elif self.dialog=='ColorDialog':
+                colorDialog=QtGui.QColorDialog()
+                val=colorDialog.getColor(QtGui.QColor(self.val),hostWidget)
+                if val.isValid():
+                    val,ok=val.rgba(),True
+                else:
+                    val,ok=None,False
             else:
                 print 'New dialog?'
                 val,ok=None,False
@@ -55,12 +62,13 @@ class Pref(object):
             self.val=val
         # If the value was updated, queue off its function
         if self.func!=None: 
-            self.func()
+            self.func(init=init)
             
 # Dialog with line edit, allows for some initial text, and forced data type and condition
 class LineEditDialog(QtGui.QDialog):
-    def __init__(self,parent,initText,condition,dataType):
+    def __init__(self,parent,tag,initText,condition,dataType):
         super(LineEditDialog, self).__init__(parent)
+        self.setWindowTitle(tag)
         self.cond=condition
         self.dataType=dataType
         
@@ -108,7 +116,7 @@ class LineEditDialog(QtGui.QDialog):
 
     # Static method to create the dialog and return value
     @staticmethod
-    def returnValue(parent=None,initText='',condition={},dataType=str):
-        dialog = LineEditDialog(parent,initText,condition,dataType)
+    def returnValue(parent=None,tag='',initText='',condition={},dataType=str):
+        dialog = LineEditDialog(parent,tag,initText,condition,dataType)
         result = dialog.exec_()
         return dialog.lineEditValue(), result==QtGui.QDialog.Accepted

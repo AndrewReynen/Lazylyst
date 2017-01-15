@@ -13,6 +13,8 @@ def initHotVar():
     'pickDir':HotVar(tag='pickDir',val='',dataType=str,
                      funcName='updatePickFileList'),
     'pickFiles':HotVar(tag='pickFiles',val=[],dataType=list,returnable=False),
+    'curPickFile':HotVar(tag='curPickFile',val='',dataType=str,
+                         funcName='loadEvent'),
     'pickSet':HotVar(tag='pickSet',val=np.empty((0,3)),dataType=np.array), # Must be in string format, row=[Sta,Type,TimeStamp]
     'pickMode':HotVar(tag='pickMode',val='',dataType=str),
     'archDir':HotVar(tag='archDir',val='',dataType=str,

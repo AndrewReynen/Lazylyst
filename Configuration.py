@@ -92,6 +92,7 @@ class Ui_ConfDialog(object):
     def retranslateUi(self, ConfDialog):
         ConfDialog.setWindowTitle(_translate("ConfDialog", "Configuration", None))
         self.confPrefLabel.setText(_translate("ConfDialog", "Preferences", None))
+        self.confPrefList.setSortingEnabled(True)
         self.confPassiveLabel.setText(_translate("ConfDialog", "Passive Actions Ordering", None))
         self.confActiveLabel.setText(_translate("ConfDialog", "Active Actions", None))
         self.confActiveList.setSortingEnabled(True)
