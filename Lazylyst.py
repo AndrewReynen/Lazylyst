@@ -3,19 +3,19 @@ import sip
 import sys,os
 sip.setapi('QVariant', 2)
 from PyQt4 import QtGui,QtCore
-from PyQt4.QtCore import Qt,QSettings
+from PyQt4.QtCore import QSettings
 from MainWindow import Ui_MainWindow
-from Configuration import Ui_ConfDialog
 from CustomWidgets import TraceWidget, keyPressToString
 from HotVariables import initHotVar
 from Preferences import defaultPreferences
-from Actions import defaultActions, defaultPassiveOrder, Action, ActionSetupDialog
+from Actions import defaultActions, defaultPassiveOrder
 from Archive import getArchiveAvail, getTimeFromFileName, extractDataFromArchive
+from ConfigurationDialog import ConfDialog
 from SaveSource import CsDialog
 import numpy as np
 
 # Main window class
-class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
+class LazylstMain(QtGui.QMainWindow, Ui_MainWindow):
     def __init__(self):
         QtGui.QMainWindow.__init__(self)
         Ui_MainWindow.__init__(self)
@@ -41,6 +41,11 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         XStream.stdout().messageWritten.connect(self.textOutBrowser.insertPlainText)
         XStream.stderr().messageWritten.connect(self.textOutBrowser.insertPlainText)
         self.textOutBrowser.textChanged.connect(self.scrollTextOut)
+        
+    # Scroll the trace log to the bottom if an error occurs
+    def scrollTextOut(self):
+        scrollBar=self.textOutBrowser.verticalScrollBar()
+        scrollBar.setValue(scrollBar.maximum())
     
     # Report the current keybinds for the configuration and change source actions
     def introduction(self):
@@ -49,20 +54,28 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
     
     # Function to handle key board input from user
     def keyPressEvent(self, ev):
-        super(WaveViewer000, self).keyPressEvent(ev)
+        super(LazylstMain, self).keyPressEvent(ev)
         keyname=keyPressToString(ev)
         if keyname==None:
             return
         # Loop through all actions and see if one is activated...
         # ... use the original set (an action may be added part way through, so can mess with the loop)
-        actions=[action for key,action in self.act.iteritems()]
+        actions=[action for key,action in self.act.iteritems() if action.tag!='AddPick']
         for action in actions:
             if not action.passive and action.trigger.toString()==keyname:
                 # First check to see if there are any (passive) actions which relate
                 actQueue=self.collectActQueue(action)   
                 for oAct in actQueue:
                     self.executeAction(oAct)
-
+    
+    # Function to handle double click events from trace widgets
+    def traceDoubleClickEvent(self):
+        action=self.act['AddPick']
+        # First check to see if there are any (passive) actions which relate
+        actQueue=self.collectActQueue(action)   
+        for oAct in actQueue:
+            self.executeAction(oAct)
+        
     # Get the appropriate order of passive functions before and after their triggered active action
     def collectActQueue(self,action):
         beforeActive=[] # Passive actions with beforeTrigger
@@ -85,11 +98,14 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
             return
         # Collect the required inputs
         inputs=[]
+        hotVarKeys=[aKey for aKey in self.hotVar.keys()]
         for key in action.inputs:
             if key=='stream':
                 inputs.append(self.hotVar[key].val.copy())
-            else:
+            elif key in hotVarKeys:
                 inputs.append(self.hotVar[key].val)
+            else:
+                inputs.append(self.pref[key].val)
         # Call the function with args and kwargs
         returnVals=action.func(*inputs,**action.optionals)
         # If nothing was returned, but was expected - let user know
@@ -188,7 +204,7 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         # Add data to the trace widgets
         self.updatePage()
     
-    # Update the entire page which includes data, picks, and sorting
+    # Update the entire page which includes data, ##picks##, and sorting
     def updatePage(self):
         # Clear away all previous lines and references to the station
         for i in range(len(self.staWidgets)):
@@ -196,6 +212,8 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
             self.staWidgets[i].sta=None
             self.staWidgets[i].pltItem.setLabel(axis='left',text='empty')
         # Add in the trace data for the current page
+        ## Add in the lines ##
+        ## Have to ensure that lines are reset in correct index positions (use hotVar['pickSet'])##
         i=0
         stas=np.array([tr.stats.station for tr in self.hotVar['pltSt'].val])
         numStas=len(np.unique(stas))
@@ -235,6 +253,58 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         # If got to the end, the page number must have changed, update the page
         self.updatePage()
         
+    # Add a pick to the double-clicked station
+    def addClickPick(self):
+        # Return if no pick mode selected
+        if self.hotVar['pickMode'].val=='':
+            print 'No pick mode selected'
+            return
+        ##? Do not allow two of the same pick type at same time ?##
+        # Figure out which widget was picked on
+        aList=[aWidget for aWidget in self.staWidgets if aWidget.hasFocus()]
+        if len(aList)!=1:
+            print 'Picking is out of focus, skipped'
+            return
+        widget=aList[0]
+        # Append this pick to the pick set, and plotted lines
+        self.hotVar['pickSet'].val=np.vstack((self.hotVar['pickSet'].val,
+                                              [widget.sta,self.hotVar['pickMode'].val,widget.clickPos]))
+        self.pltLines.append(widget.pltItem.addLine(x=widget.clickPos,pen=(255,0,0)))
+        # Remove any older picks (each pick type has a limited number per station)
+        self.remOldPicks(checkStas=[widget.sta],checkTypes=[self.hotVar['pickMode'].val])
+
+    # Remove previously place picks, which occurs when a given pick type has more than "X"...
+    # ...number of picks on a given station (see pref['pickTypesMaxCountPerSta'])
+    def remOldPicks(self,checkStas=None,checkTypes=None):
+        # If sta or types is present, check only to delete those pickTypes on given stations
+        if checkStas==None:
+            checkStas=self.hotVar['staSort'].val
+        if checkTypes==None:
+            checkTypes=[key for key in self.pref['pickTypesMaxCountPerSta']]
+        delIdxs=[]
+        # Gather all indicies to be removed from pickSet and pltLines
+        for pickType in checkTypes:
+            for sta in checkStas:
+                potIdxs=np.where((self.hotVar['pickSet'].val[:,0]==sta)&
+                                 (self.hotVar['pickSet'].val[:,1]==pickType))[0]
+                pickCountMax=self.pref['pickTypesMaxCountPerSta'].val[pickType]
+                # If there are more picks than allowed, add to delete indices
+                if len(potIdxs)>pickCountMax:
+                    delIdxs+=list(np.sort(potIdxs)[:-pickCountMax])
+        # Reverse sorting of indicies, so lower value indicies do not change when pop()ing
+        delIdxs=sorted(delIdxs)[::-1]
+        pageStas=[widget.sta for widget in self.staWidgets]
+        # Remove picks from pltLines (to keep ordering the same as pickSet)
+        for idx in delIdxs:
+            aLine=self.pltLines.pop(idx)
+            # Remove the picks from the plot (if the station is currently plotted)
+            sta=self.hotVar['pickSet'].val[idx][0]
+            if sta in pageStas:
+                self.staWidgets[pageStas.index(sta)].pltItem.removeItem(aLine)
+        # Remove the picks from the hot variable pickSet
+        keepIdxs=np.array([i for i in range(len(self.hotVar['pickSet'].val)) if i not in delIdxs])
+        self.hotVar['pickSet'].val=self.hotVar['pickSet'].val[keepIdxs]
+        
     # Update how many widgets are on the main page
     def updateStaPerPage(self):
         # First remove the previous staWidgets
@@ -247,6 +317,8 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
             self.staWidgets.append(TraceWidget(self.mainLayout))
             self.staWidgets[-1].setXLink('timeAxis')
             self.traceLayout.addWidget(self.staWidgets[-1])
+            # Connect the double click signal to the add pick signal
+            self.staWidgets[-1].doubleClickSignal.connect(self.traceDoubleClickEvent)
         self.updatePage()
         
     # Set the archive availability
@@ -287,11 +359,6 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
                 continue
             self.hotVar['pickFiles'].val.append(aFile)
             self.archiveList.addItem(aFile)
-        
-    # Scroll the trace log to the bottom if an error occurs
-    def scrollTextOut(self):
-        scrollBar=self.textOutBrowser.verticalScrollBar()
-        scrollBar.setValue(scrollBar.maximum())
     
     # Load setting from previous run, and initialize base variables
     def loadSettings(self):
@@ -311,6 +378,8 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         # ...Actions
         self.act=self.setAct.value('actions', defaultActions())
         self.actPassiveOrder=self.setAct.value('actPassiveOrder', defaultPassiveOrder(self.act))
+        if self.actPassiveOrder==None:
+            self.actPassiveOrder=[]
         # Link all actions to their appropriate functions
         for key,action in self.act.iteritems():
             action.linkToFunction(self)
@@ -323,6 +392,7 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
         self.saveSource=self.setSource.value('savedSources', {})
         # Create empty variables
         self.staWidgets=[]
+        self.pltLines=[] # To hold the vertical line objects on staWidgets
         
     # Save all settings from current run...
     def saveSettings(self):
@@ -345,118 +415,6 @@ class WaveViewer000(QtGui.QMainWindow, Ui_MainWindow):
     def closeEvent(self,ev):
         self.saveSettings()
         ev.accept()
-        
-# Configuration dialog
-class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
-    def __init__(self,parent=None,main=None,actions=None,
-                 pref=None,hotVar=None):
-        QtGui.QDialog.__init__(self,parent)
-        self.setupUi(self)
-        self.main=main
-        self.pref=pref
-        self.act=actions
-        self.hotVar=hotVar
-        # Give the dialog some functionaly
-        self.setFunctionality()
-        # Load in the previous lists of preferences and actions
-        self.loadLists()
-        
-    # Set up some functionality to the configuration dialog
-    def setFunctionality(self):
-        self.confPrefList.keyPressedSignal.connect(self.listCalled)
-        self.confActiveList.keyPressedSignal.connect(self.listCalled)
-        self.confPassiveList.keyPressedSignal.connect(self.listCalled)
-        # If the ordering of the passive list ever changes, update actPassiveOrder
-        self.confPassiveList.leaveSignal.connect(self.updatePassiveOrder)
-    
-    # Load in all of the lists from previous state
-    def loadLists(self):
-        self.confPrefList.addItems(sorted([key for key in self.pref.keys()]))
-        self.confActiveList.addItems([key for key in self.act.keys() if not self.act[key].passive])
-        self.confPassiveList.addItems(self.main.actPassiveOrder)
-        
-    # Function to handle calls to the configuration lists
-    ## May want to split this up... getting pretty rediculous ##
-    def listCalled(self):
-        # If either of the action lists had focus
-        action=None
-        if self.confActiveList.hasFocus() or self.confPassiveList.hasFocus():
-            curList=self.confActiveList if self.confActiveList.hasFocus() else self.confPassiveList
-            startList='active' if self.confActiveList.hasFocus() else 'passive'
-            # Skip if no accepted keys were passed
-            if curList.key not in [Qt.Key_Insert,Qt.Key_Backspace,Qt.Key_Delete]:
-                return
-            # Creating a new action (Insert Key)
-            elif curList.key==Qt.Key_Insert:
-                # If the action is sent from user, but has not changed - ignore
-                if self.confActiveList.hasFocus():
-                    action=self.openActionSetup(Action(passive=False,trigger=Qt.Key_questiondown))
-                else:
-                    action=self.openActionSetup(Action(passive=True))
-            # Skip if no action was selected
-            elif curList.currentItem()==None:
-                print 'No action was selected'
-            # Updating an action (Backspace Key -> which is triggered by double click)
-            elif curList.key==Qt.Key_Backspace:
-                action=self.openActionSetup(self.act[curList.currentItem().text()])   
-            # Delete an action (Delete Key)
-            elif curList.key==Qt.Key_Delete:
-                actTag=curList.currentItem().text()
-                # If this is a locked action, the user cannot delete it
-                if self.act[actTag].locked:
-                    print actTag+' is a built-in action, it cannot be deleted'
-                    return
-                # Remove from the list
-                curList.takeItem(curList.currentRow())
-                # As well as from the action dictionary
-                self.act.pop(actTag)
-        if action!=None:
-            # If a new action was added, add the item to the appropriate list
-            if curList.key==Qt.Key_Insert:
-                if action.passive:
-                    self.confPassiveList.addItem(action.tag)
-                else:
-                    self.confActiveList.addItem(action.tag)
-            # ...otherwise, update the name of the new action
-            else:
-                # Remove the old action
-                self.act.pop(curList.currentItem().text())
-                # Check to see if the edit made it swap lists...
-                # ...going from active to passive
-                if (startList=='active' and action.passive):
-                    curList.takeItem(curList.currentRow())
-                    self.confPassiveList.addItem(action.tag)
-                # ...going from passive to active
-                elif (startList=='passive' and not action.passive):
-                    curList.takeItem(curList.currentRow())
-                    self.confActiveList.addItem(action.tag)
-                # ...updating the original list
-                else:
-                    curList.currentItem().setText(action.tag)
-            # Finally add to the action dictionary
-            self.act[action.tag]=action
-            # Update the passive order every time (ie. do not care how configuration dialog is closed)...
-            # ...a passive action is added or edited
-            if action.passive:
-                self.updatePassiveOrder()
-            
-        # If the preference list had focus
-        if self.confPrefList.hasFocus() and self.confPrefList.key==Qt.Key_Backspace:
-            # Grab the key, and update if possible
-            curKey=self.confPrefList.currentItem().text()
-            self.pref[curKey].update(self)
-    
-    # Update the passive list ordering to what it seen by the user
-    def updatePassiveOrder(self):
-        self.main.actPassiveOrder=self.confPassiveList.visualListOrder()
-                
-    # Open the setup action dialog
-    def openActionSetup(self,action):
-        self.dialog=ActionSetupDialog(self.main,action,self.act,self.hotVar)
-        if self.dialog.exec_():
-            action=self.dialog.returnAction()
-            return action
-
             
 # Class for logging
 class QtHandler(logging.Handler):
@@ -500,6 +458,6 @@ if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
     # Start up the UI
     app = QtGui.QApplication(sys.argv)
-    window = WaveViewer000()
+    window = LazylstMain()
     window.show()
     sys.exit(app.exec_())

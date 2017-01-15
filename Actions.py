@@ -1,6 +1,7 @@
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
 from ActionSetup import Ui_actionDialog
+from CustomFunctions import dict2Text, text2Dict
 import importlib
 import os
 
@@ -21,7 +22,9 @@ def defaultActions():
                       trigger=Qt.Key_A,locked=True),  
     'FiltHP1':Action(tag='FiltHP1',name='streamFilter',
                       path='Functions.Filters',optionals={'type':'highpass','freq':1,'corners':1,'zerophase':True},
-                      trigger=QtGui.QKeySequence('Shift+Q'),inputs=['stream'],returns=['pltSt'])
+                      trigger=QtGui.QKeySequence('Shift+Q'),inputs=['stream'],returns=['pltSt']),
+    'AddPick':Action(tag='AddPick',name='addClickPick',
+                      path='$main',trigger='DoubleClick',locked=True),  # Double click is here just for user to see
     }
     return act
     
@@ -88,7 +91,7 @@ class Action(object):
         
 # Action setup dialog
 class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
-    def __init__(self,main,action,actDict,hotVar,parent=None):
+    def __init__(self,main,action,actDict,hotVar,pref,parent=None):
         QtGui.QDialog.__init__(self,parent)
         self.setupUi(self)
         self.trigReminder=False # Used for reminder to user if toggling between active/passive
@@ -96,6 +99,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         self.action=action # The action to update
         self.actDict=actDict # All other actions
         self.hotVar=hotVar # Inputs/returns to go to/from function
+        self.pref=pref # Additional inputs to go to the function
         # Give the dialog some functionaly
         self.setFunctionality()
         # Load in the text to the related action
@@ -103,6 +107,9 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # Disable the majority of this gui if the action is locked
         if self.action.locked:
             self.lockDialog()
+        # Also, if this is only click event (double click for adding one pick)
+        if self.action.tag=='AddPick':
+            self.actTriggerLineEdit.setEnabled(False)
      
     # Set up some functionality to the action set up dialog
     def setFunctionality(self):
@@ -115,10 +122,10 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         self.actTriggerLineEdit.keyPressed.connect(self.updateKeyBind)
         self.actTriggerList.itemDoubleClicked.connect(self.updatePassiveTrigger)
         # For the input/return, avail/select lists
-        self.actAvailInputList.itemDoubleClicked.connect(lambda: self.addAvailHotVar('input'))
-        self.actAvailReturnList.itemDoubleClicked.connect(lambda: self.addAvailHotVar('return'))
-        self.actSelectInputList.keyPressedSignal.connect(lambda: self.removeHotVar('input'))
-        self.actSelectReturnList.keyPressedSignal.connect(lambda: self.removeHotVar('return'))
+        self.actAvailInputList.itemDoubleClicked.connect(lambda: self.addAvailVar('input'))
+        self.actAvailReturnList.itemDoubleClicked.connect(lambda: self.addAvailVar('return'))
+        self.actSelectInputList.keyPressedSignal.connect(lambda: self.removeSelectVar('input'))
+        self.actSelectReturnList.keyPressedSignal.connect(lambda: self.removeSelectVar('return'))
     
     # Fill the dialog with info relating to action
     def fillDialog(self):
@@ -128,13 +135,9 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         self.actNameLineEdit.setText(self.action.name)
         self.actPathLineEdit.setText(self.action.path)
         # ...optionals line edit
-        optStr=''
-        for key,val in self.action.optionals.iteritems():
-            optStr+=key+'='+str(val)+','
-        if len(optStr)>0: optStr=optStr[:-1]
-        self.actOptionalsLineEdit.setText(optStr)
+        self.actOptionalsLineEdit.setText(dict2Text(self.action.optionals))
         # ...trigger line edit entry
-        if self.action.passive:
+        if self.action.passive or self.action.tag=='AddPick':
             self.actTriggerLineEdit.setText(self.action.trigger)
         else:
             self.actTriggerLineEdit.setText(self.action.trigger.toString())
@@ -153,11 +156,15 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
             self.passiveBeforeCheck.setChecked(False)
         # Toggle the appropriate radio button
         self.togglePassiveActive(init=True)
-        # Fill in the available inputs and returns
+        # Fill in the available inputs and returns...
+        # ...hot variables can go into inputs and outputs
         for key, hotVar in self.hotVar.iteritems():
             self.actAvailInputList.addItem(key)
             if hotVar.returnable:
                 self.actAvailReturnList.addItem(key)
+        # ...preferences are only allowed as inputs
+        for key, pref in self.pref.iteritems():
+            self.actAvailInputList.addItem(key)
         # Fill in the selected inputs and returns
         self.actSelectInputList.addItems(self.action.inputs)
         self.actSelectReturnList.addItems(self.action.returns)
@@ -180,7 +187,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # If the key-bind is already in use, do not allow update
         for tag,action in self.actDict.iteritems():
             # Only active actions have key-binds (do not need to check passive)
-            if action.passive:
+            if action.passive or action.tag=='AddPick':
                 continue
             if action.trigger.toString()==keyBindText and action.tag!=self.action.tag:
                 print action.tag+' already uses key-bind '+keyBindText
@@ -192,8 +199,8 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
     def updatePassiveTrigger(self):
         self.actTriggerLineEdit.setText(self.actTriggerList.currentItem().text())
     
-    # Move the user chosen available hot variable to the selected list
-    def addAvailHotVar(self,listTag):
+    # Move the user chosen available hot variable or preference to the selected list
+    def addAvailVar(self,listTag):
         # See which pair of lists was called
         if listTag=='return':
             fromList=self.actAvailReturnList
@@ -206,8 +213,8 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         if text not in [toList.item(i).text() for i in range(toList.count())]:
             toList.addItem(text)
     
-    # Removes the current item from a selected hot variable list
-    def removeHotVar(self,listTag):
+    # Removes the current item from a selected list of hot variables and/or preferences
+    def removeSelectVar(self,listTag):
         # See which pair of lists was called
         if (listTag=='return' and self.actSelectReturnList.currentItem!=None and 
             self.actSelectReturnList.key==Qt.Key_Delete):
@@ -259,7 +266,10 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
     def returnAction(self):
         # First check to see that the new parameters make sense and the action is to be updated,
         # ... for now just checking that the tag and the trigger are appropriate
-        if self.actTagLineEdit.text()=='New action':
+        if self.action.tag=='AddPick':
+            print 'No changes can be made to AddPick'
+            return None
+        elif self.actTagLineEdit.text()=='New action':
             print 'Action update declined, tag was still default'
             return None
         elif not self.unqTagName():
@@ -274,25 +284,10 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         self.action.path=self.actPathLineEdit.text()
         # ...optionals, set the values to the accepted format type (in order: bool,float,int,str)
         optText=self.actOptionalsLineEdit.text()
-        if '=' in optText:
-            try:
-                optionals=dict(x.split('=') for x in optText.split(','))
-                for key,val in optionals.iteritems():
-                    # Do not convert numbers to bool
-                    if val in ['True','False']:
-                        optionals[key]=bool(val)
-                    # Otherwise see if it is a number
-                    try:
-                        if '.' in val:
-                            optionals[key]=float(val)
-                        else:
-                            optionals[key]=int(val)
-                    # If none of the above, leave as a string
-                    except:
-                        continue
-            except:
-                print 'optionals were not formatted correctly, leaving as blank'
-        else:
+        try:
+            optionals=text2Dict(optText)
+        except:
+            print 'optionals were not formatted correctly, leaving as blank'
             optionals={}
         self.action.optionals=optionals
         # ...set whether this is an active or passive action

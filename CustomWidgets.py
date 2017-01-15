@@ -93,7 +93,9 @@ class TimeWidget(pg.PlotWidget):
    
 # Widget which will hold the trace data, and respond to picking keybinds     
 class TraceWidget(pg.PlotWidget):
-    def __init__(self, parent=None,sta=None,delPickKey=Qt.Key_4):
+    doubleClickSignal=QtCore.pyqtSignal()  
+    
+    def __init__(self, parent=None,sta=None,clickPos=None):
         super(TraceWidget, self).__init__(parent)
         self.pltItem=self.getPlotItem()
         self.pltItem.setMenuEnabled(enableMenu=False)
@@ -108,25 +110,17 @@ class TraceWidget(pg.PlotWidget):
         self.pltItem.getAxis('left').setWidth(70)
         # Assign this widget a station
         self.sta=sta
-        # Assign key to delete a pick off this widget
-        self.delPickKey=delPickKey
-        # Give this widget a set of vertical lines (represents a pick)
-        self.vlines=[]
+        self.clickPos=clickPos
     
-    # The built in buttons for each trace window
-    def keyPressEvent(self, ev):
-        super(TraceWidget, self).keyPressEvent(ev)
-        # Remove all picks from the current axis
-        if ev.key()==self.delPickKey:
-            for aLine in self.vlines:
-                self.pltItem.removeItem(aLine)
-            self.vlines=[]
-    
-    # Place a vertical lines when double clicked
+    # Emit signal for picking
     def mouseDoubleClickEvent(self, ev):
         super(TraceWidget, self).mouseDoubleClickEvent(ev)
-        aPos=self.pltItem.vb.mapSceneToView(ev.pos())
-        self.vlines.append(self.pltItem.addLine(x=aPos.x(),pen=(255,0,0)))
+        if self.sta==None:
+            return
+        # Figure out the position of the click, and update value
+        self.clickPos=self.pltItem.vb.mapSceneToView(ev.pos()).x()
+        # Return signal
+        self.doubleClickSignal.emit()
     
     # Ensure that key presses are sent to the widget which the mouse is hovering over
     def enterEvent(self,ev):
@@ -209,7 +203,7 @@ def keyPressToString(ev):
     else:
         keyname=QtGui.QKeySequence(key).toString()
     return keyname
-    
+
 # Line edit which returns key-bind strings
 class KeyBindLineEdit(QtGui.QLineEdit):
     keyPressed=QtCore.pyqtSignal(str)

@@ -42,7 +42,7 @@ class Ui_ConfDialog(object):
         self.confPrefLabel.setObjectName(_fromUtf8("confPrefLabel"))
         self.confPrefLayout.addWidget(self.confPrefLabel)
         self.confPrefList = MixListWidget(ConfDialog)
-        self.confPrefList.setDragDropMode(QtGui.QAbstractItemView.InternalMove)
+        self.confPrefList.setDragDropMode(QtGui.QAbstractItemView.NoDragDrop)
         self.confPrefList.setObjectName(_fromUtf8("confPrefList"))
         self.confPrefLayout.addWidget(self.confPrefList)
         self.horizontalLayout.addLayout(self.confPrefLayout)
