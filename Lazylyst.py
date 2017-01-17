@@ -1,6 +1,7 @@
 import logging
 import sip
 import sys,os
+import numpy as np
 sip.setapi('QVariant', 2)
 from PyQt4 import QtGui,QtCore
 from PyQt4.QtCore import QSettings
@@ -12,7 +13,7 @@ from Actions import defaultActions, defaultPassiveOrder
 from Archive import getArchiveAvail, getTimeFromFileName, extractDataFromArchive
 from ConfigurationDialog import ConfDialog
 from SaveSource import CsDialog
-import numpy as np
+from decimal import Decimal
 
 # Main window class
 class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
@@ -70,7 +71,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
 
     # Function to handle double click events from trace widgets
     def traceDoubleClickEvent(self):
-        action=self.act['AddPick']
+        action=self.act['PickAdd']
         self.processAction(action)
     
     # Function to handle double clicks from the archive widget
@@ -80,6 +81,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     
     # Create and activate the queue of actions following the initiation of an active action
     def processAction(self,action):
+        # If this action was triggered over top of a trace widget, get the current station
+        self.setCurSta()
         # First check to see if there are any (passive) actions which relate
         actQueue=self.collectActQueue(action)   
         for oAct in actQueue:
@@ -117,20 +120,14 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 inputs.append(self.pref[key].val)
         # Call the function with args and kwargs
         returnVals=action.func(*inputs,**action.optionals)
-        # If nothing was returned, but was expected - let user know
-        if returnVals==None and len(action.returns)!=0:
-            print 'For action '+action.tag+' got 0 return values, expected '+len(action.returns)
-            return
-        # If something was returned, but nothing was expected - let user know
-        if returnVals!=None and len(action.returns)==0:
-            print 'For action '+action.tag+' got some return values, expected none'
-            return
-        # Skip if no returns
-        if returnVals==None:
-            return
         # Update all return (hot variable) values...
+        # ... if no returns, but got something, let user know
+        if len(action.returns)==0:
+            if str(returnVals)!=str(None):
+                print 'Action '+action.tag+' expected no returns, but received some'
+            return
         # ...if just one return, convert to list to treat the same as multiple
-        if len(action.returns)==1:
+        elif len(action.returns)==1:
             returnVals=[returnVals]
         # Go through each of the returns in order, and update
         # ...check first to see the number of returns are correct
@@ -146,11 +143,14 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             if skipUpdates: return
             # Process the return keys in order 
             for i,aReturnKey in enumerate(action.returns):
+                # Hold the previous values for history
+                self.hotVar[aReturnKey].preVal=self.hotVar[aReturnKey].val
+                # Update with the new value
                 self.hotVar[aReturnKey].val=returnVals[i]
                 self.hotVar[aReturnKey].update()
         else:
             print ('For action '+action.tag+' got '+str(len(returnVals))+
-                   ' return values, expected '+len(action.returns))
+                   ' return values, expected '+str(len(action.returns)))
     
     # Open the configuration window
     def openConfiguration(self):
@@ -196,7 +196,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.archiveList.addItem(newPickFile)
         self.hotVar['pickFiles'].val=self.archiveList.visualListOrder()
         
-    # Load a specific pick file
+    # Load a specific pick file from the pick directory (inter-event pick loading)
     def loadPickFile(self):
         path=self.hotVar['pickDir'].val+'/'+self.hotVar['curPickFile'].val
         # Check that the path exists
@@ -210,20 +210,32 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Put into proper dimensions if only one pick was present
         if len(pickSet.shape)==1:
             pickSet=pickSet.reshape((1,3))
-        # Remove any lines which have pick types that are not currently defined
+        pickSet=self.remUnknownPickTypes(pickSet)
+        # Update the pickset
+        self.hotVar['pickSet'].val=pickSet
+        self.pltLines=[None]*len(pickSet)
+        
+    # Save the current picks
+    def savePickSet(self):
+        # If the current pick file was not yet initiated, nothing to save
+        if self.hotVar['curPickFile'].val=='':
+            return
+        np.savetxt(self.hotVar['pickDir'].val+'/'+self.hotVar['curPickFile'].val,
+                   self.hotVar['pickSet'].val,fmt='%s',delimiter=',')
+    
+    # Remove any lines which have pick types that are not currently defined
+    def remUnknownPickTypes(self,pickSet):
         knownTypes=[key for key in self.pref['pickTypesMaxCountPerSta'].val]
         seenTypes=np.unique(pickSet[:,1])
         for aType in seenTypes:
             if aType not in knownTypes:
                 print ('Pick type: '+aType+' is not currently defined in "pickTypesMaxCountPerSta"'+
-                       ', add this pick type and reload the file - otherwise it will be removed upon saving')
+                       ', add this pick type and redo the action - otherwise it will be removed upon saving')
                 pickSet=pickSet[np.where(pickSet[:,1]!=aType)]
-        # Update the pickset
-        self.hotVar['pickSet'].val=pickSet
-        self.pltLines=[None]*len(pickSet)
+        return pickSet
         
     # Set the current pick file, called from double click an event in the archive list
-    def setCurPickFile(self):
+    def setCurPickFileOnClick(self):
         return str(self.archiveList.currentItem().text())
         
     # Load the current event
@@ -257,18 +269,20 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # ...Otherwise load the default hot variables values, and reset values relating to curPickFile
         else:
             defaultHot=initHotVar()
-            for key in ['stream','pltSt','staSort','pickSet']:
+            for key in ['stream','pltSt','staSort','pickSet','curSta']:
                 self.hotVar[key].val=defaultHot[key].val
         # Add data to the trace widgets
         self.updatePage()
     
     # Update the entire page which includes data, picks, and sorting
+    # Previous pltLine references are removed
     def updatePage(self,init=False):
         # Clear away all previous lines and references to the station
         for i in range(len(self.staWidgets)):
             self.staWidgets[i].clear()
-            self.staWidgets[i].sta=None
+            self.staWidgets[i].sta=''
             self.staWidgets[i].pltItem.setLabel(axis='left',text='empty')
+        self.pltLines=[None]*len(self.hotVar['pickSet'].val)
         # Add in the trace data for the current page
         i=0
         stas=np.array([tr.stats.station for tr in self.hotVar['pltSt'].val])
@@ -325,7 +339,15 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # If got to the end, the page number must have changed, update the page
         self.updatePage()
         
-    # Add a pick to the double-clicked station
+    # Set which station is currently being hovered over
+    def setCurSta(self):
+        for widget in self.staWidgets:
+            if widget.hasFocus():
+                self.hotVar['curSta'].val=widget.sta
+                return
+        self.hotVar['curSta'].val=''
+        
+    # Add a pick to the double-clicked station (single-pick addition)
     def addClickPick(self):
         # Return if no pick mode selected
         if self.hotVar['pickMode'].val=='':
@@ -342,12 +364,13 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                                               [widget.sta,self.hotVar['pickMode'].val,widget.clickPos]))
                                               #        curMode=
         self.pltLines.append(widget.pltItem.addLine(x=widget.clickPos,
-                                                    pen=self.getPickPen(self.hotVar['pickMode'].val)))
+                             pen=self.getPickPen(self.hotVar['pickMode'].val)))
         # Remove any older picks (each pick type has a limited number per station)
         self.remOldPicks(checkStas=[widget.sta],checkTypes=[self.hotVar['pickMode'].val])
 
-    # Remove previously place picks, which occurs when a given pick type has more than "X"...
+    # Remove older picks, which occurs when a given pick type has more than "X"...
     # ...number of picks on a given station (see pref['pickTypesMaxCountPerSta'])
+    # (single-pick addition)
     def remOldPicks(self,checkStas=None,checkTypes=None):
         # If sta or types is present, check only to delete those pickTypes on given stations
         if checkStas==None:
@@ -377,6 +400,48 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Remove the picks from the hot variable pickSet
         keepIdxs=np.array([i for i in range(len(self.hotVar['pickSet'].val)) if i not in delIdxs])
         self.hotVar['pickSet'].val=self.hotVar['pickSet'].val[keepIdxs]
+        
+    # Function to handle updates to the hot variable pickSet
+    # ... adding and remove picks on the current page
+    def updatePagePicks(self):
+        return ## This is broken ## gotta rethink how plotting ## Add item to trace widget?
+        # Turn the previous/new sets into one dimensional lists (for comparison)
+        lastSet=self.hotVar['pickSet'].preVal
+        lastList=[a[0]+a[1]+a[2] for a in lastSet]
+        curList=[a[0]+a[1]+a[2] for a in self.hotVar['pickSet'].val]
+        # Find out which of these values are unique (to remove duplicate picks)
+        unqLast,unqLastIdx=np.unique(lastList,return_index=True)
+        unqCur,unqCurIdx=np.unique(curList,return_index=True)
+        # First update the new set with only the unique values
+        self.hotVar['pickSet'].val=self.hotVar['pickSet'].val[unqCurIdx]
+        # Remove any old plot lines which no longer exist...
+        pageStas=[widget.sta for widget in self.staWidgets]
+        # Loop backwards for the pop method
+        for i,line in zip(range(len(self.pltLines)),self.pltLines)[::-1]:
+            # ...skip if the station is not visible
+            sta=lastSet[i,0]
+            if sta not in pageStas:
+                continue
+            # ...delete if it was not unique, or is not in the new
+            if (i not in unqLastIdx) or (lastList[i] not in unqCur):
+                self.staWidgets[pageStas.index(sta)].pltItem.removeItem(line)
+                self.pltLines.pop(i)
+                
+#        # Add in any new and unique lines
+#        for i,entry in enumerate(unqCur):
+#            # If was already present, skip
+#            if entry in unqLast:
+#                continue
+#            # If the station isn't visible give a placeholder for the plotLine
+#            sta=lastSet[i,0]
+#            if sta not in pageStas:
+#                self.pltLines.append(None)
+#                continue
+#            widget=self.staWidgets[pageStas.index(sta)]
+#            # Otherwise, add this line to the plot
+#            self.pltLines.append(widget.pltItem.addLine(x=Decimal(self.hotVar['pickSet'].val[i,2]),
+#                                 pen=self.getPickPen(self.hotVar['pickSet'].val[i,1])))
+            
     
     # Return the wanted pick types pen, in RGB
     def getPickPen(self,aType):
@@ -413,6 +478,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             self.traceLayout.addWidget(self.staWidgets[-1])
             # Connect the double click signal to the add pick signal
             self.staWidgets[-1].doubleClickSignal.connect(self.traceDoubleClickEvent)
+        self.updateTraceBackground()
         self.updatePage()
         
     # Set the archive availability

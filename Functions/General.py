@@ -34,10 +34,8 @@ def setCurPickFile(curPickFile,pickFiles,nextFile=False,prevFile=False):
         curPickFile=pickFiles[curIdx-1]
     return curPickFile
     
-# Save the current picks
-def savePickSet(pickDir,curPickFile,pickSet):
-    # If the current pick file was not yet initiated, nothing to save
-    if curPickFile=='':
-        return
-    np.savetxt(pickDir+'/'+curPickFile,pickSet,fmt='%s',delimiter=',')
+# Delete the hovered stations, with current pick type
+def delPick(pickSet,pickMode,curSta):
+    pickSet=pickSet[np.where((pickSet[:,0]!=curSta)|(pickSet[:,1]!=pickMode))]
+    return pickSet
     

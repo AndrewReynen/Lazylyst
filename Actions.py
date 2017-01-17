@@ -11,39 +11,55 @@ def defaultActions():
     'OpenOptions':Action(tag='OpenOptions',name='openConfiguration',
                       path='$main',
                       trigger=Qt.Key_O,locked=True),
+                      
     'ChangeSource':Action(tag='ChangeSource',name='openChangeSource',
                       path='$main',
                       trigger=Qt.Key_P,locked=True),
+                      
     'PageNext':Action(tag='PageNext',name='tabCurPage',
                       path='$main',optionals={'nextPage':True},
                       trigger=Qt.Key_D,locked=True),
+                      
     'PagePrev':Action(tag='PagePrev',name='tabCurPage',
                       path='$main',optionals={'prevPage':True},
                       trigger=Qt.Key_A,locked=True),  
+                      
     'FiltHP1':Action(tag='FiltHP1',name='streamFilter',
                       path='Functions.Filters',optionals={'type':'highpass','freq':1,'corners':1,'zerophase':True},
                       trigger=QtGui.QKeySequence('Shift+Q'),inputs=['stream'],returns=['pltSt']),
-    'ChangePickMode':Action(tag='ChangePickMode',name='togglePickMode',
+
+    'PickChangeMode':Action(tag='PickChangeMode',name='togglePickMode',
                       path='Functions.General',
                       trigger=QtGui.QKeySequence('1'),inputs=['pickMode','pickTypesMaxCountPerSta'],returns=['pickMode']),
-    'AddPick':Action(tag='AddPick',name='addClickPick',
+
+    'PickAdd':Action(tag='PickAdd',name='addClickPick',
                      path='$main',trigger='DoubleClick',locked=True),
-    'PickFileSetToClick':Action(tag='PickFileGoToClick',name='setCurPickFile',
+                     
+    'PickDelete':Action(tag='PickDelete',name='delPick',
+                        path='Functions.General',trigger=Qt.Key_4,
+                        inputs=['pickSet','pickMode','curSta'],returns=['pickSet']),
+                     
+    'PickFileSetToClick':Action(tag='PickFileGoToClick',name='setCurPickFileOnClick',
                                 path='$main',trigger='DoubleClick',returns=['curPickFile'],locked=True),
+
     'PickFileNext':Action(tag='PickFileNext',name='setCurPickFile',optionals={'nextFile':True},
                           path='Functions.General',trigger=QtGui.QKeySequence('Shift+D'),locked=True,
                           inputs=['curPickFile','pickFiles'],returns=['curPickFile']),
+
     'PickFilePrev':Action(tag='PickFilePrev',name='setCurPickFile',optionals={'prevFile':True},
                           path='Functions.General',trigger=QtGui.QKeySequence('Shift+A'),locked=True,
                           inputs=['curPickFile','pickFiles'],returns=['curPickFile']),
+
     'SavePickSetOnDblClick':Action(tag='SavePickSetOnDblClick',name='savePickSet',
-                                   path='Functions.General',passive=True,inputs=['pickDir','curPickFile','pickSet'],
+                                   path='$main',passive=True,
                                    trigger='PickFileSetToClick',beforeTrigger=True),
+                                   
     'SavePickSetOnNext':Action(tag='SavePickSetOnNext',name='savePickSet',
-                               path='Functions.General',passive=True,inputs=['pickDir','curPickFile','pickSet'],
+                               path='$main',passive=True,
                                trigger='PickFileNext',beforeTrigger=True),
+                               
     'SavePickSetOnPrev':Action(tag='SavePickSetOnPrev',name='savePickSet',
-                               path='Functions.General',passive=True,inputs=['pickDir','curPickFile','pickSet'],
+                               path='$main',passive=True,
                                trigger='PickFilePrev',beforeTrigger=True),
     }
     return act

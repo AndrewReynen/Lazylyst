@@ -17,12 +17,14 @@ def initHotVar():
                        funcName='updatePickFiles'),
     'curPickFile':HotVar(tag='curPickFile',val='',dataType=str,
                          funcName='updateEvent'),
-    'pickSet':HotVar(tag='pickSet',val=np.empty((0,3)),dataType=np.array), # Must be in string format, row=[Sta,Type,TimeStamp]
+    'pickSet':HotVar(tag='pickSet',val=np.empty((0,3)),dataType=np.array,
+                     funcName='updatePagePicks'), # Must be in string format, row=[Sta,Type,TimeStamp]
     'pickMode':HotVar(tag='pickMode',val='',dataType=str),
     'archDir':HotVar(tag='archDir',val='',dataType=str,
                      funcName='updateArchive'),
     'archFiles':HotVar(tag='archFiles',val=[],dataType=list,returnable=False),
     'archFileTimes':HotVar(tag='archFileTimes',val=[],dataType=list,returnable=False),   
+    'curSta':HotVar(tag='curSta',val='',dataType=str,returnable=False),
     'staFile':HotVar(tag='staFile',val='',dataType=str),
     'staMeta':HotVar(tag='staMeta',val=[],dataType=np.array,returnable=False)
     }
@@ -30,11 +32,12 @@ def initHotVar():
 
 # Class for hot variables, which have defined update functions
 class HotVar(object):
-    def __init__(self,tag=None,val=None,
+    def __init__(self,tag=None,val=None,preVal=None,
                  dataType=None,func=None,
                  funcName=None,returnable=True):
         self.tag=tag
         self.val=val
+        self.preVal=preVal # Allows to call back the most recent action
         self.dataType=dataType
         self.func=func # Function which is called upon update
         self.funcName=funcName # Name of the function within $main to be called

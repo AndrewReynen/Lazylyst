@@ -110,7 +110,7 @@ class TimeWidget(pg.PlotWidget):
 class TraceWidget(pg.PlotWidget):
     doubleClickSignal=QtCore.pyqtSignal()  
     
-    def __init__(self, parent=None,sta=None,clickPos=None):
+    def __init__(self, parent=None,sta='',clickPos=None):
         super(TraceWidget, self).__init__(parent)
         self.pltItem=self.getPlotItem()
         self.pltItem.setMenuEnabled(enableMenu=False)
@@ -152,6 +152,11 @@ class TraceWidget(pg.PlotWidget):
     def enterEvent(self,ev):
         super(TraceWidget, self).enterEvent(ev)
         self.setFocus()
+        
+    # Exit focus when the trace is left
+    def leaveEvent(self,ev):
+        super(TraceWidget, self).leaveEvent(ev)
+        self.clearFocus()
      
 # Widget which return key presses, however double click replace backspace
 class MixListWidget(QtGui.QListWidget):       
