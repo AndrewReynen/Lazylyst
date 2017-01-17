@@ -12,7 +12,14 @@ def defaultPreferences(main):
     'archiveFileLen':Pref(tag='archiveFileLen',val=1800,dataType=float),
     'archiveLoadMethod':Pref(tag='archiveLoadMethod',val='fast'),
     'pickTypesMaxCountPerSta':Pref(tag='pickTypesMaxCountPerSta',val={'P':1,'S':1},dataType=dict,
-                                   func=main.updatePickColorPrefs,condition={'bound':[1,999]})
+                                   func=main.updatePickColorPrefs,condition={'bound':[1,999]}),
+    'backgroundColorTrace':Pref(tag='backgroundColorTrace',val=0,dataType=int,
+                                dialog='ColorDialog',func=main.updateTraceBackground),
+    'backgroundColorTime':Pref(tag='backgroundColorTime',val=0,dataType=int,
+                                dialog='ColorDialog',func=main.updateTimeBackground),
+    'backgroundColorArchive':Pref(tag='backgroundColorArchive',val=0,dataType=int,
+                                dialog='ColorDialog',func=main.updateArchiveBackground)
+
     }
     return pref
 

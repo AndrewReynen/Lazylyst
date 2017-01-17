@@ -127,6 +127,17 @@ class TraceWidget(pg.PlotWidget):
         self.sta=sta
         self.clickPos=clickPos
     
+    def addCurve(self,x=[],y=[]):
+        curve=pg.PlotCurveItem(x=x,y=y) #,stepMode=True
+        self.addItem(curve)
+
+## May want to look into this option more
+#    def addCurve(self,x=[],y=[]):
+#        curve = pg.arrayToQPath(x, y)
+#        item = QtGui.QGraphicsPathItem(curve)
+#        item.setPen(pg.mkPen('w'))
+#        self.addItem(item)
+    
     # Emit signal for picking
     def mouseDoubleClickEvent(self, ev):
         super(TraceWidget, self).mouseDoubleClickEvent(ev)

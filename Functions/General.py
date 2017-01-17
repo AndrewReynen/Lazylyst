@@ -12,6 +12,14 @@ def togglePickMode(*args,**kwargs):
     print 'Picking mode: '+availPickModes[idx]
     return availPickModes[idx]
     
+# Go to the first or last page
+def goToPage(*args,**kwargs):
+    if kwargs['goToPage']=='last':
+        pageNumber=99999
+    else:
+        pageNumber=0
+    return pageNumber
+    
 # Set the current pick file
 def setCurPickFile(curPickFile,pickFiles,nextFile=False,prevFile=False):
     maxFileIdx=len(pickFiles)-1

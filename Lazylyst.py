@@ -121,6 +121,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         if returnVals==None and len(action.returns)!=0:
             print 'For action '+action.tag+' got 0 return values, expected '+len(action.returns)
             return
+        # If something was returned, but nothing was expected - let user know
+        if returnVals!=None and len(action.returns)==0:
+            print 'For action '+action.tag+' got some return values, expected none'
+            return
         # Skip if no returns
         if returnVals==None:
             return
@@ -206,6 +210,15 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Put into proper dimensions if only one pick was present
         if len(pickSet.shape)==1:
             pickSet=pickSet.reshape((1,3))
+        # Remove any lines which have pick types that are not currently defined
+        knownTypes=[key for key in self.pref['pickTypesMaxCountPerSta'].val]
+        seenTypes=np.unique(pickSet[:,1])
+        for aType in seenTypes:
+            if aType not in knownTypes:
+                print ('Pick type: '+aType+' is not currently defined in "pickTypesMaxCountPerSta"'+
+                       ', add this pick type and reload the file - otherwise it will be removed upon saving')
+                pickSet=pickSet[np.where(pickSet[:,1]!=aType)]
+        # Update the pickset
         self.hotVar['pickSet'].val=pickSet
         self.pltLines=[None]*len(pickSet)
         
@@ -275,9 +288,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             self.staWidgets[i].pltItem.setLabel(axis='left',text=thisSta)
             # Plot the data
             for idx in wantIdxs:
-                self.staWidgets[i].plot(y=self.hotVar['pltSt'].val[idx].data,
-                                        x=self.hotVar['pltSt'].val[idx].times()+
-                                        self.hotVar['pltSt'].val[idx].stats.starttime.timestamp)
+                self.staWidgets[i].addCurve(y=self.hotVar['pltSt'].val[idx].data,
+                                            x=self.hotVar['pltSt'].val[idx].times()+
+                                            self.hotVar['pltSt'].val[idx].stats.starttime.timestamp)
             # Get the picks that are associated with this station...
             if len(self.hotVar['pickSet'].val)>0:
                 pickIdxs=np.where(self.hotVar['pickSet'].val[:,0]==thisSta)[0]
@@ -287,18 +300,26 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                     self.pltLines[idx]=self.staWidgets[i].pltItem.addLine(x=aTime,pen=self.getPickPen(aType))
             i+=1
     
-    # Set the current page number
-    def setCurPage(self,nextPage=False,prevPage=False,pageNum=0):
+    # Function to handle updates of the hot variable curPage
+    def updateCurPage(self):
+        # Clip to the max/minimum if outside the accepted range
+        maxPageNum=(len(self.hotVar['staSort'].val)-1)/self.pref['staPerPage'].val
+        if maxPageNum==-1:
+            return
+        if self.hotVar['curPage'].val>maxPageNum:
+            self.hotVar['curPage'].val=maxPageNum
+        elif self.hotVar['curPage'].val<0:
+            self.hotVar['curPage'].val=0
+        self.updatePage()
+        
+    # Built in function to tab to the next or previous page number
+    def tabCurPage(self,nextPage=False,prevPage=False,pageNum=0):
         maxPageNum=(len(self.hotVar['staSort'].val)-1)/self.pref['staPerPage'].val
         # If the next or previous page, ensure still in bounds
         if nextPage and self.hotVar['curPage'].val+1<=maxPageNum:
             self.hotVar['curPage'].val+=1
         elif prevPage and self.hotVar['curPage'].val-1>=0:
             self.hotVar['curPage'].val-=1
-        # If neither next nor previous page, set the specific if in bounds
-        elif (not nextPage and not prevPage and pageNum!=self.hotVar['curPage'].val and
-              pageNum>=0 and pageNum<=maxPageNum):
-            self.hotVar['curPage'].val=pageNum
         else:
             return
         # If got to the end, the page number must have changed, update the page
@@ -361,6 +382,22 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def getPickPen(self,aType):
         col=QtGui.QColor(self.pref['pickColor_'+aType].val)
         return (col.red(), col.green(), col.blue())
+    
+    # Change the color of the traces
+    def updateTraceBackground(self,init=False):
+        col=QtGui.QColor(self.pref['backgroundColorTrace'].val)
+        for aWidget in self.staWidgets:
+            aWidget.setBackground(col)
+    
+    # Change the color of time time axis
+    def updateTimeBackground(self,init=False):
+        col=QtGui.QColor(self.pref['backgroundColorTime'].val)
+        self.timeWidget.setBackground(col)
+    
+    # Change the color of the archive axis
+    def updateArchiveBackground(self,init=False):
+        col=QtGui.QColor(self.pref['backgroundColorArchive'].val)
+        self.archiveWidget.setBackground(col)
         
     # Update how many widgets are on the main page
     def updateStaPerPage(self,init=False):
@@ -444,14 +481,13 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         if self.hotVar['curPickFile'].val not in self.hotVar['pickFiles'].val:
             self.hotVar['curPickFile'].val=''
             self.hotVar['curPickFile'].update()
-        
     
     # As the number of pick types can change in the settings...
     # ...show less/more pick type color preferences
     def updatePickColorPrefs(self,init=False):
         curPickTypes=[key for key in self.pref['pickTypesMaxCountPerSta'].val]
-        curPickColors=[key for key in self.pref.iteritems() if
-                       ('pickColor_' in key and self.pref[key].dialog=='ColorDialog')]
+        curPickColors=[key for key in self.pref.keys() if
+                       ('pickColor_' in str(key) and self.pref[key].dialog=='ColorDialog')]
         # Add the pick color preferences
         for aType in curPickTypes:
             # Do not overwrite if already present
@@ -460,7 +496,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 continue
             # Otherwise add the color
             self.pref[tag]=Pref(tag=tag,val=4294967295,dataType=int,
-                                dialog='ColorDialog',func=self.updatePage)
+                            dialog='ColorDialog',func=self.updatePage)
             # If Lazylyst is starting, still have to load in the previous pick colors (if set already)
             if init:
                 prefVals=self.setPref.value('prefVals', {})
@@ -473,8 +509,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Update the configuration dialogs preference list
         if not init:
             self.dialog.confPrefList.clear()
-            self.dialog.confPrefList.addItems([key for key in self.pref.keys()])
-            
+            self.dialog.confPrefList.addItems([key for key in self.pref.keys()])          
     
     # Load setting from previous run, and initialize base variables
     def loadSettings(self):

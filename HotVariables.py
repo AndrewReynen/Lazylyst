@@ -4,11 +4,12 @@ import numpy as np
 # Default Hot Variables
 def initHotVar():
     hotVar={
-    'stream':HotVar(tag='stream',val=emptyStream(),dataType=type(emptyStream())),
+    'stream':HotVar(tag='stream',val=emptyStream(),dataType=type(emptyStream()),returnable=False),
     'pltSt':HotVar(tag='pltSt',val=emptyStream(),dataType=type(emptyStream()),
                    funcName='updatePage'),
     'staSort':HotVar(tag='staSort',val=[],dataType=list),
-    'curPage':HotVar(tag='curPage',val=0,dataType=int),
+    'curPage':HotVar(tag='curPage',val=0,dataType=int,
+                     funcName='updateCurPage'),
     'sourceTag':HotVar(tag='sourceTag',val='',dataType=str),
     'pickDir':HotVar(tag='pickDir',val='',dataType=str,
                      funcName='updatePickDir'),
