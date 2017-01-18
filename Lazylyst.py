@@ -13,7 +13,6 @@ from Actions import defaultActions, defaultPassiveOrder
 from Archive import getArchiveAvail, getTimeFromFileName, extractDataFromArchive
 from ConfigurationDialog import ConfDialog
 from SaveSource import CsDialog
-from decimal import Decimal
 
 # Main window class
 class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
@@ -134,18 +133,23 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # ...and that the previous/new types match
         if len(action.returns)==len(returnVals):
             skipUpdates=False
-            # Ensure all the variable types match before updating any hot variables
+            # Ensure all the variable types match before updating any hot variables...
+            # ...also ensure that the hot variables ("sanity") check function passes
             for i,aReturnKey in enumerate(action.returns):
                 if type(self.hotVar[aReturnKey].val)!=type(returnVals[i]):
                     print ('Action '+action.tag+' expected variable '+str(type(self.hotVar[aReturnKey].val))+
                            ' for hot variable '+aReturnKey+', got '+str(type(returnVals[i])))
                     skipUpdates=True
-            if skipUpdates: return
+                    # If the type is wrong, no point in the longer check
+                    continue
+                if self.hotVar[aReturnKey].check==None:
+                    continue
+                elif not self.hotVar[aReturnKey].check(self,returnVals[i]):
+                    skipUpdates=True
+            if skipUpdates: 
+                return
             # Process the return keys in order 
             for i,aReturnKey in enumerate(action.returns):
-                # Hold the previous values for history
-                self.hotVar[aReturnKey].preVal=self.hotVar[aReturnKey].val
-                # Update with the new value
                 self.hotVar[aReturnKey].val=returnVals[i]
                 self.hotVar[aReturnKey].update()
         else:
@@ -178,7 +182,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 ## Must now also get the staMeta np.array, and update() ##
             else:
                 print 'Source update skipped'
-    
+
     # Add an empty pick file to the pick directory, also add to GUI list
     def addPickFile(self):
         aTimeStr=self.archiveList.graph.newEveStr
@@ -213,7 +217,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         pickSet=self.remUnknownPickTypes(pickSet)
         # Update the pickset
         self.hotVar['pickSet'].val=pickSet
-        self.pltLines=[None]*len(pickSet)
         
     # Save the current picks
     def savePickSet(self):
@@ -238,11 +241,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def setCurPickFileOnClick(self):
         return str(self.archiveList.currentItem().text())
         
-    # Load the current event
+    # Load the event related information
     def updateEvent(self):
         # Clear away the previous set of picks
         self.hotVar['pickSet'].val=np.empty((0,3))
-        self.pltLines=[]
         # Go back to the first page
         self.hotVar['curPage'].val=0
         # Set the title of the event
@@ -260,7 +262,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             self.hotVar['pltSt'].val=self.hotVar['stream'].val.copy()
             # Sort traces by channel so they are added in same order (relative other stations)
             self.hotVar['pltSt'].val.sort(keys=['channel'])
-            ## Alphabetical sorting for now ##
+            # Alphabetical sorting by default
             self.hotVar['staSort'].val=np.sort(np.unique([tr.stats.station for tr in self.hotVar['stream'].val]))
             # Move the axis time limit to the appropriate position
             minTime=np.min([tr.stats.starttime.timestamp for tr in self.hotVar['stream'].val])
@@ -271,18 +273,17 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             defaultHot=initHotVar()
             for key in ['stream','pltSt','staSort','pickSet','curSta']:
                 self.hotVar[key].val=defaultHot[key].val
-        # Add data to the trace widgets
+        # Add data, and picks to the trace widgets
         self.updatePage()
     
-    # Update the entire page which includes data, picks, and sorting
-    # Previous pltLine references are removed
+    # Update the data and picks on the current page
     def updatePage(self,init=False):
         # Clear away all previous lines and references to the station
         for i in range(len(self.staWidgets)):
             self.staWidgets[i].clear()
+            self.staWidgets[i].pickLines=[]
             self.staWidgets[i].sta=''
             self.staWidgets[i].pltItem.setLabel(axis='left',text='empty')
-        self.pltLines=[None]*len(self.hotVar['pickSet'].val)
         # Add in the trace data for the current page
         i=0
         stas=np.array([tr.stats.station for tr in self.hotVar['pltSt'].val])
@@ -311,7 +312,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 # ... and plot them, while adding them to pltLines in the same index position
                 for idx in pickIdxs:
                     aType,aTime=self.hotVar['pickSet'].val[idx,1:3]
-                    self.pltLines[idx]=self.staWidgets[i].pltItem.addLine(x=aTime,pen=self.getPickPen(aType))
+                    self.staWidgets[i].addPick(aTime,aType,pen=self.getPickPen(aType))
             i+=1
     
     # Function to handle updates of the hot variable curPage
@@ -359,25 +360,24 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             print 'Picking is out of focus, skipped'
             return
         widget=aList[0]
+        curMode=self.hotVar['pickMode'].val
         # Append this pick to the pick set, and plotted lines
         self.hotVar['pickSet'].val=np.vstack((self.hotVar['pickSet'].val,
-                                              [widget.sta,self.hotVar['pickMode'].val,widget.clickPos]))
-                                              #        curMode=
-        self.pltLines.append(widget.pltItem.addLine(x=widget.clickPos,
-                             pen=self.getPickPen(self.hotVar['pickMode'].val)))
-        # Remove any older picks (each pick type has a limited number per station)
-        self.remOldPicks(checkStas=[widget.sta],checkTypes=[self.hotVar['pickMode'].val])
+                                              [widget.sta,curMode,widget.clickPos]))
+        widget.addPick(widget.clickPos,curMode,self.getPickPen(curMode))
+        # Remove picks from the plot and pickSet, where there are too many
+        self.remExcessPicks(checkStas=[widget.sta],checkTypes=[curMode])
 
     # Remove older picks, which occurs when a given pick type has more than "X"...
     # ...number of picks on a given station (see pref['pickTypesMaxCountPerSta'])
-    # (single-pick addition)
-    def remOldPicks(self,checkStas=None,checkTypes=None):
+    def remExcessPicks(self,checkStas=None,checkTypes=None):
         # If sta or types is present, check only to delete those pickTypes on given stations
         if checkStas==None:
             checkStas=self.hotVar['staSort'].val
         if checkTypes==None:
             checkTypes=[key for key in self.pref['pickTypesMaxCountPerSta']]
         delIdxs=[]
+        visStas=[widget.sta for widget in self.staWidgets]
         # Gather all indicies to be removed from pickSet and pltLines
         for pickType in checkTypes:
             for sta in checkStas:
@@ -387,60 +387,32 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 # If there are more picks than allowed, add to delete indices
                 if len(potIdxs)>pickCountMax:
                     delIdxs+=list(np.sort(potIdxs)[:-pickCountMax])
-        # Reverse sorting of indicies, so lower value indicies do not change when pop()ing
-        delIdxs=sorted(delIdxs)[::-1]
-        pageStas=[widget.sta for widget in self.staWidgets]
-        # Remove picks from pltLines (to keep ordering the same as pickSet)
-        for idx in delIdxs:
-            aLine=self.pltLines.pop(idx)
-            # Remove the picks from the plot (if the station is currently plotted)
-            sta=self.hotVar['pickSet'].val[idx][0]
-            if sta in pageStas:
-                self.staWidgets[pageStas.index(sta)].pltItem.removeItem(aLine)
+                    # Delete the excess lines from the widget (if currently shown)
+                    if sta in visStas:
+                        self.staWidgets[visStas.index(sta)].removePicks(pickType,len(potIdxs)-pickCountMax)
         # Remove the picks from the hot variable pickSet
         keepIdxs=np.array([i for i in range(len(self.hotVar['pickSet'].val)) if i not in delIdxs])
         self.hotVar['pickSet'].val=self.hotVar['pickSet'].val[keepIdxs]
         
-    # Function to handle updates to the hot variable pickSet
-    # ... adding and remove picks on the current page
+    # Function to handle updates to the hot variable pickSet (assumes all picks have changed)
+    # ... adding and remove picks on the current page (does not remove excess)
     def updatePagePicks(self):
-        return ## This is broken ## gotta rethink how plotting ## Add item to trace widget?
-        # Turn the previous/new sets into one dimensional lists (for comparison)
-        lastSet=self.hotVar['pickSet'].preVal
-        lastList=[a[0]+a[1]+a[2] for a in lastSet]
-        curList=[a[0]+a[1]+a[2] for a in self.hotVar['pickSet'].val]
         # Find out which of these values are unique (to remove duplicate picks)
-        unqLast,unqLastIdx=np.unique(lastList,return_index=True)
+        curList=[a[0]+a[1]+a[2] for a in self.hotVar['pickSet'].val]
         unqCur,unqCurIdx=np.unique(curList,return_index=True)
-        # First update the new set with only the unique values
+        # Update the new set with only the unique picks
         self.hotVar['pickSet'].val=self.hotVar['pickSet'].val[unqCurIdx]
-        # Remove any old plot lines which no longer exist...
-        pageStas=[widget.sta for widget in self.staWidgets]
-        # Loop backwards for the pop method
-        for i,line in zip(range(len(self.pltLines)),self.pltLines)[::-1]:
-            # ...skip if the station is not visible
-            sta=lastSet[i,0]
-            if sta not in pageStas:
+        # Remove any old plot lines
+        for widget in self.staWidgets:
+            for line in widget.pickLines:
+                widget.pltItem.removeItem(line)
+            widget.pickLines=[]
+        # Add in the new lines
+        stas=[widget.sta for widget in self.staWidgets]
+        for sta,aType,aTime in self.hotVar['pickSet'].val:
+            if sta not in stas:
                 continue
-            # ...delete if it was not unique, or is not in the new
-            if (i not in unqLastIdx) or (lastList[i] not in unqCur):
-                self.staWidgets[pageStas.index(sta)].pltItem.removeItem(line)
-                self.pltLines.pop(i)
-                
-#        # Add in any new and unique lines
-#        for i,entry in enumerate(unqCur):
-#            # If was already present, skip
-#            if entry in unqLast:
-#                continue
-#            # If the station isn't visible give a placeholder for the plotLine
-#            sta=lastSet[i,0]
-#            if sta not in pageStas:
-#                self.pltLines.append(None)
-#                continue
-#            widget=self.staWidgets[pageStas.index(sta)]
-#            # Otherwise, add this line to the plot
-#            self.pltLines.append(widget.pltItem.addLine(x=Decimal(self.hotVar['pickSet'].val[i,2]),
-#                                 pen=self.getPickPen(self.hotVar['pickSet'].val[i,1])))
+            self.staWidgets[stas.index(sta)].addPick(aTime,aType,self.getPickPen(aType))
             
     
     # Return the wanted pick types pen, in RGB
@@ -612,7 +584,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.saveSource=self.setSource.value('savedSources', {})
         # Create empty variables
         self.staWidgets=[]
-        self.pltLines=[] # To hold the vertical line objects on staWidgets
         
     # Save all settings from current run
     def saveSettings(self):
@@ -635,7 +606,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def closeEvent(self,ev):
         self.saveSettings()
         ev.accept()
-            
+        
 # Class for logging
 class QtHandler(logging.Handler):
     def __init__(self):

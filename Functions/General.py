@@ -11,6 +11,26 @@ def togglePickMode(*args,**kwargs):
     idx=(idx+1)%len(availPickModes)
     print 'Picking mode: '+availPickModes[idx]
     return availPickModes[idx]
+
+# Function to change picking mode to "P"    
+def pickModeP(*args,**kwargs):
+    curMode=args[0]
+    availPickModes=sorted([str(key) for key in args[1].keys()])
+    if 'P' in availPickModes:
+        return 'P'
+    else:
+        print 'Could not change to P-picking, as mode is not defined'
+        return curMode
+        
+# Function to change picking mode to "S" 
+def pickModeS(*args,**kwargs):
+    curMode=args[0]
+    availPickModes=sorted([str(key) for key in args[1].keys()])
+    if 'S' in availPickModes:
+        return 'S'
+    else:
+        print 'Could not change to S-picking, as mode is not defined'
+        return curMode
     
 # Go to the first or last page
 def goToPage(*args,**kwargs):
@@ -38,4 +58,8 @@ def setCurPickFile(curPickFile,pickFiles,nextFile=False,prevFile=False):
 def delPick(pickSet,pickMode,curSta):
     pickSet=pickSet[np.where((pickSet[:,0]!=curSta)|(pickSet[:,1]!=pickMode))]
     return pickSet
+    
+# Reverse the station sorting
+def reverseStaSort(staSort):
+    return staSort[::-1]
     

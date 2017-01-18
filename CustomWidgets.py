@@ -105,7 +105,14 @@ class TimeWidget(pg.PlotWidget):
         self.getPlotItem().getAxis('left').setWidth(70)
         self.getPlotItem().setMenuEnabled(enableMenu=False)
         self.getPlotItem().hideButtons()
-   
+
+class PickLine(pg.InfiniteLine):
+    def __init__(self, aTime,aType,pen,parent=None):
+        super(PickLine, self).__init__(parent)
+        self.pickType=aType
+        self.setValue(aTime)
+        self.setPen(pen)
+
 # Widget which will hold the trace data, and respond to picking keybinds     
 class TraceWidget(pg.PlotWidget):
     doubleClickSignal=QtCore.pyqtSignal()  
@@ -126,17 +133,35 @@ class TraceWidget(pg.PlotWidget):
         # Assign this widget a station
         self.sta=sta
         self.clickPos=clickPos
+        # Allow the widget to hold memory of pick lines
+        self.pickLines=[]
     
+    # Add a trace to the widget
     def addCurve(self,x=[],y=[]):
         curve=pg.PlotCurveItem(x=x,y=y) #,stepMode=True
         self.addItem(curve)
-
-## May want to look into this option more
-#    def addCurve(self,x=[],y=[]):
-#        curve = pg.arrayToQPath(x, y)
-#        item = QtGui.QGraphicsPathItem(curve)
-#        item.setPen(pg.mkPen('w'))
-#        self.addItem(item)
+    
+    # Add a single pick line to this station
+    def addPick(self,aTime,aType,pen):
+        aLine=PickLine(aTime,aType,pen)
+        # Add the line to the plot, and its own pick lines
+        self.pltItem.addItem(aLine)
+        self.pickLines.append(aLine)
+        
+    # Remove a specific number of picks from the pick lines (with a given pick type)
+    def removePicks(self,aType,num):
+        # Count forwards to select picks for deletion
+        delIdxs=[]
+        for i,aLine in enumerate(self.pickLines):
+            # Stop when enough picks have been marked
+            if len(delIdxs)==num:
+                break
+            if aLine.pickType==aType:
+                delIdxs.append(i)
+        # Loop backwards and pop these picks off the widget
+        for idx in delIdxs[::-1]:
+            aLine=self.pickLines.pop(idx)
+            self.pltItem.removeItem(aLine)
     
     # Emit signal for picking
     def mouseDoubleClickEvent(self, ev):
@@ -157,7 +182,7 @@ class TraceWidget(pg.PlotWidget):
     def leaveEvent(self,ev):
         super(TraceWidget, self).leaveEvent(ev)
         self.clearFocus()
-     
+    
 # Widget which return key presses, however double click replace backspace
 class MixListWidget(QtGui.QListWidget):       
     # Return signal if key was pressed while in focus
