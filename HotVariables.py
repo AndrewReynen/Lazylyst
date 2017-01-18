@@ -17,6 +17,8 @@ def initHotVar():
                      funcName='updatePickDir'),
     'pickFiles':HotVar(tag='pickFiles',val=[],dataType=list,
                        funcName='updatePickFiles'),
+    'pickFileTimes':HotVar(tag='pickFileTimes',val=[],dataType=list,returnable=False,
+                           funcName='updatePickFileTimes'),   
     'curPickFile':HotVar(tag='curPickFile',val='',dataType=str,
                          funcName='updateEvent'),
     'pickSet':HotVar(tag='pickSet',val=np.empty((0,3)),dataType=np.array,

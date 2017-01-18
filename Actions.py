@@ -39,7 +39,7 @@ def defaultActions():
                         path='Functions.General',trigger=Qt.Key_4,
                         inputs=['pickSet','pickMode','curSta'],returns=['pickSet']),
                      
-    'PickFileSetToClick':Action(tag='PickFileGoToClick',name='setCurPickFileOnClick',
+    'PickFileSetToClick':Action(tag='PickFileSetToClick',name='setCurPickFileOnClick',
                                 path='$main',trigger='DoubleClick',returns=['curPickFile'],locked=True),
 
     'PickFileNext':Action(tag='PickFileNext',name='setCurPickFile',optionals={'nextFile':True},

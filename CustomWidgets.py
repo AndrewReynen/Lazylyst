@@ -13,48 +13,32 @@ class TimeAxisItemArchive(pg.AxisItem):
         return [UTCDateTime(value).strftime("%Y-%m-%d %H:%M:%S") for value in values]
 
 # Widget for seeing what data times are available, and sub-selecting pick files
-class ArchiveWidget(pg.PlotWidget):
-    # Assign some signals when clicked
-    addNewEventSignal = QtCore.pyqtSignal()  
-    
-    def __init__(self, parent=None, t1=0, t2=0):
-        super(ArchiveWidget, self).__init__(parent,axisItems={'bottom': TimeAxisItemArchive(orientation='bottom')})
+class ArchiveSpanWidget(pg.PlotWidget):
+    def __init__(self, parent=None):
+        super(ArchiveSpanWidget, self).__init__(parent,axisItems={'bottom': TimeAxisItemArchive(orientation='bottom')})
         self.pltItem=self.getPlotItem()
         self.pltItem.setMenuEnabled(enableMenu=False)
+        # Turn off the auto ranging
+        self.pltItem.vb.disableAutoRange()
+        # Don't plot anything outside of the plot limits
+        self.pltItem.setClipToView(True)
         # Only show the bottom axis
         self.pltItem.hideAxis('left')
         self.pltItem.hideButtons()
-        # Set up the event view list boundary times
-        self.t1=t1
-        self.t2=t2
-        self.line1=self.pltItem.addLine(x=t1,pen=(255,0,0))
-        self.line2=self.pltItem.addLine(x=t2,pen=(255,0,0))
+        # Give this widget a span select, for zooming
+        self.span = pg.LinearRegionItem([500,1000])
+        self.addItem(self.span)
+        # Give a name to the data availability regions
         self.boxes=[]
         # Give some x-limits (do not go prior to 1970)
         self.pltItem.setLimits(xMin=0)
         # No y-axis panning or zooming allowed
         self.pltItem.vb.setMouseEnabled(y=False)
-        
-    # Place a vertical lines when double clicked
-    def mouseDoubleClickEvent(self, ev):
-        super(ArchiveWidget, self).mouseDoubleClickEvent(ev)
-        aPos=self.pltItem.vb.mapSceneToView(ev.pos())
-        if ev.button()==1:
-            self.t1=aPos.x()
-        elif ev.button()==2:
-            self.t2=aPos.x()
-        else:
-            return
-        self.updateBoundaries()
+        self.pltItem.setYRange(0,1)
     
     # Disable any scroll in/scroll out motions
     def wheelEvent(self,ev):
         return
-        
-    # Update the line positions
-    def updateBoundaries(self):
-        self.line1.setValue(self.t1)
-        self.line2.setValue(self.t2)
         
     # Update the boxes representing the times
     def updateBoxes(self,ranges):
@@ -66,19 +50,47 @@ class ArchiveWidget(pg.PlotWidget):
         for r in ranges:
             rect=self.pltItem.plot(x=[r[0],r[1]],y=[0.5,0.5],pen=pg.mkPen(width=1.0,color='g'))
             self.addItem(rect)         
-    
-    # Add a new pick file with the center mouse button
-    def mousePressEvent(self, ev):
-        super(ArchiveWidget, self).mousePressEvent(ev)
-        aPos=self.pltItem.vb.mapSceneToView(ev.pos())
-        if ev.button()==4:
-            self.makeEmptyPickFile(aPos.x())
-    
-    # Make an empty pick file at the specified time       
-    def makeEmptyPickFile(self,time):
-        self.newEveStr=UTCDateTime(time).strftime('%Y%m%d.%H%M%S.%f')
-        self.addNewEventSignal.emit()
+        
+# Graphview widget which holds all current pick files
+class ArchiveEventWidget(pg.PlotWidget):
+    # Assign some signals when clicked
+    addNewEventSignal = QtCore.pyqtSignal()  
 
+    def __init__(self, parent=None):
+        super(ArchiveEventWidget, self).__init__(parent)
+        self.pltItem=self.getPlotItem()
+        self.pltItem.setMenuEnabled(enableMenu=False)
+        # Don't plot anything outside of the plot limits
+        self.pltItem.setClipToView(True)
+        # Do not show any axes
+        self.pltItem.hideAxis('left')
+        self.pltItem.hideAxis('bottom')
+        self.pltItem.hideButtons()
+        # Disable all panning and zooming
+        self.pltItem.vb.setMouseEnabled(x=False,y=False)
+    
+    # Scale to where ever the archiveSpan has selected
+    def updateXRange(self,linkWidget):
+        self.setXRange(*linkWidget.getRegion(), padding=0)
+        
+    # Disable any scroll in/scroll out motions
+    def wheelEvent(self,ev):
+        return
+        
+    # Add a new pick file with the center mouse button
+    def mouseDoubleClickEvent(self, ev):
+        super(ArchiveEventWidget, self).mouseDoubleClickEvent(ev)
+        aPos=self.pltItem.vb.mapSceneToView(ev.pos())
+        self.newEveStr=UTCDateTime(aPos.x()).strftime('%Y%m%d.%H%M%S.%f')
+        self.addNewEventSignal.emit()
+    
+    # Reset the event lines, given a new set of event times
+    def updateEveLines(self,fileTimes,method):
+        if method=='reset':
+            self.clear()
+        for t in fileTimes:
+            self.addItem(pg.InfiniteLine(pos=t,pen=pg.mkPen(width=1.0,color='r')))
+        
 # List widget which holds all current pick files
 class ArchiveListWidget(QtGui.QListWidget):       
     def __init__(self, parent=None):

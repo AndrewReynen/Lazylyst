@@ -35,8 +35,11 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         
     # Start setting up some functionality to the UI
     def setFunctionality(self):
+        # Connect the zoomed in and zoomed out views of the event files
+        self.archiveSpan.span.sigRegionChanged.connect(lambda: self.archiveEvent.updateXRange(self.archiveSpan.span))
+        self.archiveSpan.span.sigRegionChangeFinished.connect(self.updateArchiveSpanList)
         # Give ability to the archive displays
-        self.archiveList.graph=self.archiveWidget
+        self.archiveList.graph=self.archiveEvent
         self.archiveList.graph.addNewEventSignal.connect(self.addPickFile)
         self.archiveList.clicked.connect(self.setFocus) # Do not let it steal focus from keybinds
         self.archiveList.doubleClicked.connect(self.archiveListDoubleClickEvent)
@@ -185,6 +188,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
 
     # Add an empty pick file to the pick directory, also add to GUI list
     def addPickFile(self):
+        # Ignore if no archive is currently set
+        if self.hotVar['archDir'].val=='':
+            return
         aTimeStr=self.archiveList.graph.newEveStr
         # Assign an ID to the new event
         seenIDs=[int(aFile.split('_')[0]) for aFile in os.listdir(self.hotVar['pickDir'].val)]
@@ -197,9 +203,11 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         newFile=open(self.hotVar['pickDir'].val+'/'+newPickFile,'w')
         newFile.close()
         # Add to GUI list, and internal list
-        self.archiveList.addItem(newPickFile)
-        self.hotVar['pickFiles'].val=self.archiveList.visualListOrder()
-        
+        self.hotVar['pickFiles'].val=sorted(os.listdir(self.hotVar['pickDir'].val))
+        self.hotVar['pickFileTimes'].update()
+        self.archiveEvent.updateEveLines([getTimeFromFileName(newPickFile).timestamp],'add')
+        self.updateArchiveSpanList()
+    
     # Load a specific pick file from the pick directory (inter-event pick loading)
     def loadPickFile(self):
         path=self.hotVar['pickDir'].val+'/'+self.hotVar['curPickFile'].val
@@ -252,6 +260,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Load the picks from given pick file, if it has been initialized...
         if self.hotVar['curPickFile'].val!='':
             self.loadPickFile()
+            # Ensure that the archive span and list includes this file
+            self.checkArchiveSpan()
             # Get the wanted time, and query for the data
             aTime=getTimeFromFileName(self.hotVar['curPickFile'].val).timestamp
             t1,t2=aTime+self.pref['evePreTime'].val,aTime+self.pref['evePostTime'].val
@@ -339,6 +349,19 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             return
         # If got to the end, the page number must have changed, update the page
         self.updatePage()
+        
+    def checkArchiveSpan(self):
+        fileTime=getTimeFromFileName(self.hotVar['curPickFile'].val).timestamp
+        t1,t2=self.archiveSpan.span.getRegion()
+        reset=False
+        if fileTime<t1:
+            t1=fileTime-0.02*(t2-t1)
+            reset=True
+        if fileTime>t2:
+            t2=fileTime+0.02*(t2-t1)
+            reset=True
+        if reset:
+            self.archiveSpan.span.setRegion((t1,t2))
         
     # Set which station is currently being hovered over
     def setCurSta(self):
@@ -434,7 +457,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     # Change the color of the archive axis
     def updateArchiveBackground(self,init=False):
         col=QtGui.QColor(self.pref['backgroundColorArchive'].val)
-        self.archiveWidget.setBackground(col)
+        self.archiveSpan.setBackground(col)
+        self.archiveEvent.setBackground(col)
         
     # Update how many widgets are on the main page
     def updateStaPerPage(self,init=False):
@@ -465,14 +489,31 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Update the time boxes
         if self.pref['archiveLoadMethod'].val=='fast':
             ranges=[[t,t+self.pref['archiveFileLen'].val] for t in archiveTimes]
-            self.archiveWidget.updateBoxes(ranges)
+            self.archiveSpan.updateBoxes(ranges)
         else:
             print 'Unsupported archive load method'
             return
-        # Show the boundaries
-        self.archiveWidget.t1=archiveTimes[0]
-        self.archiveWidget.t2=archiveTimes[-1]+self.pref['archiveFileLen'].val
-        self.archiveWidget.updateBoundaries()
+        # Set the initial span boundaries, and x-limits
+        t1,t2=archiveTimes[0],archiveTimes[-1]+self.pref['archiveFileLen'].val
+        buff=(t2-t1)*0.05
+        self.archiveSpan.pltItem.setXRange(t1-buff,t2+buff)
+        self.archiveSpan.span.setRegion((t1,t2))
+    
+    # Update the pick list with events only in the selected span
+    # ...this is done after both pickFiles and pickFileTimes are updated
+    def updateArchiveSpanList(self):
+        files=np.array(self.hotVar['pickFiles'].val)
+        times=np.array(self.hotVar['pickFileTimes'].val)
+        t1,t2=self.archiveSpan.span.getRegion()
+        # See which files should be listed
+        toListFiles=files[np.where((times>t1)&(times<t2))]
+        # Reload the pick file list
+        self.archiveList.clear()
+        self.archiveList.addItems(toListFiles)
+        # Highlight which event is currently being looked at
+        if self.hotVar['curPickFile'].val!='':
+            a=1
+            ## Highlight ##
         
     # Load the pick file list for display, given completly new pick directory
     def updatePickDir(self):
@@ -482,6 +523,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Reset the current pick file
         self.hotVar['curPickFile'].val=''
         self.hotVar['curPickFile'].update()
+        eveFileTimes=[]
         # Only accept files with proper naming convention
         for aFile in sorted(os.listdir(self.hotVar['pickDir'].val)):
             aFile=str(aFile)
@@ -491,18 +533,24 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 continue
             try:
                 int(splitFile[0])
-                getTimeFromFileName(aFile)
+                eveFileTimes.append(getTimeFromFileName(aFile).timestamp)
             except:
                 continue
             self.hotVar['pickFiles'].val.append(aFile)
-            self.archiveList.addItem(aFile)
+        # Update the pick file times hot variable
+        self.hotVar['pickFileTimes'].update()
+        self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,'reset')
+        # Finally update the pick list
+        self.updateArchiveSpanList()
     
     # With the same pick directory, force an update on the pick files...
     # ...this allows for addition of empty pick files and deletion of pick files
     def updatePickFiles(self):
+        # Update th pick file times, and reset their line in archiveEvent
+        self.hotVar['pickFileTimes'].update()
+        self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,'reset')
         # Clear the old GUI list, and add the new items
-        self.archiveList.clear()
-        self.archiveList.addItems(self.hotVar['pickFiles'].val)
+        self.updateArchiveSpanList()
         # See which files were present prior to the update
         prevFiles=sorted(os.listdir(self.hotVar['pickDir'].val))
         # Delete events which are no longer present
@@ -515,10 +563,14 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             if aFile not in prevFiles:
                 newFile=open(self.hotVar['pickDir'].val+'/'+aFile,'w')
                 newFile.close()
-        # If the current pick file no longer exists, update it
+        # If the current pick file no longer exists, set to default and update
         if self.hotVar['curPickFile'].val not in self.hotVar['pickFiles'].val:
             self.hotVar['curPickFile'].val=''
             self.hotVar['curPickFile'].update()
+    
+    # Update the pick file times, given a new set of pick files
+    def updatePickFileTimes(self):
+        self.hotVar['pickFileTimes'].val=[getTimeFromFileName(aFile).timestamp for aFile in self.hotVar['pickFiles'].val]  
     
     # As the number of pick types can change in the settings...
     # ...show less/more pick type color preferences
