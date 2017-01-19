@@ -46,10 +46,11 @@ class ArchiveSpanWidget(pg.PlotWidget):
         for item in self.boxes:
             self.removeItem(item)
         self.boxes=[]
-        # Add in the new boxes
-        for r in ranges:
-            rect=self.pltItem.plot(x=[r[0],r[1]],y=[0.5,0.5],pen=pg.mkPen(width=1.0,color='g'))
-            self.addItem(rect)         
+#        # Add in the new boxes
+#        for r in ranges:
+#            ## Change this to curve item ##
+#            rect=self.pltItem.plot(x=[r[0],r[1]],y=[0.5,0.5],pen=pg.mkPen(width=1.0,color='g'))
+#            self.addItem(rect)         
         
 # Graphview widget which holds all current pick files
 class ArchiveEventWidget(pg.PlotWidget):
