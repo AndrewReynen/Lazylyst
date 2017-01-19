@@ -7,7 +7,7 @@ def initHotVar():
     hotVar={
     'stream':HotVar(tag='stream',val=emptyStream(),dataType=type(emptyStream()),returnable=False),
     'pltSt':HotVar(tag='pltSt',val=emptyStream(),dataType=type(emptyStream()),
-                   funcName='updatePage'),
+                   funcName='updateTraces'),
     'staSort':HotVar(tag='staSort',val=[],dataType=list,
                      funcName='updatePage',checkName='checkStaSort'),
     'curPage':HotVar(tag='curPage',val=0,dataType=int,
@@ -24,6 +24,8 @@ def initHotVar():
     'pickSet':HotVar(tag='pickSet',val=np.empty((0,3)),dataType=np.array,
                      funcName='updatePagePicks'), # Must be in string format, row=[Sta,Type,TimeStamp]
     'pickMode':HotVar(tag='pickMode',val='',dataType=str),
+    'tracePenAssign':HotVar(tag='tracePenAssign',val={},dataType=dict,
+                            funcName='updateTracePen'),
     'archDir':HotVar(tag='archDir',val='',dataType=str,
                      funcName='updateArchive'),
     'archFiles':HotVar(tag='archFiles',val=[],dataType=list,returnable=False),

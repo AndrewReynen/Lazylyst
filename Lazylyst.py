@@ -13,6 +13,8 @@ from Actions import defaultActions, defaultPassiveOrder
 from Archive import getArchiveAvail, getTimeFromFileName, extractDataFromArchive
 from ConfigurationDialog import ConfDialog
 from SaveSource import CsDialog
+from fnmatch import fnmatch
+from pyqtgraph import mkPen
 
 # Main window class
 class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
@@ -283,47 +285,15 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             defaultHot=initHotVar()
             for key in ['stream','pltSt','staSort','pickSet','curSta']:
                 self.hotVar[key].val=defaultHot[key].val
-        # Add data, and picks to the trace widgets
+        # Add data, and picks to the station widgets
         self.updatePage()
     
     # Update the data and picks on the current page
     def updatePage(self,init=False):
-        # Clear away all previous lines and references to the station
-        for i in range(len(self.staWidgets)):
-            self.staWidgets[i].clear()
-            self.staWidgets[i].pickLines=[]
-            self.staWidgets[i].sta=''
-            self.staWidgets[i].pltItem.setLabel(axis='left',text='empty')
-        # Add in the trace data for the current page
-        i=0
-        stas=np.array([tr.stats.station for tr in self.hotVar['pltSt'].val])
-        numStas=len(np.unique(stas))
-        while self.hotVar['curPage'].val*self.pref['staPerPage'].val+i<numStas:
-            if i==self.pref['staPerPage'].val:
-                break
-            # Figure out which traces are associated with the next station in staSort
-            thisSta=self.hotVar['staSort'].val[self.hotVar['curPage'].val*self.pref['staPerPage'].val+i]
-            wantIdxs=np.where(stas==thisSta)[0]
-            # Also set the y-limits
-            ymin=np.min([np.min(self.hotVar['pltSt'].val[idx].data) for idx in wantIdxs])
-            ymax=np.max([np.max(self.hotVar['pltSt'].val[idx].data) for idx in wantIdxs])
-            self.staWidgets[i].setYRange(ymin,ymax)
-            # Assign the widget a station code
-            self.staWidgets[i].sta=thisSta
-            self.staWidgets[i].pltItem.setLabel(axis='left',text=thisSta)
-            # Plot the data
-            for idx in wantIdxs:
-                self.staWidgets[i].addCurve(y=self.hotVar['pltSt'].val[idx].data,
-                                            x=self.hotVar['pltSt'].val[idx].times()+
-                                            self.hotVar['pltSt'].val[idx].stats.starttime.timestamp)
-            # Get the picks that are associated with this station...
-            if len(self.hotVar['pickSet'].val)>0:
-                pickIdxs=np.where(self.hotVar['pickSet'].val[:,0]==thisSta)[0]
-                # ... and plot them, while adding them to pltLines in the same index position
-                for idx in pickIdxs:
-                    aType,aTime=self.hotVar['pickSet'].val[idx,1:3]
-                    self.staWidgets[i].addPick(aTime,aType,pen=self.getPickPen(aType))
-            i+=1
+        # Update the trace curves
+        self.updateTraces()
+        # Update the picks
+        self.updatePagePicks()
     
     # Function to handle updates of the hot variable curPage
     def updateCurPage(self):
@@ -349,7 +319,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             return
         # If got to the end, the page number must have changed, update the page
         self.updatePage()
-        
+    
+    # If the current pick file moved outside of the selected range...
+    # ...increase the range to include the pick file
     def checkArchiveSpan(self):
         fileTime=getTimeFromFileName(self.hotVar['curPickFile'].val).timestamp
         t1,t2=self.archiveSpan.span.getRegion()
@@ -436,14 +408,89 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             if sta not in stas:
                 continue
             self.staWidgets[stas.index(sta)].addPick(aTime,aType,self.getPickPen(aType))
-            
     
     # Return the wanted pick types pen, in RGB
     def getPickPen(self,aType):
         col=QtGui.QColor(self.pref['pickColor_'+aType].val)
         return (col.red(), col.green(), col.blue())
     
-    # Change the color of the traces
+    # Match all streams channels to its appropriate pen
+    def getStreamPens(self):
+        penRef={} # Dictionary to return with all unique channels pens
+        acceptKeys=[key for key in self.pref['tracePen'].val.keys()]
+        unqChas=np.unique([tr.stats.channel for tr in self.hotVar['stream'].val])
+        # First check what tracePenAssign keys are actually accepted
+        useKeys=[]
+        for key in self.hotVar['tracePenAssign'].val.keys():
+            # If the user returned default, let them know it is used if others do not exist
+            if key=='default':
+                print 'tracePen tag default is used as a catch all, ignored so does not overwrite other trace pens'
+            elif key in acceptKeys:
+                useKeys.append(key)
+            else:
+                print 'tracePen tag '+key+ 'is not currently defined in preference tracePen, applying default'
+        # Loop through each unique channel and add its pen to penRef
+        for cha in unqChas:
+            colorInt,width=None,None
+            matched=False
+            # Check each of the entries for this key for a match
+            for key,aList in [[aKey,self.hotVar['tracePenAssign'].val[aKey]] for aKey in useKeys]:
+                for entry in aList:
+                    if fnmatch(cha,entry):
+                        colorInt,width=self.pref['tracePen'].val[key]
+                        matched=True
+                        break
+                if matched:
+                    break
+            # If there was no match, apply default
+            if colorInt==None:
+                colorInt,width=self.pref['tracePen'].val['default']
+            pen=mkPen(QtGui.QColor(colorInt),width=width)
+            penRef[cha]=pen
+        return penRef
+    
+    # Update the trace curves on the current page
+    def updateTraces(self):
+        # As new channels could have been added, update the pen reference
+        self.chaPenRef=self.getStreamPens()
+        # Clear away all previous curves, and references to this station
+        for i in range(len(self.staWidgets)):
+            for curve in self.staWidgets[i].traceCurves:
+                self.staWidgets[i].removeItem(curve)
+            self.staWidgets[i].traceCurves=[]
+            self.staWidgets[i].pltItem.setLabel(axis='left',text='empty')
+        # Add in the trace data for the current page
+        i=0
+        stas=np.array([tr.stats.station for tr in self.hotVar['pltSt'].val])
+        numStas=len(np.unique(stas))
+        while self.hotVar['curPage'].val*self.pref['staPerPage'].val+i<numStas:
+            if i==self.pref['staPerPage'].val:
+                break
+            # Figure out which traces are associated with the next station in staSort
+            thisSta=self.hotVar['staSort'].val[self.hotVar['curPage'].val*self.pref['staPerPage'].val+i]
+            wantIdxs=np.where(stas==thisSta)[0]
+            # Also set the y-limits
+            ymin=np.min([np.min(self.hotVar['pltSt'].val[idx].data) for idx in wantIdxs])
+            ymax=np.max([np.max(self.hotVar['pltSt'].val[idx].data) for idx in wantIdxs])
+            self.staWidgets[i].setYRange(ymin,ymax)
+            # Assign the widget a station code
+            self.staWidgets[i].sta=thisSta
+            self.staWidgets[i].pltItem.setLabel(axis='left',text=thisSta)
+            # Plot the data
+            for idx in wantIdxs:
+                trace=self.hotVar['pltSt'].val[idx]
+                self.staWidgets[i].addTrace(trace.times()+trace.stats.starttime.timestamp,trace.data,
+                                            trace.stats.channel,self.chaPenRef[trace.stats.channel])
+            i+=1
+        
+    # Update just the trace pens on the current page
+    def updateTracePen(self,init=False):
+        self.chaPenRef=self.getStreamPens()
+        for widget in self.staWidgets:
+            for curve in widget.traceCurves:
+                curve.setPen(self.chaPenRef[curve.cha])
+    
+    # Change the color of the trace background
     def updateTraceBackground(self,init=False):
         col=QtGui.QColor(self.pref['backgroundColorTrace'].val)
         for aWidget in self.staWidgets:

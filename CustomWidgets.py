@@ -118,12 +118,21 @@ class TimeWidget(pg.PlotWidget):
         self.getPlotItem().setMenuEnabled(enableMenu=False)
         self.getPlotItem().hideButtons()
 
+# Infinite line, but now with reference to the pick type
 class PickLine(pg.InfiniteLine):
     def __init__(self, aTime,aType,pen,parent=None):
         super(PickLine, self).__init__(parent)
+        self.setZValue(10) # Allow picks to be over trace data
         self.pickType=aType
         self.setValue(aTime)
         self.setPen(pen)
+
+# Plot curve item, but now with reference to the channel
+class TraceCurve(pg.PlotCurveItem):
+    def __init__(self,x,y,cha,pen,parent=None):
+        super(TraceCurve,self).__init__(parent)
+        self.setData(x=x,y=y,pen=pen)
+        self.cha=cha
 
 # Widget which will hold the trace data, and respond to picking keybinds     
 class TraceWidget(pg.PlotWidget):
@@ -145,13 +154,15 @@ class TraceWidget(pg.PlotWidget):
         # Assign this widget a station
         self.sta=sta
         self.clickPos=clickPos
-        # Allow the widget to hold memory of pick lines
+        # Allow the widget to hold memory of pick lines, and traces
         self.pickLines=[]
+        self.traceCurves=[]
     
     # Add a trace to the widget
-    def addCurve(self,x=[],y=[]):
-        curve=pg.PlotCurveItem(x=x,y=y) #,stepMode=True
+    def addTrace(self,x,y,cha,pen):
+        curve=TraceCurve(x,y,cha,pen)
         self.addItem(curve)
+        self.traceCurves.append(curve)
     
     # Add a single pick line to this station
     def addPick(self,aTime,aType,pen):

@@ -63,3 +63,26 @@ def delPick(pickSet,pickMode,curSta):
 def reverseStaSort(staSort):
     return staSort[::-1]
     
+# Toggle trace coloring between channels
+def toggleTraceColor(curAssign):
+    if 'lowlight' not in [key for key in curAssign.keys()]:
+        return {'lowlight':['*Z'],'highlight':['*1','*2','*E','*N']}
+    if '*Z' in curAssign['lowlight']:
+        return {'highlight':['*Z'],'lowlight':['*1','*2','*E','*N']}
+    else:
+        return {'lowlight':['*Z'],'highlight':['*1','*2','*E','*N']}
+        
+# Alternate the three components colors
+def alternateTraceColor(curAssign):
+    # If nothing assigned, gib
+    if 'alt1' not in [key for key in curAssign.keys()]:
+        return {'alt1':['*Z'],'alt2':['*2','*N'],'alt3':['*1','*E']}
+    elif '*Z' in curAssign['alt1']:
+        return {'alt2':['*Z'],'alt3':['*2','*N'],'alt1':['*1','*E']}
+    elif '*Z' in curAssign['alt2']:
+        return {'alt3':['*Z'],'alt1':['*2','*N'],'alt2':['*1','*E']}
+    elif '*Z' in curAssign['alt3']:
+        return {'alt1':['*Z'],'alt2':['*2','*N'],'alt3':['*1','*E']}
+        
+        
+    

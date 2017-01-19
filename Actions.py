@@ -25,29 +25,29 @@ def defaultActions():
                       trigger=Qt.Key_A,locked=True),  
                       
     'FiltHP1':Action(tag='FiltHP1',name='streamFilter',
-                      path='Functions.Filters',optionals={'type':'highpass','freq':1,'corners':1,'zerophase':True},
+                      path='Plugins.Filters',optionals={'type':'highpass','freq':1,'corners':1,'zerophase':True},
                       trigger=QtGui.QKeySequence('Shift+Q'),inputs=['stream'],returns=['pltSt']),
 
     'PickChangeMode':Action(tag='PickChangeMode',name='togglePickMode',
-                      path='Functions.General',
+                      path='Plugins.General',
                       trigger=QtGui.QKeySequence('1'),inputs=['pickMode','pickTypesMaxCountPerSta'],returns=['pickMode']),
 
     'PickAdd':Action(tag='PickAdd',name='addClickPick',
                      path='$main',trigger='DoubleClick',locked=True),
                      
     'PickDelete':Action(tag='PickDelete',name='delPick',
-                        path='Functions.General',trigger=Qt.Key_4,
+                        path='Plugins.General',trigger=Qt.Key_4,
                         inputs=['pickSet','pickMode','curSta'],returns=['pickSet']),
                      
     'PickFileSetToClick':Action(tag='PickFileSetToClick',name='setCurPickFileOnClick',
                                 path='$main',trigger='DoubleClick',returns=['curPickFile'],locked=True),
 
     'PickFileNext':Action(tag='PickFileNext',name='setCurPickFile',optionals={'nextFile':True},
-                          path='Functions.General',trigger=QtGui.QKeySequence('Shift+D'),locked=True,
+                          path='Plugins.General',trigger=QtGui.QKeySequence('Shift+D'),locked=True,
                           inputs=['curPickFile','pickFiles'],returns=['curPickFile']),
 
     'PickFilePrev':Action(tag='PickFilePrev',name='setCurPickFile',optionals={'prevFile':True},
-                          path='Functions.General',trigger=QtGui.QKeySequence('Shift+A'),locked=True,
+                          path='Plugins.General',trigger=QtGui.QKeySequence('Shift+A'),locked=True,
                           inputs=['curPickFile','pickFiles'],returns=['curPickFile']),
 
     'SavePickSetOnDblClick':Action(tag='SavePickSetOnDblClick',name='savePickSet',
@@ -200,6 +200,9 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
                 self.actAvailReturnList.addItem(key)
         # ...preferences are only allowed as inputs
         for key, pref in self.pref.iteritems():
+            # ...no need to add colors here (just adds clutter)
+            if 'color' in key.lower():
+                continue
             self.actAvailInputList.addItem(key)
         # Fill in the selected inputs and returns
         self.actSelectInputList.addItems(self.action.inputs)
