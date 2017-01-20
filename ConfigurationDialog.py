@@ -49,7 +49,7 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
                 if self.confActiveList.hasFocus():
                     action=self.openActionSetup(Action(passive=False,trigger=Qt.Key_questiondown))
                 else:
-                    action=self.openActionSetup(Action(passive=True))
+                    action=self.openActionSetup(Action(passive=True,trigger=[]))
             # Skip if no action was selected
             elif curList.currentItem()==None:
                 print 'No action was selected'

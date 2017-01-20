@@ -56,6 +56,8 @@ def setCurPickFile(curPickFile,pickFiles,nextFile=False,prevFile=False):
     
 # Delete the hovered stations, with current pick type
 def delPick(pickSet,pickMode,curSta):
+    if len(pickSet)==0:
+        return np.empty((0,3))
     pickSet=pickSet[np.where((pickSet[:,0]!=curSta)|(pickSet[:,1]!=pickMode))]
     return pickSet
     

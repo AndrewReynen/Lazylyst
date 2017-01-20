@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>470</width>
-    <height>516</height>
+    <width>626</width>
+    <height>626</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,7 +15,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QGridLayout" name="actShortInputLayout" rowstretch="0,0,0,0,0,0" columnstretch="0,0,0,0" columnminimumwidth="0,0,0,0">
+    <layout class="QGridLayout" name="actShortInputLayout" rowstretch="0,0,0,0,0,0" columnstretch="0,1,7,1,1" columnminimumwidth="0,0,0,0,0">
      <property name="spacing">
       <number>1</number>
      </property>
@@ -47,6 +47,15 @@
        </property>
       </widget>
      </item>
+     <item row="0" column="2">
+      <widget class="HoverLineEdit" name="actTagLineEdit"/>
+     </item>
+     <item row="3" column="2">
+      <widget class="QLineEdit" name="actPathLineEdit"/>
+     </item>
+     <item row="1" column="2">
+      <widget class="QLineEdit" name="actNameLineEdit"/>
+     </item>
      <item row="1" column="1">
       <widget class="QLabel" name="actNameLabel">
        <property name="font">
@@ -63,8 +72,12 @@
        </property>
       </widget>
      </item>
-     <item row="0" column="2">
-      <widget class="HoverLineEdit" name="actTagLineEdit"/>
+     <item row="0" column="3">
+      <widget class="QRadioButton" name="actActiveRadio">
+       <property name="text">
+        <string>Active</string>
+       </property>
+      </widget>
      </item>
      <item row="0" column="1">
       <widget class="QLabel" name="actTagLabel">
@@ -93,36 +106,6 @@
         <set>Qt::AlignCenter</set>
        </property>
       </widget>
-     </item>
-     <item row="1" column="3">
-      <widget class="QRadioButton" name="actPassiveRadio">
-       <property name="text">
-        <string>Passive</string>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="3">
-      <widget class="QRadioButton" name="actActiveRadio">
-       <property name="text">
-        <string>Active</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="3">
-      <widget class="QCheckBox" name="passiveBeforeCheck">
-       <property name="text">
-        <string>Before Trigger</string>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="2">
-      <widget class="QLineEdit" name="actPathLineEdit"/>
-     </item>
-     <item row="1" column="2">
-      <widget class="QLineEdit" name="actNameLineEdit"/>
      </item>
      <item row="5" column="2">
       <widget class="QLineEdit" name="actOptionalsLineEdit"/>
@@ -155,163 +138,232 @@
        </property>
       </widget>
      </item>
+     <item row="0" column="4">
+      <widget class="QCheckBox" name="activeTimerCheck">
+       <property name="text">
+        <string>Uses Timer</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="3">
+      <widget class="QRadioButton" name="actPassiveRadio">
+       <property name="text">
+        <string>Passive</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="4">
+      <widget class="QCheckBox" name="passiveBeforeCheck">
+       <property name="text">
+        <string>Before Trigger</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="4">
+      <widget class="KeyBindLineEdit" name="actTriggerLineEdit"/>
+     </item>
+     <item row="1" column="3">
+      <widget class="QLabel" name="actTriggerLabel">
+       <property name="font">
+        <font>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Trigger</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="3">
+      <widget class="QLabel" name="actIntervalLabel">
+       <property name="font">
+        <font>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Interval (s)</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="4">
+      <widget class="QLineEdit" name="actIntervalLineEdit"/>
+     </item>
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="actBotLayout">
+    <layout class="QGridLayout" name="actReturnLayout" rowstretch="0,1,2">
      <property name="spacing">
       <number>1</number>
      </property>
-     <item>
-      <layout class="QVBoxLayout" name="actTriggerLayout">
-       <property name="spacing">
-        <number>0</number>
+     <item row="1" column="2">
+      <widget class="KeyListWidget" name="actSelectInputList">
+       <property name="dragDropMode">
+        <enum>QAbstractItemView::InternalMove</enum>
        </property>
-       <item>
-        <layout class="QHBoxLayout" name="actTriggerTopLayout">
-         <item>
-          <widget class="QLabel" name="actTriggerLabel">
-           <property name="font">
-            <font>
-             <weight>50</weight>
-             <bold>false</bold>
-            </font>
-           </property>
-           <property name="text">
-            <string>Trigger</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignCenter</set>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="KeyBindLineEdit" name="actTriggerLineEdit"/>
-         </item>
-        </layout>
-       </item>
-       <item>
-        <widget class="QListWidget" name="actTriggerList"/>
-       </item>
-       <item>
-        <widget class="QDialogButtonBox" name="actButtonBox">
-         <property name="layoutDirection">
-          <enum>Qt::LeftToRight</enum>
-         </property>
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="standardButtons">
-          <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-         </property>
-         <property name="centerButtons">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-      </layout>
+      </widget>
+     </item>
+     <item row="2" column="3">
+      <widget class="QListWidget" name="actAvailReturnList">
+       <property name="sortingEnabled">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QListWidget" name="actAvailTriggerList">
+       <property name="sortingEnabled">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="2">
+      <widget class="QLabel" name="actInputLabel">
+       <property name="font">
+        <font>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Inputs</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="3">
+      <widget class="QLabel" name="actReturnLabel">
+       <property name="font">
+        <font>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Returns</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="3">
+      <widget class="KeyListWidget" name="actSelectReturnList">
+       <property name="dragDropMode">
+        <enum>QAbstractItemView::InternalMove</enum>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QListWidget" name="actAvailInputList">
+       <property name="viewMode">
+        <enum>QListView::ListMode</enum>
+       </property>
+       <property name="sortingEnabled">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="actSelectLabel">
+       <property name="font">
+        <font>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Selected</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="KeyListWidget" name="actSelectTriggerList">
+       <property name="sortingEnabled">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="actAvailLabel">
+       <property name="font">
+        <font>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Available</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLabel" name="actPassiveTriggerLabel">
+       <property name="font">
+        <font>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Passive Triggers</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="actLowerLayout" stretch="20,1">
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
      </item>
      <item>
-      <layout class="QGridLayout" name="actReturnLayout">
-       <property name="spacing">
-        <number>1</number>
+      <widget class="QDialogButtonBox" name="actButtonBox">
+       <property name="layoutDirection">
+        <enum>Qt::LeftToRight</enum>
        </property>
-       <item row="2" column="1">
-        <widget class="QLabel" name="actSelectReturnLabel">
-         <property name="font">
-          <font>
-           <weight>50</weight>
-           <bold>false</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Selected Returns</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="actAvailReturnLabel">
-         <property name="font">
-          <font>
-           <weight>50</weight>
-           <bold>false</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Available Returns</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="KeyListWidget" name="actSelectReturnList">
-         <property name="dragDropMode">
-          <enum>QAbstractItemView::InternalMove</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QListWidget" name="actAvailReturnList">
-         <property name="sortingEnabled">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QListWidget" name="actAvailInputList">
-         <property name="viewMode">
-          <enum>QListView::ListMode</enum>
-         </property>
-         <property name="sortingEnabled">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1">
-        <widget class="KeyListWidget" name="actSelectInputList">
-         <property name="dragDropMode">
-          <enum>QAbstractItemView::InternalMove</enum>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="actAvailInputLabel">
-         <property name="font">
-          <font>
-           <weight>50</weight>
-           <bold>false</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Available Inputs</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="actSelectInputLabel">
-         <property name="font">
-          <font>
-           <weight>50</weight>
-           <bold>false</bold>
-          </font>
-         </property>
-         <property name="text">
-          <string>Selected Inputs</string>
-         </property>
-         <property name="alignment">
-          <set>Qt::AlignCenter</set>
-         </property>
-        </widget>
-       </item>
-      </layout>
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="standardButtons">
+        <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+       </property>
+       <property name="centerButtons">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

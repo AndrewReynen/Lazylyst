@@ -96,10 +96,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def collectActQueue(self,action):
         beforeActive=[] # Passive actions with beforeTrigger
         afterActive=[] # Passive actions without beforeTrigger
-        # Collect all the passive actions which have this active action as the trigger...
+        # Collect all the passive actions which have this active action as a trigger...
         # ...in the order specified within the configuration list
         for actTag in self.actPassiveOrder:
-            if self.act[actTag].trigger!=action.tag:
+            if action.tag not in self.act[actTag].trigger:
                 continue
             if self.act[actTag].beforeTrigger:
                 beforeActive.append(self.act[actTag])
@@ -437,16 +437,16 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             for key,aList in [[aKey,self.hotVar['tracePenAssign'].val[aKey]] for aKey in useKeys]:
                 for entry in aList:
                     if fnmatch(cha,entry):
-                        colorInt,width=self.pref['tracePen'].val[key]
+                        colorInt,width,depth=self.pref['tracePen'].val[key]
                         matched=True
                         break
                 if matched:
                     break
             # If there was no match, apply default
             if colorInt==None:
-                colorInt,width=self.pref['tracePen'].val['default']
+                colorInt,width,depth=self.pref['tracePen'].val['default']
             pen=mkPen(QtGui.QColor(colorInt),width=width)
-            penRef[cha]=pen
+            penRef[cha]=[pen,depth]
         return penRef
     
     # Update the trace curves on the current page
@@ -479,8 +479,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             # Plot the data
             for idx in wantIdxs:
                 trace=self.hotVar['pltSt'].val[idx]
+                pen,depth=self.chaPenRef[trace.stats.channel]
                 self.staWidgets[i].addTrace(trace.times()+trace.stats.starttime.timestamp,trace.data,
-                                            trace.stats.channel,self.chaPenRef[trace.stats.channel])
+                                            trace.stats.channel,pen,depth)
             i+=1
         
     # Update just the trace pens on the current page
@@ -488,7 +489,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.chaPenRef=self.getStreamPens()
         for widget in self.staWidgets:
             for curve in widget.traceCurves:
-                curve.setPen(self.chaPenRef[curve.cha])
+                pen,depth=self.chaPenRef[curve.cha]
+                curve.setPen(pen)
+                curve.setZValue(depth)
     
     # Change the color of the trace background
     def updateTraceBackground(self,init=False):

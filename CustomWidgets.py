@@ -46,11 +46,11 @@ class ArchiveSpanWidget(pg.PlotWidget):
         for item in self.boxes:
             self.removeItem(item)
         self.boxes=[]
-#        # Add in the new boxes
-#        for r in ranges:
-#            ## Change this to curve item ##
-#            rect=self.pltItem.plot(x=[r[0],r[1]],y=[0.5,0.5],pen=pg.mkPen(width=1.0,color='g'))
-#            self.addItem(rect)         
+        # Add in the new boxes
+        for r in ranges:
+            ## Change this to curve item ##
+            box=TraceCurve([r[0],r[1]],[0.5,0.5],'BOX',pg.mkPen(width=1.0,color='g'),-10)
+            self.addItem(box)         
         
 # Graphview widget which holds all current pick files
 class ArchiveEventWidget(pg.PlotWidget):
@@ -130,10 +130,11 @@ class PickLine(pg.InfiniteLine):
 
 # Plot curve item, but now with reference to the channel
 class TraceCurve(pg.PlotCurveItem):
-    def __init__(self,x,y,cha,pen,parent=None):
+    def __init__(self,x,y,cha,pen,dep,parent=None):
         super(TraceCurve,self).__init__(parent)
         self.setData(x=x,y=y,pen=pen)
         self.cha=cha
+        self.setZValue(dep)
 
 # Widget which will hold the trace data, and respond to picking keybinds     
 class TraceWidget(pg.PlotWidget):
@@ -160,8 +161,8 @@ class TraceWidget(pg.PlotWidget):
         self.traceCurves=[]
     
     # Add a trace to the widget
-    def addTrace(self,x,y,cha,pen):
-        curve=TraceCurve(x,y,cha,pen)
+    def addTrace(self,x,y,cha,pen,dep):
+        curve=TraceCurve(x,y,cha,pen,dep)
         self.addItem(curve)
         self.traceCurves.append(curve)
     

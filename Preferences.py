@@ -20,7 +20,7 @@ def defaultPreferences(main):
                                 dialog='ColorDialog',func=main.updateTimeBackground),
     'backgroundColorArchive':Pref(tag='backgroundColorArchive',val=0,dataType=int,
                                 dialog='ColorDialog',func=main.updateArchiveBackground),
-    'tracePen':Pref(tag='tracePen',val={'default':[4294967295,1.0]},dataType=dict,
+    'tracePen':Pref(tag='tracePen',val={'default':[4294967295,1.0,0.0]},dataType=dict,
                     dialog='TracePenDialog',func=main.updateTracePen),
     }
     return pref
@@ -159,9 +159,9 @@ class TracePenDialog(QtGui.QDialog, Ui_tracePenDialog):
     def fillDialog(self):
         # Make the table large enough to hold all current information
         self.tpTable.setRowCount(len(self.tpDict))
-        self.tpTable.setColumnCount(3)
+        self.tpTable.setColumnCount(4)
         # Set the headers
-        self.tpTable.setHorizontalHeaderLabels(['Tag','Color','Width'])     
+        self.tpTable.setHorizontalHeaderLabels(['Tag','Color','Width','Depth'])     
         # Enter data onto Table
         for m,key in enumerate(sorted(self.tpDict.keys())):
             # Generate the table items...
@@ -172,10 +172,12 @@ class TracePenDialog(QtGui.QDialog, Ui_tracePenDialog):
             penItem.setFlags(Qt.ItemIsEnabled)
             penItem.setBackground(QtGui.QColor(self.tpDict[key][0]))
             widItem=QtGui.QTableWidgetItem(str(self.tpDict[key][1]))
+            depItem=QtGui.QTableWidgetItem(str(self.tpDict[key][2]))
             # Put items in wanted position
             self.tpTable.setItem(m,0,tagItem)
             self.tpTable.setItem(m,1,penItem)
             self.tpTable.setItem(m,2,widItem)
+            self.tpTable.setItem(m,3,depItem)
     
     # Update the pen color for a given tag
     def updatePenColor(self,item):
@@ -199,21 +201,24 @@ class TracePenDialog(QtGui.QDialog, Ui_tracePenDialog):
         self.tpTable.itemChanged.disconnect(self.updateItemText)
         # The key, prior to changes
         itemKey=self.keyOrder[item.row()]
-        # Updating the width value
-        if item.column()==2:
+        # Updating the width or depth values
+        if item.column() in [2,3]:
+            prefIdx=item.column()-1
             try:
-                width=float(item.text())
+                val=float(item.text())
             except:
-                width=-1
-                print 'Width must be a number'
+                val=-99999
             # Ensure the width value is reasonable, if not change back the original
-            if width<0 or width>10:
+            if prefIdx==1 and (val<0 or val>10):
                 print 'Width should be in the range [0,10]'
-                item.setText(str(self.tpDict[itemKey][1]))
+                item.setText(str(self.tpDict[itemKey][prefIdx]))
                 return
-            # If passed checks, update the tpDict with the new width
+            elif prefIdx==2 and (val<-10 or val>=10):
+                print 'Depth should be in the range [-10,10)'
+                item.setText(str(self.tpDict[itemKey][prefIdx]))
+            # If passed checks, update the tpDict with the new width or depth
             else:
-                self.tpDict[itemKey][1]=float(item.text())
+                self.tpDict[itemKey][prefIdx]=float(item.text())
         # Updating the tag
         elif item.column()==0:
             # If the same, do nothing
@@ -248,8 +253,9 @@ class TracePenDialog(QtGui.QDialog, Ui_tracePenDialog):
         penItem.setFlags(Qt.ItemIsEnabled)
         self.tpTable.setItem(m,1,penItem)
         self.tpTable.setItem(m,2,QtGui.QTableWidgetItem('1.0'))
+        self.tpTable.setItem(m,3,QtGui.QTableWidgetItem('0.0'))
         # Add it also to the dictionary
-        self.tpDict['NewPen']=[4294967295,1.0]
+        self.tpDict['NewPen']=[4294967295,1.0,0.0]
         # Update the keyOrder
         self.keyOrder.append('NewPen')
         # Reconnect to OnChanged signal

@@ -50,17 +50,10 @@ def defaultActions():
                           path='Plugins.General',trigger=QtGui.QKeySequence('Shift+A'),locked=True,
                           inputs=['curPickFile','pickFiles'],returns=['curPickFile']),
 
-    'SavePickSetOnDblClick':Action(tag='SavePickSetOnDblClick',name='savePickSet',
+    'SavePickSetOnNewEve':Action(tag='SavePickSetOnNewEve',name='savePickSet',
                                    path='$main',passive=True,
-                                   trigger='PickFileSetToClick',beforeTrigger=True),
-                                   
-    'SavePickSetOnNext':Action(tag='SavePickSetOnNext',name='savePickSet',
-                               path='$main',passive=True,
-                               trigger='PickFileNext',beforeTrigger=True),
-                               
-    'SavePickSetOnPrev':Action(tag='SavePickSetOnPrev',name='savePickSet',
-                               path='$main',passive=True,
-                               trigger='PickFilePrev',beforeTrigger=True),
+                                   trigger=['PickFileSetToClick','PickFileNext','PickFilePrev'],
+                                   beforeTrigger=True),
     }
     return act
     
@@ -74,15 +67,17 @@ def defaultPassiveOrder(actions):
 class Action(object):
     def __init__(self,tag='New action',name='Function name',
                  path='Add path to function',optionals={},
-                 passive=False,beforeTrigger=False,
+                 passive=False,beforeTrigger=False,timer=False,
                  trigger='Add Trigger',inputs=[],returns=[],
-                 func=None,locked=False):
+                 timerInterval=60,func=None,locked=False):
         self.tag=tag # User visible name for the action
         self.name=name # Function name
         self.path=path # Function path (uses "." instead of "\", path is relative main script location)
         self.optionals=optionals # Dictionary of the optional values which can be sent to the function
         self.passive=passive # If the action is passive, this is true
         self.beforeTrigger=beforeTrigger # If the passive function should be applied before/after the function
+        self.timer=timer # If active, can use this to use a QTimer to set things off
+        self.timerInterval=timerInterval # Interval time in seconds for the timer
         self.trigger=trigger # Trigger of the action
         self.inputs=inputs # Hot variables to be sent as inputs to the function (in the correct order)
         self.returns=returns # Hot variables to be returned for update
@@ -154,9 +149,10 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         self.actPassiveRadio.clicked.connect(lambda: self.togglePassiveActive())
         # For the tag line edit, to remind if a tag is already being used
         self.actTagLineEdit.hoverOut.connect(self.unqTagName)
-        # For the trigger line and list (which operate differently if action is passive/active)
+        # For the trigger line (active) and lists (passive)
         self.actTriggerLineEdit.keyPressed.connect(self.updateKeyBind)
-        self.actTriggerList.itemDoubleClicked.connect(self.updatePassiveTrigger)
+        self.actAvailTriggerList.itemDoubleClicked.connect(lambda: self.addAvailVar('trigger'))
+        self.actSelectTriggerList.keyPressedSignal.connect(lambda: self.removeSelectVar('trigger'))
         # For the input/return, avail/select lists
         self.actAvailInputList.itemDoubleClicked.connect(lambda: self.addAvailVar('input'))
         self.actAvailReturnList.itemDoubleClicked.connect(lambda: self.addAvailVar('return'))
@@ -173,13 +169,15 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # ...optionals line edit
         self.actOptionalsLineEdit.setText(dict2Text(self.action.optionals))
         # ...trigger line edit entry
-        if self.action.passive or self.action.trigger=='DoubleClick':
+        if self.action.passive:
+            self.actTriggerLineEdit.setText('Set Trigger')
+        elif self.action.trigger=='DoubleClick':
             self.actTriggerLineEdit.setText(self.action.trigger)
         else:
             self.actTriggerLineEdit.setText(self.action.trigger.toString())
         # ...trigger list, use only triggers which are active
         self.passiveTriggers=[action.tag for key,action in self.actDict.iteritems() if not action.passive]
-        self.actTriggerList.addItems(sorted(self.passiveTriggers))
+        self.actAvailTriggerList.addItems(sorted(self.passiveTriggers))
         # Set the appropriate radio button on
         if self.action.passive:
             self.actPassiveRadio.setChecked(True)
@@ -190,6 +188,13 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
             self.passiveBeforeCheck.setChecked(True)
         else:
             self.passiveBeforeCheck.setChecked(False)
+        # Set the state of the activeTimer check box (used for active only)
+        if not self.action.passive and self.action.timer:
+            self.activeTimerCheck.setChecked(True)
+        else:
+            self.activeTimerCheck.setChecked(False)
+        # Set the timer interval value
+        self.actIntervalLineEdit.setText(str(self.action.timerInterval))
         # Toggle the appropriate radio button
         self.togglePassiveActive(init=True)
         # Fill in the available inputs and returns...
@@ -204,18 +209,21 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
             if 'color' in key.lower():
                 continue
             self.actAvailInputList.addItem(key)
-        # Fill in the selected inputs and returns
+        # Fill in the selected triggers (passive),inputs and returns
+        if self.action.passive:
+            self.actSelectTriggerList.addItems(self.action.trigger)
         self.actSelectInputList.addItems(self.action.inputs)
         self.actSelectReturnList.addItems(self.action.returns)
     
     # Lock the dialog so that values cannot be updated, for some built-in actions
     def lockDialog(self):
         for widget in [self.actNameLineEdit,self.actPathLineEdit,
-                       self.actOptionalsLineEdit,self.actTriggerList,
+                       self.actOptionalsLineEdit,self.actAvailTriggerList,
+                       self.actSelectTriggerList,self.actIntervalLineEdit,
                        self.actAvailInputList,self.actAvailReturnList,
                        self.actSelectInputList,self.actSelectReturnList,
                        self.actPassiveRadio,self.actActiveRadio,
-                       self.passiveBeforeCheck]:
+                       self.passiveBeforeCheck,self.activeTimerCheck]:
             widget.setEnabled(False)
     
     # Update the key bind to what the user pressed
@@ -234,19 +242,18 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # Otherwise, update the trigger line edit (trigger value is updated upon close)
         self.actTriggerLineEdit.setText(keyBindText)
     
-    # Set the passive trigger to be the item selected from the available triggers
-    def updatePassiveTrigger(self):
-        self.actTriggerLineEdit.setText(self.actTriggerList.currentItem().text())
-    
     # Move the user chosen available hot variable or preference to the selected list
     def addAvailVar(self,listTag):
         # See which pair of lists was called
         if listTag=='return':
             fromList=self.actAvailReturnList
             toList=self.actSelectReturnList
-        else:
+        elif listTag=='input':
             fromList=self.actAvailInputList
             toList=self.actSelectInputList
+        else:
+            fromList=self.actAvailTriggerList
+            toList=self.actSelectTriggerList
         # Add to the selected list, if the item is not already there
         text=fromList.currentItem().text()
         if text not in [toList.item(i).text() for i in range(toList.count())]:
@@ -261,23 +268,27 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         elif (listTag=='input' and self.actSelectInputList.currentItem!=None and 
               self.actSelectInputList.key==Qt.Key_Delete):
             self.actSelectInputList.takeItem(self.actSelectInputList.currentRow())
+        elif (listTag=='trigger' and self.actSelectTriggerList.currentItem!=None and 
+              self.actSelectTriggerList.key==Qt.Key_Delete):
+            self.actSelectTriggerList.takeItem(self.actSelectTriggerList.currentRow())
             
     # Depending on if this is an active or passive action, turn on/off some widgets
     def togglePassiveActive(self,init=False):
-        if self.actActiveRadio.isChecked():
-            self.passiveBeforeCheck.setEnabled(False)
-            self.actTriggerList.setEnabled(False)
-            self.actTriggerLineEdit.setReadOnly(True)
-        else:
-            self.passiveBeforeCheck.setEnabled(True)
-            self.actTriggerList.setEnabled(True)
-            self.actTriggerLineEdit.setReadOnly(True)
+        active=self.actActiveRadio.isChecked()
+        self.actTriggerLineEdit.setEnabled(active)
+        if active:
+            self.actTriggerLineEdit.setReadOnly(active)
+        self.actIntervalLineEdit.setEnabled(active)
+        self.activeTimerCheck.setEnabled(active)
+        self.passiveBeforeCheck.setEnabled(not active)
+        self.actAvailTriggerList.setEnabled(not active)
+        self.actSelectTriggerList.setEnabled(not active)
         # If the user has change from passive to active, remind that this will not be saved...
         # ...unless the trigger value is updated
         if (not self.trigReminder) and (not init):
             print 'If changing between active and passive, update the trigger value'
             self.trigReminder=True
-            
+
     # Check the tag name to ensure that it doesn't conflict with other actions
     def unqTagName(self):
         curTag=self.actTagLineEdit.text()
@@ -289,12 +300,19 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         
     # Check that the trigger is appropriate relative to the action type
     def appropTrigger(self):
-        # If a passive action, the trigger should be in the trigger list
+        # If a passive action, all triggers should be in the trigger list
         if self.actPassiveRadio.isChecked():
-            if self.actTriggerLineEdit.text() not in self.passiveTriggers:
+            sendFalse=False
+            for entry in self.actSelectTriggerList.visualListOrder():
+                if entry not in self.passiveTriggers:
+                    print 'The active trigger tag '+entry+' no longer exists'
+                    sendFalse=True
+            if sendFalse:
                 return False
         # If a active action, the trigger should be able to convert to a key-bind
         else:
+            if self.actTriggerLineEdit.text()=='Set Trigger':
+                return False
             try:
                 QtGui.QKeySequence(self.actTriggerLineEdit.text())
             except:
@@ -304,19 +322,27 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
     # Upon close, fill in the action with all of the selected information and return
     def returnAction(self):
         # First check to see that the new parameters make sense and the action is to be updated,
-        # ... for now just checking that the tag and the trigger are appropriate
+        # ... checking that the tag and the trigger are appropriate, also that the timer makes sense
         if self.action.trigger=='DoubleClick':
             print 'No changes can be made to actions with DoubleClick triggers'
             return None
-        elif self.actTagLineEdit.text()=='New action':
+        if self.actTagLineEdit.text()=='New action':
             print 'Action update declined, tag was still default'
             return None
-        elif not self.unqTagName():
+        if not self.unqTagName():
             print 'Action update declined, tag is not unique'
             return None
-        elif not self.appropTrigger():
-            print 'Action update declined, trigger was not set'
+        if not self.appropTrigger():
+            print 'Action update declined, trigger was not set correctly'
             return None
+        if self.activeTimerCheck.isChecked():
+            try:
+                float(self.actIntervalLineEdit.text())
+            except:
+                if float(self.actIntervalLineEdit.text())>0:
+                    pass
+                print 'Action update declined, timer interval was not a positive number'
+                return None
         # Set information from line edits...
         self.action.tag=self.actTagLineEdit.text()
         self.action.name=self.actNameLineEdit.text()
@@ -333,7 +359,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         self.action.passive=self.actPassiveRadio.isChecked()
         # ...trigger value
         if self.action.passive:
-            self.action.trigger=self.actTriggerLineEdit.text()
+            self.action.trigger=self.actSelectTriggerList.visualListOrder()
         else:
             self.action.trigger=QtGui.QKeySequence(self.actTriggerLineEdit.text())
         # Set info from radio buttons (passive/active) 
@@ -341,6 +367,10 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # If the action should be applied before the trigger (used for passive only)
         if self.passiveBeforeCheck.isChecked():
             self.action.beforeTrigger=True
+        # If the action should set off with a given interval
+        if self.activeTimerCheck.isChecked():
+            self.action.timer=True
+            self.action.timerInterval=float(self.actIntervalLineEdit.text())
         # Collect the tags of the inputs and returns associated with the action
         self.action.inputs=self.actSelectInputList.visualListOrder()
         self.action.returns=self.actSelectReturnList.visualListOrder()

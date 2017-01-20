@@ -25,7 +25,7 @@ except AttributeError:
 class Ui_tracePenDialog(object):
     def setupUi(self, tracePenDialog):
         tracePenDialog.setObjectName(_fromUtf8("tracePenDialog"))
-        tracePenDialog.resize(400, 300)
+        tracePenDialog.resize(477, 338)
         self.verticalLayout = QtGui.QVBoxLayout(tracePenDialog)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
         self.tpTable = QtGui.QTableWidget(tracePenDialog)
