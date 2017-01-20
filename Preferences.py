@@ -212,7 +212,6 @@ class TracePenDialog(QtGui.QDialog, Ui_tracePenDialog):
             if prefIdx==1 and (val<0 or val>10):
                 print 'Width should be in the range [0,10]'
                 item.setText(str(self.tpDict[itemKey][prefIdx]))
-                return
             elif prefIdx==2 and (val<-10 or val>=10):
                 print 'Depth should be in the range [-10,10)'
                 item.setText(str(self.tpDict[itemKey][prefIdx]))
@@ -223,17 +222,17 @@ class TracePenDialog(QtGui.QDialog, Ui_tracePenDialog):
         elif item.column()==0:
             # If the same, do nothing
             if item.text()==itemKey:
-                return
+                pass
             # Do not allow duplicate tags
-            if item.text() in [key for key in self.tpDict.keys() if key!=itemKey]:
+            elif item.text() in [key for key in self.tpDict.keys() if key!=itemKey]:
                 print 'This tag is already present, update denied'
                 item.setText(itemKey)
-                return
-            # If passed checks, update the tpDict with the new tag
-            self.tpDict[str(item.text())]=self.tpDict[itemKey]
-            self.tpDict.pop(itemKey)
-            # Update the key order, so can reference back before changes
-            self.keyOrder[item.row()]=str(item.text())
+            else:
+                # If passed checks, update the tpDict with the new tag
+                self.tpDict[str(item.text())]=self.tpDict[itemKey]
+                self.tpDict.pop(itemKey)
+                # Update the key order, so can reference back before changes
+                self.keyOrder[item.row()]=str(item.text())
         # Reconnect to OnChanged signal
         self.tpTable.itemChanged.connect(self.updateItemText)
             
@@ -276,4 +275,3 @@ class TracePenDialog(QtGui.QDialog, Ui_tracePenDialog):
         self.tpDict.pop(key)
         # Reconnect to OnChanged signal
         self.tpTable.itemChanged.connect(self.updateItemText)
-        print self.keyOrder

@@ -242,8 +242,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         seenTypes=np.unique(pickSet[:,1])
         for aType in seenTypes:
             if aType not in knownTypes:
-                print ('Pick type: '+aType+' is not currently defined in "pickTypesMaxCountPerSta"'+
-                       ', add this pick type and redo the action - otherwise it will be removed upon saving')
+                print ('Pick type: '+aType+' is not currently defined in preference pickTypesMaxCountPerSta'+
+                       ' and has been removed from the hot variable pickSet')
                 pickSet=pickSet[np.where(pickSet[:,1]!=aType)]
         return pickSet
         
@@ -345,6 +345,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         
     # Add a pick to the double-clicked station (single-pick addition)
     def addClickPick(self):
+        if self.hotVar['curPickFile'].val=='':
+            return
         # Return if no pick mode selected
         if self.hotVar['pickMode'].val=='':
             print 'No pick mode selected'
@@ -649,21 +651,27 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Update the configuration dialogs preference list
         if not init:
             self.dialog.confPrefList.clear()
-            self.dialog.confPrefList.addItems([key for key in self.pref.keys()])          
+            self.dialog.confPrefList.addItems([key for key in self.pref.keys()])
+        # If the user deleted a pick type with them already present on screen, remove them
+        for aType in np.unique(self.hotVar['pickSet'].val[:,1]):
+            if aType not in curPickTypes:
+                self.hotVar['pickSet'].val=self.remUnknownPickTypes(self.hotVar['pickSet'].val)
+                self.hotVar['pickSet'].update()
+                break
     
     # Load setting from previous run, and initialize base variables
     def loadSettings(self):
         # Get this scripts path, as functions will be relative to this
-        self.path=os.path.dirname(__file__)
+        self.path=os.path.dirname(os.path.realpath(__file__))
         # Load the hot variables
         self.hotVar=initHotVar()
         for key,hotVar in self.hotVar.iteritems():
             hotVar.linkToFunction(self)
         # Get all values from settings
-        self.setGen=QSettings('setGen.ini', QSettings.IniFormat)
-        self.setAct= QSettings('setAct.ini', QSettings.IniFormat)
-        self.setPref=QSettings('setPref.ini', QSettings.IniFormat)
-        self.setSource=QSettings('setSource.ini', QSettings.IniFormat)
+        self.setGen=QSettings(self.path+'/setGen.ini', QSettings.IniFormat)
+        self.setAct= QSettings(self.path+'/setAct.ini', QSettings.IniFormat)
+        self.setPref=QSettings(self.path+'/setPref.ini', QSettings.IniFormat)
+        self.setSource=QSettings(self.path+'/setSource.ini', QSettings.IniFormat)
         # UI size
         self.resize(self.setGen.value('size', QtCore.QSize(1300, 700)))
         # Actions...
@@ -674,9 +682,18 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # ...link all actions to their appropriate functions
         for key,action in self.act.iteritems():
             action.linkToFunction(self)
-        # Preferences
+        # Preferences (start)
         self.pref=defaultPreferences(self)
         prefVals=self.setPref.value('prefVals', {})
+#        # Ensure the keys are of the proper type for all dictionaries
+#        for aDict in [self.act,self.pref,prefVals]:
+#            for aKey in aDict.keys():
+#                # Ensure that the key is the proper type
+#                if type(aKey)!=unicode:
+#                    val=aDict[aKey]
+#                    aDict.pop(aKey)
+#                    aDict[unicode(aKey)]=val
+        # Preferences (finish)
         for aKey in prefVals.keys():
             # Skip any preferences which are generated a bit later
             if 'pickColor_' in aKey:
@@ -699,7 +716,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Preferences
         prefVals={}
         for aKey in self.pref.keys():
-            prefVals[self.pref[aKey].tag]=self.pref[aKey].val
+            prefVals[str(self.pref[aKey].tag)]=self.pref[aKey].val
         self.setPref.setValue('prefVals',prefVals)
         # Saved sources
         self.setSource.setValue('savedSources',self.saveSource)

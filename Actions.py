@@ -371,6 +371,8 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         if self.activeTimerCheck.isChecked():
             self.action.timer=True
             self.action.timerInterval=float(self.actIntervalLineEdit.text())
+        else:
+            self.action.timer=False
         # Collect the tags of the inputs and returns associated with the action
         self.action.inputs=self.actSelectInputList.visualListOrder()
         self.action.returns=self.actSelectReturnList.visualListOrder()
