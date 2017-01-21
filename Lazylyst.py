@@ -5,6 +5,7 @@ import sip
 import os
 import numpy as np
 sip.setapi('QVariant', 2)
+sip.setapi('QString', 2)
 from PyQt4 import QtGui,QtCore
 from PyQt4.QtCore import QSettings
 from MainWindow import Ui_MainWindow
