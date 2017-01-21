@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
+import sys
 import logging
 import sip
-import sys,os
+import os
 import numpy as np
 sip.setapi('QVariant', 2)
 from PyQt4 import QtGui,QtCore
@@ -205,7 +207,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         newFile=open(self.hotVar['pickDir'].val+'/'+newPickFile,'w')
         newFile.close()
         # Add to GUI list, and internal list
-        self.hotVar['pickFiles'].val=sorted(os.listdir(self.hotVar['pickDir'].val))
+        self.hotVar['pickFiles'].val=[str(aFile) for aFile in sorted(os.listdir(self.hotVar['pickDir'].val))]
         self.hotVar['pickFileTimes'].update()
         self.archiveEvent.updateEveLines([getTimeFromFileName(newPickFile).timestamp],'add')
         self.updateArchiveSpanList()
