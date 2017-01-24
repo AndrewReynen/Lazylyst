@@ -17,7 +17,7 @@ from Archive import getArchiveAvail, getTimeFromFileName, extractDataFromArchive
 from ConfigurationDialog import ConfDialog
 from SaveSource import CsDialog
 from fnmatch import fnmatch
-from pyqtgraph import mkPen
+from pyqtgraph import mkPen,mkBrush
 
 # Main window class
 class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
@@ -136,7 +136,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # ...if just one return, convert to list to treat the same as multiple
         elif len(action.returns)==1:
             returnVals=[returnVals]
-        # Go through each of the returns in order, and update
+        # Go through each of the returns in order, and update...
         # ...check first to see the number of returns are correct
         # ...and that the previous/new types match
         if len(action.returns)==len(returnVals):
@@ -153,6 +153,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 if self.hotVar[aReturnKey].check==None:
                     continue
                 elif not self.hotVar[aReturnKey].check(self,returnVals[i]):
+                    print 'Action '+action.tag+' failed '+aReturnKey+' check'
                     skipUpdates=True
             if skipUpdates: 
                 return
@@ -182,9 +183,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                                 ['archDir',source.archDir],
                                 ['pickDir',source.pickDir],
                                 ['staFile',source.staFile]]:
-                    # Do not bother updating a hot variable if it is the same as before
-                    if self.hotVar[key].val==val:
-                        continue
                     self.hotVar[key].val=val
                     self.hotVar[key].update()
                 ## Must now also get the staMeta np.array, and update() ##
@@ -210,7 +208,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Add to GUI list, and internal list
         self.hotVar['pickFiles'].val=[str(aFile) for aFile in sorted(os.listdir(self.hotVar['pickDir'].val))]
         self.hotVar['pickFileTimes'].update()
-        self.archiveEvent.updateEveLines([getTimeFromFileName(newPickFile).timestamp],'add')
+        self.archiveEvent.updateEveLines([getTimeFromFileName(newPickFile).timestamp],
+                                         self.pref['archiveColorEve'].val,'add')
         self.updateArchiveSpanList()
     
     # Load a specific pick file from the pick directory (inter-event pick loading)
@@ -290,6 +289,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 self.hotVar[key].val=defaultHot[key].val
         # Add data, and picks to the station widgets
         self.updatePage()
+        # Update the highlighted event on the archive visual
+        self.updateArchiveEveColor()
     
     # Update the data and picks on the current page
     def updatePage(self,init=False):
@@ -398,7 +399,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     # ... adding and remove picks on the current page (does not remove excess)
     def updatePagePicks(self):
         # Find out which of these values are unique (to remove duplicate picks)
-        curList=[a[0]+a[1]+a[2] for a in self.hotVar['pickSet'].val]
+        curList=[str(a[0])+str(a[1])+str(a[2]) for a in self.hotVar['pickSet'].val]
         unqCur,unqCurIdx=np.unique(curList,return_index=True)
         # Update the new set with only the unique picks
         self.hotVar['pickSet'].val=self.hotVar['pickSet'].val[unqCurIdx]
@@ -515,6 +516,43 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.archiveSpan.setBackground(col)
         self.archiveEvent.setBackground(col)
         
+    # Change the color of the archive availability boxes
+    def updateArchiveAvailColor(self,init=False):
+        col=QtGui.QColor(self.pref['archiveColorAvail'].val)
+        for box in self.archiveSpan.boxes:
+            box.setPen(col)
+    
+    # Change the color of the archive span select
+    def updateArchiveSpanColor(self,init=False):
+        col=QtGui.QColor(self.pref['archiveColorSpan'].val)
+        rgba=(col.red(),col.green(),col.blue(),65)
+        self.archiveSpan.span.setBrush(mkBrush(rgba))
+        for line in self.archiveSpan.span.lines:
+            line.setPen(col)
+        
+    # Change the color of the events in the archive visual...
+    # ...selected, not selected, use same color as selected for archive span line hover
+    def updateArchiveEveColor(self,init=False):
+        col1=QtGui.QColor(self.pref['archiveColorSelect'].val)
+        col2=QtGui.QColor(self.pref['archiveColorEve'].val)
+        # See what the time of the current pick file is
+        curFile=self.hotVar['curPickFile'].val
+        if curFile=='':
+            t='NAN'
+        else:
+            t=getTimeFromFileName(curFile)
+        # Set the event line colors
+        for line in self.archiveEvent.eveLines:
+            if line.value()==t:
+                line.setPen(col1)
+                line.setZValue(10)
+            else:
+                line.setPen(col2)
+                line.setZValue(0)
+        # Use the select for highlighting the span when hovered
+        for line in self.archiveSpan.span.lines:
+            line.setHoverPen(col1)
+        
     # Update how many widgets are on the main page
     def updateStaPerPage(self,init=False):
         # First remove the previous staWidgets
@@ -544,7 +582,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Update the time boxes
         if self.pref['archiveLoadMethod'].val=='fast':
             ranges=[[t,t+self.pref['archiveFileLen'].val] for t in archiveTimes]
-            self.archiveSpan.updateBoxes(ranges)
+            self.archiveSpan.updateBoxes(ranges,self.pref['archiveColorAvail'].val)
         else:
             print 'Unsupported archive load method'
             return
@@ -561,14 +599,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         times=np.array(self.hotVar['pickFileTimes'].val)
         t1,t2=self.archiveSpan.span.getRegion()
         # See which files should be listed
-        toListFiles=files[np.where((times>t1)&(times<t2))]
+        toListFiles=files[np.where((times>=t1)&(times<=t2))]
         # Reload the pick file list
         self.archiveList.clear()
         self.archiveList.addItems(toListFiles)
-        # Highlight which event is currently being looked at
-        if self.hotVar['curPickFile'].val!='':
-            a=1
-            ## Highlight ##
         
     # Load the pick file list for display, given completly new pick directory
     def updatePickDir(self):
@@ -594,7 +628,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             self.hotVar['pickFiles'].val.append(aFile)
         # Update the pick file times hot variable
         self.hotVar['pickFileTimes'].update()
-        self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,'reset')
+        self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,
+                                         self.pref['archiveColorEve'].val,'reset')
         # Finally update the pick list
         self.updateArchiveSpanList()
     
@@ -603,7 +638,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def updatePickFiles(self):
         # Update th pick file times, and reset their line in archiveEvent
         self.hotVar['pickFileTimes'].update()
-        self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,'reset')
+        self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,
+                                         self.pref['archiveColorEve'].val,'reset')
         # Clear the old GUI list, and add the new items
         self.updateArchiveSpanList()
         # See which files were present prior to the update
@@ -688,14 +724,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Preferences (start)
         self.pref=defaultPreferences(self)
         prefVals=self.setPref.value('prefVals', {})
-#        # Ensure the keys are of the proper type for all dictionaries
-#        for aDict in [self.act,self.pref,prefVals]:
-#            for aKey in aDict.keys():
-#                # Ensure that the key is the proper type
-#                if type(aKey)!=unicode:
-#                    val=aDict[aKey]
-#                    aDict.pop(aKey)
-#                    aDict[unicode(aKey)]=val
         # Preferences (finish)
         for aKey in prefVals.keys():
             # Skip any preferences which are generated a bit later

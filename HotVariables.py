@@ -1,4 +1,5 @@
 from obspy import Stream as emptyStream
+from Archive import getTimeFromFileName
 import importlib
 import numpy as np
 
@@ -6,32 +7,32 @@ import numpy as np
 def initHotVar():
     hotVar={
     'stream':HotVar(tag='stream',val=emptyStream(),dataType=type(emptyStream()),returnable=False),
-    'pltSt':HotVar(tag='pltSt',val=emptyStream(),dataType=type(emptyStream()),
+    'pltSt':HotVar(tag='pltSt',val=emptyStream(),dataType=type(emptyStream()),  ## Add Check
                    funcName='updateTraces'),
     'staSort':HotVar(tag='staSort',val=[],dataType=list,
                      funcName='updatePage',checkName='checkStaSort'),
     'curPage':HotVar(tag='curPage',val=0,dataType=int,
                      funcName='updateCurPage'),
-    'sourceTag':HotVar(tag='sourceTag',val='',dataType=str,returnable=False),
-    'pickDir':HotVar(tag='pickDir',val='',dataType=str,
+    'sourceTag':HotVar(tag='sourceTag',val='',dataType=str,returnable=False),  ## Add Check
+    'pickDir':HotVar(tag='pickDir',val='',dataType=str,  ## Add Check
                      funcName='updatePickDir'),
-    'pickFiles':HotVar(tag='pickFiles',val=[],dataType=list,
-                       funcName='updatePickFiles'),
+    'pickFiles':HotVar(tag='pickFiles',val=[],dataType=list, 
+                       funcName='updatePickFiles',checkName='checkPickFileNames'),
     'pickFileTimes':HotVar(tag='pickFileTimes',val=[],dataType=list,returnable=False,
                            funcName='updatePickFileTimes'),   
-    'curPickFile':HotVar(tag='curPickFile',val='',dataType=str,
+    'curPickFile':HotVar(tag='curPickFile',val='',dataType=str,  ## Add Check
                          funcName='updateEvent'),
-    'pickSet':HotVar(tag='pickSet',val=np.empty((0,3)),dataType=np.array,
+    'pickSet':HotVar(tag='pickSet',val=np.empty((0,3)),dataType=np.array,  ## Add Check
                      funcName='updatePagePicks'), # Must be in string format, row=[Sta,Type,TimeStamp]
     'pickMode':HotVar(tag='pickMode',val='',dataType=str),
-    'tracePenAssign':HotVar(tag='tracePenAssign',val={},dataType=dict,
+    'tracePenAssign':HotVar(tag='tracePenAssign',val={},dataType=dict, ## Add Check
                             funcName='updateTracePen'),
     'archDir':HotVar(tag='archDir',val='',dataType=str,
                      funcName='updateArchive'),
     'archFiles':HotVar(tag='archFiles',val=[],dataType=list,returnable=False),
     'archFileTimes':HotVar(tag='archFileTimes',val=[],dataType=list,returnable=False),   
     'curSta':HotVar(tag='curSta',val='',dataType=str,returnable=False),
-    'staFile':HotVar(tag='staFile',val='',dataType=str),
+    'staFile':HotVar(tag='staFile',val='',dataType=str),  ## Add Check
     'staMeta':HotVar(tag='staMeta',val=[],dataType=np.array,returnable=False)
     }
     return hotVar
@@ -92,3 +93,25 @@ def checkStaSort(main,newSort):
         print 'The return staSort does not have all and only the station present in pltSt'
         return False
     return True
+
+# Ensure that all of the returned pick files conform to the proper name
+def checkPickFileNames(main,pickFiles):
+    passTest=True
+    for i,aFile in enumerate(pickFiles):
+        splitFile=aFile.split('_')
+        if len(splitFile)!=2 or 'picks'!=aFile.split('.')[-1]:
+            print aFile+' does not match format IntegerID_%Y%m%d.%H%M%S.%f.picks'
+            passTest=False
+            continue
+        try:
+            getTimeFromFileName(aFile)
+            pickFiles[i]=str(int(splitFile[0])).zfill(10)+'_'+splitFile[1]
+            continue
+        except:
+            print aFile+' does not match format IntegerID_%Y%m%d.%H%M%S.%f.picks'
+            passTest=False
+    if len(np.unique(pickFiles))!=len(pickFiles):
+        print 'pick file names were non unique'
+        passTest=False
+    return passTest
+    

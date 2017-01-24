@@ -85,6 +85,12 @@ def alternateTraceColor(curAssign):
         return {'alt3':['*Z'],'alt1':['*2','*N'],'alt2':['*1','*E']}
     elif '*Z' in curAssign['alt3']:
         return {'alt1':['*Z'],'alt2':['*2','*N'],'alt3':['*1','*E']}
+
+# Remove the current pick file
+def removeCurPickFil(curPickFile,pickFiles):
+    if curPickFile in pickFiles:
+        pickFiles.pop(pickFiles.index(curPickFile))
+    return pickFiles
         
         
     

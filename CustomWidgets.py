@@ -3,6 +3,7 @@ from PyQt4.QtCore import Qt
 import pyqtgraph as pg
 from obspy import UTCDateTime
 import numpy as np
+from decimal import Decimal
 
 # Custom axis labels for the archive widget
 class TimeAxisItemArchive(pg.AxisItem):
@@ -41,15 +42,15 @@ class ArchiveSpanWidget(pg.PlotWidget):
         return
         
     # Update the boxes representing the times
-    def updateBoxes(self,ranges):
+    def updateBoxes(self,ranges,pen):
         # Remove the previous boxes
         for item in self.boxes:
             self.removeItem(item)
         self.boxes=[]
         # Add in the new boxes
         for r in ranges:
-            ## Change this to curve item ##
-            box=TraceCurve([r[0],r[1]],[0.5,0.5],'BOX',pg.mkPen(width=1.0,color='g'),-10)
+            box=TraceCurve([r[0],r[1]],[0.5,0.5],'BOX',pen,-10)
+            self.boxes.append(box)
             self.addItem(box)         
         
 # Graphview widget which holds all current pick files
@@ -69,6 +70,7 @@ class ArchiveEventWidget(pg.PlotWidget):
         self.pltItem.hideButtons()
         # Disable all panning and zooming
         self.pltItem.vb.setMouseEnabled(x=False,y=False)
+        self.eveLines=[]
     
     # Scale to where ever the archiveSpan has selected
     def updateXRange(self,linkWidget):
@@ -86,11 +88,14 @@ class ArchiveEventWidget(pg.PlotWidget):
         self.addNewEventSignal.emit()
     
     # Reset the event lines, given a new set of event times
-    def updateEveLines(self,fileTimes,method):
+    def updateEveLines(self,fileTimes,pen,method):
         if method=='reset':
+            self.eveLines=[]
             self.clear()
         for t in fileTimes:
-            self.addItem(pg.InfiniteLine(pos=t,pen=pg.mkPen(width=1.0,color='r')))
+            line=pg.InfiniteLine(pos=t,pen=pen)
+            self.eveLines.append(line)
+            self.addItem(line)
         
 # List widget which holds all current pick files
 class ArchiveListWidget(QtGui.QListWidget):       
@@ -194,7 +199,8 @@ class TraceWidget(pg.PlotWidget):
         if self.sta==None:
             return
         # Figure out the position of the click, and update value
-        self.clickPos=self.pltItem.vb.mapSceneToView(ev.pos()).x()
+        self.clickPos=Decimal(self.pltItem.vb.mapSceneToView(ev.pos()).x())
+        
         # Return signal
         self.doubleClickSignal.emit()
     
