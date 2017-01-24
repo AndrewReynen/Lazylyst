@@ -92,7 +92,7 @@ class Action(object):
         # If the path does not relate to already defined function locations
         if self.path not in ['$main']:
             # First check to see that the specified functions folder exists
-            modPath=main.path+'/'+self.path.replace('.','/')
+            modPath=main.hotVar['mainPath'].val+'/'+self.path.replace('.','/')
             funcDir=modPath[:-(len(self.path.split('.')[-1])+1)]
             if not os.path.exists(modPath+'.py'):
                 print self.tag+' related module does not exist at path '+self.path

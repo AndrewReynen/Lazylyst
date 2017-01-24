@@ -1,28 +1,29 @@
 from obspy import Stream as emptyStream
 from Archive import getTimeFromFileName
 import importlib
+import os
 import numpy as np
 
 # Default Hot Variables
 def initHotVar():
     hotVar={
     'stream':HotVar(tag='stream',val=emptyStream(),dataType=type(emptyStream()),returnable=False),
-    'pltSt':HotVar(tag='pltSt',val=emptyStream(),dataType=type(emptyStream()),  ## Add Check
-                   funcName='updateTraces'),
+    'pltSt':HotVar(tag='pltSt',val=emptyStream(),dataType=type(emptyStream()),
+                   funcName='updateTraces',checkName='checkPltSt'),
     'staSort':HotVar(tag='staSort',val=[],dataType=list,
                      funcName='updatePage',checkName='checkStaSort'),
     'curPage':HotVar(tag='curPage',val=0,dataType=int,
                      funcName='updateCurPage'),
-    'sourceTag':HotVar(tag='sourceTag',val='',dataType=str,returnable=False),  ## Add Check
-    'pickDir':HotVar(tag='pickDir',val='',dataType=str,  ## Add Check
-                     funcName='updatePickDir'),
+    'sourceTag':HotVar(tag='sourceTag',val='',dataType=str,returnable=False),  ## Update, Check
+    'pickDir':HotVar(tag='pickDir',val='',dataType=str,
+                     funcName='updatePickDir', checkName='checkPickDir'),
     'pickFiles':HotVar(tag='pickFiles',val=[],dataType=list, 
                        funcName='updatePickFiles',checkName='checkPickFileNames'),
     'pickFileTimes':HotVar(tag='pickFileTimes',val=[],dataType=list,returnable=False,
                            funcName='updatePickFileTimes'),   
-    'curPickFile':HotVar(tag='curPickFile',val='',dataType=str,  ## Add Check
-                         funcName='updateEvent'),
-    'pickSet':HotVar(tag='pickSet',val=np.empty((0,3)),dataType=np.array,  ## Add Check
+    'curPickFile':HotVar(tag='curPickFile',val='',dataType=str,
+                         funcName='updateCurPickFile',checkName='checkCurPickFile'),
+    'pickSet':HotVar(tag='pickSet',val=np.empty((0,3)),dataType=type(np.array([0.0])),  ## Add Check
                      funcName='updatePagePicks'), # Must be in string format, row=[Sta,Type,TimeStamp]
     'pickMode':HotVar(tag='pickMode',val='',dataType=str),
     'tracePenAssign':HotVar(tag='tracePenAssign',val={},dataType=dict, ## Add Check
@@ -33,7 +34,8 @@ def initHotVar():
     'archFileTimes':HotVar(tag='archFileTimes',val=[],dataType=list,returnable=False),   
     'curSta':HotVar(tag='curSta',val='',dataType=str,returnable=False),
     'staFile':HotVar(tag='staFile',val='',dataType=str),  ## Add Check
-    'staMeta':HotVar(tag='staMeta',val=[],dataType=np.array,returnable=False)
+    'staMeta':HotVar(tag='staMeta',val=[],dataType=type(np.array([0.0])),returnable=False),
+    'mainPath':HotVar(tag='mainPath',val='',dataType=str,returnable=False),
     }
     return hotVar
 
@@ -86,12 +88,32 @@ class HotVar(object):
             except:
                 print self.tag+' update function did not load from $main.'+self.funcName
 
+# Ensure that the new plot stream has the same combination of stations as stream
+def checkPltSt(main,pltSt):
+    oStas=np.unique([tr.stats.station for tr in main.hotVar['stream'].val])
+    nStas=np.unique([tr.stats.station for tr in pltSt])
+    if not np.array_equal(np.sort(oStas),np.sort(nStas)):
+        print 'The return pltSt does not have all and only the station present in stream'
+        return False
+    return True
+    
 # Ensure that the new station sorting doesn't have stations for which there are no traces
 def checkStaSort(main,newSort):
     trStas=np.unique([tr.stats.station for tr in main.hotVar['pltSt'].val])
     if not np.array_equal(np.sort(trStas),np.sort(newSort)):
         print 'The return staSort does not have all and only the station present in pltSt'
         return False
+    return True
+
+# Ensure that the supplied pick directory actually exists (make one if it does not)
+def checkPickDir(main,pickDir):
+    if not os.path.exists(pickDir):
+        try:
+            print 'The pickDir did not exist, folder has been created'
+            os.makedirs(pickDir)
+        except:
+            print 'The pickDir did not exist, supplied string not compatible as a directory name'
+            return False
     return True
 
 # Ensure that all of the returned pick files conform to the proper name
@@ -111,7 +133,22 @@ def checkPickFileNames(main,pickFiles):
             print aFile+' does not match format IntegerID_%Y%m%d.%H%M%S.%f.picks'
             passTest=False
     if len(np.unique(pickFiles))!=len(pickFiles):
-        print 'pick file names were non unique'
+        print 'Pick file names were non unique'
         passTest=False
     return passTest
+
+# Ensure that the new pick file has the proper naming convention
+def checkCurPickFile(main,pickFile):
+    # If the pick directory has not been set, don't try
+    if main.hotVar['pickDir'].val=='':
+        print 'The pickDir has not been set'
+        return False
+    # If the user wants to return to a blank screen, let them
+    if pickFile=='':
+        return True
+    # If not already present, check its name
+    if pickFile not in main.hotVar['pickFiles'].val:
+        if not checkPickFileNames(main,[pickFile]):
+            return False
+    return True
     

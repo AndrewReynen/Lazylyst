@@ -43,8 +43,9 @@ def goToPage(*args,**kwargs):
 # Set the current pick file
 def setCurPickFile(curPickFile,pickFiles,nextFile=False,prevFile=False):
     maxFileIdx=len(pickFiles)-1
-    # Return nothing, if no pick files to choose from
-    if maxFileIdx==-1:
+    # Return nothing if no pick files to choose from...
+    # ...or if the current pick file is not set
+    if maxFileIdx==-1 or curPickFile=='':
         return ''
     curIdx=pickFiles.index(curPickFile)
     # If the next or previous page, ensure still in bounds
@@ -91,6 +92,14 @@ def removeCurPickFil(curPickFile,pickFiles):
     if curPickFile in pickFiles:
         pickFiles.pop(pickFiles.index(curPickFile))
     return pickFiles
+    
+# Make new pick dir
+def newPickDir(mainPath):
+    return mainPath+'/NewPickDir!'
+
+# Go this pick file
+def goToPickFile():
+    return '2_20150907.051000.000000.picks'
         
         
     

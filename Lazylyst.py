@@ -144,8 +144,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             # Ensure all the variable types match before updating any hot variables...
             # ...also ensure that the hot variables ("sanity") check function passes
             for i,aReturnKey in enumerate(action.returns):
-                if type(self.hotVar[aReturnKey].val)!=type(returnVals[i]):
-                    print ('Action '+action.tag+' expected variable '+str(type(self.hotVar[aReturnKey].val))+
+                if self.hotVar[aReturnKey].dataType!=type(returnVals[i]):
+                    print ('Action '+action.tag+' expected variable '+str(self.hotVar[aReturnKey].dataType)+
                            ' for hot variable '+aReturnKey+', got '+str(type(returnVals[i])))
                     skipUpdates=True
                     # If the type is wrong, no point in the longer check
@@ -636,6 +636,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     # With the same pick directory, force an update on the pick files...
     # ...this allows for addition of empty pick files and deletion of pick files
     def updatePickFiles(self):
+        # Resort the pick files
+        self.hotVar['pickFiles'].val=sorted(self.hotVar['pickFiles'].val)
         # Update th pick file times, and reset their line in archiveEvent
         self.hotVar['pickFileTimes'].update()
         self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,
@@ -654,10 +656,25 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             if aFile not in prevFiles:
                 newFile=open(self.hotVar['pickDir'].val+'/'+aFile,'w')
                 newFile.close()
-        # If the current pick file no longer exists, set to default and update
+        # Update the current pick file (no entry) if it is no longer in the pick files
         if self.hotVar['curPickFile'].val not in self.hotVar['pickFiles'].val:
             self.hotVar['curPickFile'].val=''
             self.hotVar['curPickFile'].update()
+    
+    # With the same source information, go to the current pick file
+    def updateCurPickFile(self):
+        if self.hotVar['curPickFile'].val!='':
+            # Ensure that the ID has the same length
+            splitFile=self.hotVar['curPickFile'].val.split('_')
+            self.hotVar['curPickFile'].val=splitFile[0].zfill(10)+'_'+splitFile[1]
+            # If the file does not exist, create it
+            if self.hotVar['curPickFile'].val not in self.hotVar['pickFiles'].val:
+                newFile=open(self.hotVar['pickDir'].val+'/'+self.hotVar['curPickFile'].val,'w')
+                newFile.close()
+                # Add this event to pickFiles
+                self.hotVar['pickFiles'].val.append(self.hotVar['curPickFile'].val)
+                self.hotVar['pickFiles'].update()
+        self.updateEvent()
     
     # Update the pick file times, given a new set of pick files
     def updatePickFileTimes(self):
@@ -700,17 +717,18 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     
     # Load setting from previous run, and initialize base variables
     def loadSettings(self):
-        # Get this scripts path, as functions will be relative to this
-        self.path=os.path.dirname(os.path.realpath(__file__))
         # Load the hot variables
         self.hotVar=initHotVar()
+        # Get this scripts path, as functions will be relative to this
+        mainPath=os.path.dirname(os.path.realpath(__file__))
+        self.hotVar['mainPath'].val=mainPath
         for key,hotVar in self.hotVar.iteritems():
             hotVar.linkToFunction(self)
         # Get all values from settings
-        self.setGen=QSettings(self.path+'/setGen.ini', QSettings.IniFormat)
-        self.setAct= QSettings(self.path+'/setAct.ini', QSettings.IniFormat)
-        self.setPref=QSettings(self.path+'/setPref.ini', QSettings.IniFormat)
-        self.setSource=QSettings(self.path+'/setSource.ini', QSettings.IniFormat)
+        self.setGen=QSettings(mainPath+'/setGen.ini', QSettings.IniFormat)
+        self.setAct= QSettings(mainPath+'/setAct.ini', QSettings.IniFormat)
+        self.setPref=QSettings(mainPath+'/setPref.ini', QSettings.IniFormat)
+        self.setSource=QSettings(mainPath+'/setSource.ini', QSettings.IniFormat)
         # UI size
         self.resize(self.setGen.value('size', QtCore.QSize(1300, 700)))
         # Actions...
