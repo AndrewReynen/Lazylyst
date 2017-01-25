@@ -47,13 +47,13 @@ def setCurPickFile(curPickFile,pickFiles,nextFile=False,prevFile=False):
     # ...or if the current pick file is not set
     if maxFileIdx==-1 or curPickFile=='':
         return ''
-    curIdx=pickFiles.index(curPickFile)
+    curIdx=np.where(pickFiles==curPickFile)[0][0]
     # If the next or previous page, ensure still in bounds
     if nextFile and curIdx+1<=maxFileIdx:
         curPickFile=pickFiles[curIdx+1]
     elif prevFile and curIdx-1>=0:
         curPickFile=pickFiles[curIdx-1]
-    return curPickFile
+    return str(curPickFile)
     
 # Delete the hovered stations, with current pick type
 def delPick(pickSet,pickMode,curSta):
@@ -88,9 +88,9 @@ def alternateTraceColor(curAssign):
         return {'alt1':['*Z'],'alt2':['*2','*N'],'alt3':['*1','*E']}
 
 # Remove the current pick file
-def removeCurPickFil(curPickFile,pickFiles):
+def removeCurPickFile(curPickFile,pickFiles):
     if curPickFile in pickFiles:
-        pickFiles.pop(pickFiles.index(curPickFile))
+        pickFiles=pickFiles[np.where(pickFiles!=curPickFile)]
     return pickFiles
     
 # Make new pick dir
@@ -100,6 +100,13 @@ def newPickDir(mainPath):
 # Go this pick file
 def goToPickFile():
     return '2_20150907.051000.000000.picks'
+    
+# Toggle between sources
+def toggleTestSources(curTag):
+    if curTag=='testing':
+        return 'testing2'
+    else:
+        return 'testing'
         
         
     

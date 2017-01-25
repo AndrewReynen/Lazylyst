@@ -1,7 +1,7 @@
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
 from CustomFunctions import dict2Text, text2Dict
-from TracePen import Ui_tracePenDialog
+from CustomPen import Ui_customPenDialog
 
 # Default Preferences
 def defaultPreferences(main):
@@ -10,6 +10,10 @@ def defaultPreferences(main):
                       func=main.updateStaPerPage,condition={'bound':[1,30]}),
     'evePreTime':Pref(tag='evePreTime',val=-60,dataType=float),
     'evePostTime':Pref(tag='evePostTime',val=120,dataType=float),
+    'eveIdGenStyle':Pref(tag='eveIdGenStyle',val='fill',dataType=str,
+                         condition={'isOneOf':['fill','next']}),
+    'eveSortStyle':Pref(tag='eveSortStyle',val='id',dataType=str,
+                        func=main.updateEveSort,condition={'isOneOf':['id','time']}),
     'archiveFileLen':Pref(tag='archiveFileLen',val=1800,dataType=float),
     'archiveLoadMethod':Pref(tag='archiveLoadMethod',val='fast'),
     'pickTypesMaxCountPerSta':Pref(tag='pickTypesMaxCountPerSta',val={'P':1,'S':1},dataType=dict,
@@ -28,8 +32,8 @@ def defaultPreferences(main):
                                 dialog='ColorDialog',func=main.updateArchiveEveColor),
     'archiveColorSelect':Pref(tag='archiveColorSelect',val=16711935,dataType=int,
                                 dialog='ColorDialog',func=main.updateArchiveEveColor),
-    'tracePen':Pref(tag='tracePen',val={'default':[4294967295,1.0,0.0]},dataType=dict,
-                    dialog='TracePenDialog',func=main.updateTracePen),
+    'customPen':Pref(tag='customPen',val={'default':[4294967295,1.0,0.0]},dataType=dict,
+                    dialog='CustomPenDialog',func=main.updateCustomPen),
     }
     return pref
 
@@ -66,9 +70,9 @@ class Pref(object):
                     val,ok=val.rgba(),True
                 else:
                     val,ok=None,False
-            # For the trace colors and widths, with their associated tags for use as with hot variables
-            elif self.dialog=='TracePenDialog':
-                TracePenDialog(self.val).exec_()
+            # For the custom colors and widths, with their associated tags for use as with hot variables
+            elif self.dialog=='CustomPenDialog':
+                CustomPenDialog(self.val).exec_()
                 # The updates to the preference is done within the dialog (and the checks are done there)
                 val,ok=self.val,True
             else:
@@ -135,6 +139,9 @@ class LineEditDialog(QtGui.QDialog):
             if 'bound' in keys:
                 if aVal<self.cond['bound'][0] or aVal>self.cond['bound'][1]:
                     return None
+            if 'isOneOf' in keys:
+                if aVal not in self.cond['isOneOf']:
+                    return None
         return val
 
     # Static method to create the dialog and return value
@@ -144,26 +151,26 @@ class LineEditDialog(QtGui.QDialog):
         result = dialog.exec_()
         return dialog.lineEditValue(), result==QtGui.QDialog.Accepted
 
-# Dialog window for editing the trace colors and widths
-class TracePenDialog(QtGui.QDialog, Ui_tracePenDialog):
+# Dialog window for editing the custom colors and widths
+class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
     def __init__(self,tpDict,parent=None):
         QtGui.QDialog.__init__(self,parent)
         self.setupUi(self)
         self.tpDict=tpDict
         self.keyOrder=sorted(self.tpDict.keys()) # Used to reference back before the last user change
-        # Fill in the current tracePen information (before setting functionality, as functionality has a "onChanged" signal)
+        # Fill in the current customPen information (before setting functionality, as functionality has a "onChanged" signal)
         self.fillDialog()
         # Give the dialog some functionaly
         self.setFunctionality()
         
-    # Set up some functionality to the trace pen dialog
+    # Set up some functionality to the custom pen dialog
     def setFunctionality(self):
         self.tpTable.itemDoubleClicked.connect(self.updatePenColor)
         self.tpTable.itemChanged.connect(self.updateItemText)
         self.tpInsertButton.clicked.connect(self.insertPen)
         self.tpDeleteButton.clicked.connect(self.deletePen)
 
-    # Fill the dialog with info relating to the current tracePen dictionary
+    # Fill the dialog with info relating to the current customPen dictionary
     def fillDialog(self):
         # Make the table large enough to hold all current information
         self.tpTable.setRowCount(len(self.tpDict))
@@ -248,7 +255,7 @@ class TracePenDialog(QtGui.QDialog, Ui_tracePenDialog):
     def insertPen(self):        
         # If the "NewPen" key is still present, ask to change it...
         if 'NewPen' in [key for key in self.tpDict.keys()]:
-            print 'Change the tag "NewPen", to be able to add another trace pen"'
+            print 'Change the tag "NewPen", to be able to add another custom pen"'
             return
         # Disconnect the OnChanged signal (as this would trigger it)
         self.tpTable.itemChanged.disconnect(self.updateItemText)

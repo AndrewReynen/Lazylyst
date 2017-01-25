@@ -14,20 +14,20 @@ def initHotVar():
                      funcName='updatePage',checkName='checkStaSort'),
     'curPage':HotVar(tag='curPage',val=0,dataType=int,
                      funcName='updateCurPage'),
-    'sourceTag':HotVar(tag='sourceTag',val='',dataType=str,returnable=False),  ## Update, Check
+    'sourceTag':HotVar(tag='sourceTag',val='',dataType=str,
+                       funcName='updateSource',checkName='checkSourceTag'),
     'pickDir':HotVar(tag='pickDir',val='',dataType=str,
                      funcName='updatePickDir', checkName='checkPickDir'),
-    'pickFiles':HotVar(tag='pickFiles',val=[],dataType=list, 
+    'pickFiles':HotVar(tag='pickFiles',val=[],dataType=type(np.array(['str'])), 
                        funcName='updatePickFiles',checkName='checkPickFileNames'),
-    'pickFileTimes':HotVar(tag='pickFileTimes',val=[],dataType=list,returnable=False,
-                           funcName='updatePickFileTimes'),   
+    'pickFileTimes':HotVar(tag='pickFileTimes',val=[],dataType=type(np.array([0.0])),returnable=False),   
     'curPickFile':HotVar(tag='curPickFile',val='',dataType=str,
                          funcName='updateCurPickFile',checkName='checkCurPickFile'),
-    'pickSet':HotVar(tag='pickSet',val=np.empty((0,3)),dataType=type(np.array([0.0])),  ## Add Check
-                     funcName='updatePagePicks'), # Must be in string format, row=[Sta,Type,TimeStamp]
+    'pickSet':HotVar(tag='pickSet',val=np.empty((0,3)),dataType=type(np.array([0.0])),
+                     funcName='updatePagePicks',checkName='checkPickSet'),
     'pickMode':HotVar(tag='pickMode',val='',dataType=str),
-    'tracePenAssign':HotVar(tag='tracePenAssign',val={},dataType=dict, ## Add Check
-                            funcName='updateTracePen'),
+    'tracePenAssign':HotVar(tag='tracePenAssign',val={},dataType=dict,
+                            funcName='updateTracePen',checkName='checkTracePenAssign'),
     'archDir':HotVar(tag='archDir',val='',dataType=str,
                      funcName='updateArchive'),
     'archFiles':HotVar(tag='archFiles',val=[],dataType=list,returnable=False),
@@ -105,6 +105,13 @@ def checkStaSort(main,newSort):
         return False
     return True
 
+# Ensure that the specified tag actually exists
+def checkSourceTag(main,tag):
+    if tag not in main.saveSource.keys():
+        print 'The sourceTag '+tag+' is not currently a saved source'
+        return False
+    return True
+
 # Ensure that the supplied pick directory actually exists (make one if it does not)
 def checkPickDir(main,pickDir):
     if not os.path.exists(pickDir):
@@ -150,5 +157,38 @@ def checkCurPickFile(main,pickFile):
     if pickFile not in main.hotVar['pickFiles'].val:
         if not checkPickFileNames(main,[pickFile]):
             return False
+    return True
+
+# Ensure that the pick set has the proper dimensions and data types [str,str,float] (although held as string)
+def checkPickSet(main,pickSet):
+    if len(pickSet.shape)!=2:
+        print 'The pickSet must be 2 dimensional'
+        return False
+    elif pickSet.shape[1]!=3:
+        print 'The pickSet must have 3 columns'
+        return False
+    try:
+        pickSet[:,:2].astype(str)
+        pickSet[:,2].astype(float)
+    except:
+        print 'The pickSet contains [station,pickType,timestamp(s)]'
+        return False
+    return True
+
+# Ensure that the returned pen assignment (for traces) dictionary is holding the right data types
+def checkTracePenAssign(main,penAssign):
+    # Check to see that each returned value is a list
+    for key,val in penAssign.iteritems():
+        if type(val)!=list:
+            print 'For all tracePenAssign returned key:value pairs, the value should be a list'
+            return False
+        # Each entry (channel) in the list should be a string, and <= 3 characters long
+        for entry in val:
+            if type(entry)!=str:
+                print 'Returned tracePenAssign lists should only contain strings'
+                return False
+            elif len(entry)>3:
+                print 'Returned tracePenAssign list entries refer to channels, which are max 3 characters long'
+                return False
     return True
     

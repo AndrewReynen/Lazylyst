@@ -106,7 +106,7 @@ class Action(object):
             try:
                 func = getattr(importlib.import_module(self.path),self.name)
             except:
-                print self.tag+' did not load from '+self.path+'.'+self.name
+                print 'Action '+self.tag+' did not load from '+self.path+'.'+self.name
                 return
         # Otherwise, grab function from predefined location
         else:

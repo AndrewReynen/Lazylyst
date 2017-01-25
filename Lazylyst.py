@@ -176,18 +176,21 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.dialog=CsDialog(self.hotVar,self.saveSource)
         # Extract the wanted source
         if self.dialog.exec_():
-            source=self.dialog.returnSource()
-            # If the files exist, update the hot variables
-            if source.pathExist():
-                for key,val in [['sourceTag',source.tag],
-                                ['archDir',source.archDir],
-                                ['pickDir',source.pickDir],
-                                ['staFile',source.staFile]]:
-                    self.hotVar[key].val=val
-                    self.hotVar[key].update()
-                ## Must now also get the staMeta np.array, and update() ##
-            else:
-                print 'Source update skipped'
+            self.hotVar['sourceTag'].val=self.dialog.returnSource().tag
+            self.hotVar['sourceTag'].update()
+    
+    # Update the source to a specific source tag
+    def updateSource(self):
+        source=self.saveSource[self.hotVar['sourceTag'].val]
+        # If the files exist, update the hot variables
+        if source.pathExist():
+            for key,val in [['archDir',source.archDir],
+                            ['pickDir',source.pickDir],
+                            ['staFile',source.staFile]]:
+                self.hotVar[key].val=val
+                self.hotVar[key].update()
+        else:
+            print 'Source update skipped'
 
     # Add an empty pick file to the pick directory, also add to GUI list
     def addPickFile(self):
@@ -197,20 +200,25 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         aTimeStr=self.archiveList.graph.newEveStr
         # Assign an ID to the new event
         seenIDs=[int(aFile.split('_')[0]) for aFile in os.listdir(self.hotVar['pickDir'].val)]
-        ## Currently assigning ID where one is missing
-        i=0
-        while i in seenIDs:
-            i+=1
-        newPickFile=str(i).zfill(10)+'_'+aTimeStr+'.picks'
+        # Use the specified ID generation style
+        if self.pref['eveIdGenStyle'].val=='fill':
+            newID=0
+            while newID in seenIDs:
+                newID+=1
+        elif self.pref['eveIdGenStyle'].val=='next':
+            newID=np.max(seenIDs)+1
+        else:
+            print 'The eveIDGenStyle '+self.pref['eveIdGenStyle'].val+' has not been implemented'
+            return
+        newPickFile=str(newID).zfill(10)+'_'+aTimeStr+'.picks'
         # Add to the picks directory
         newFile=open(self.hotVar['pickDir'].val+'/'+newPickFile,'w')
         newFile.close()
         # Add to GUI list, and internal list
-        self.hotVar['pickFiles'].val=[str(aFile) for aFile in sorted(os.listdir(self.hotVar['pickDir'].val))]
-        self.hotVar['pickFileTimes'].update()
+        self.hotVar['pickFiles'].val=np.sort(os.listdir(self.hotVar['pickDir'].val))
+        self.updateEveSort()
         self.archiveEvent.updateEveLines([getTimeFromFileName(newPickFile).timestamp],
                                          self.pref['archiveColorEve'].val,'add')
-        self.updateArchiveSpanList()
     
     # Load a specific pick file from the pick directory (inter-event pick loading)
     def loadPickFile(self):
@@ -423,18 +431,18 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     # Match all streams channels to its appropriate pen
     def getStreamPens(self):
         penRef={} # Dictionary to return with all unique channels pens
-        acceptKeys=[key for key in self.pref['tracePen'].val.keys()]
+        acceptKeys=[key for key in self.pref['customPen'].val.keys()] ##
         unqChas=np.unique([tr.stats.channel for tr in self.hotVar['stream'].val])
         # First check what tracePenAssign keys are actually accepted
         useKeys=[]
         for key in self.hotVar['tracePenAssign'].val.keys():
             # If the user returned default, let them know it is used if others do not exist
             if key=='default':
-                print 'tracePen tag default is used as a catch all, ignored so does not overwrite other trace pens'
+                print 'customPen tag default is used as a catch all, ignored so does not overpower other trace pens'
             elif key in acceptKeys:
                 useKeys.append(key)
             else:
-                print 'tracePen tag '+key+ 'is not currently defined in preference tracePen, applying default'
+                print 'customPen tag '+key+ 'is not currently defined in preference customPen, applying default'
         # Loop through each unique channel and add its pen to penRef
         for cha in unqChas:
             colorInt,width=None,None
@@ -443,14 +451,14 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             for key,aList in [[aKey,self.hotVar['tracePenAssign'].val[aKey]] for aKey in useKeys]:
                 for entry in aList:
                     if fnmatch(cha,entry):
-                        colorInt,width,depth=self.pref['tracePen'].val[key]
+                        colorInt,width,depth=self.pref['customPen'].val[key]
                         matched=True
                         break
                 if matched:
                     break
             # If there was no match, apply default
             if colorInt==None:
-                colorInt,width,depth=self.pref['tracePen'].val['default']
+                colorInt,width,depth=self.pref['customPen'].val['default']
             pen=mkPen(QtGui.QColor(colorInt),width=width)
             penRef[cha]=[pen,depth]
         return penRef
@@ -489,9 +497,13 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 self.staWidgets[i].addTrace(trace.times()+trace.stats.starttime.timestamp,trace.data,
                                             trace.stats.channel,pen,depth)
             i+=1
-        
+    
+    # Update all custom pens
+    def updateCustomPen(self,init=False):
+        self.updateTracePen()
+    
     # Update just the trace pens on the current page
-    def updateTracePen(self,init=False):
+    def updateTracePen(self):
         self.chaPenRef=self.getStreamPens()
         for widget in self.staWidgets:
             for curve in widget.traceCurves:
@@ -595,8 +607,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     # Update the pick list with events only in the selected span
     # ...this is done after both pickFiles and pickFileTimes are updated
     def updateArchiveSpanList(self):
-        files=np.array(self.hotVar['pickFiles'].val)
-        times=np.array(self.hotVar['pickFileTimes'].val)
+        files=self.hotVar['pickFiles'].val
+        times=self.hotVar['pickFileTimes'].val
         t1,t2=self.archiveSpan.span.getRegion()
         # See which files should be listed
         toListFiles=files[np.where((times>=t1)&(times<=t2))]
@@ -608,11 +620,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def updatePickDir(self):
         # Clear the old list
         self.archiveList.clear()
-        self.hotVar['pickFiles'].val=[]
+        self.hotVar['pickFiles'].val=np.empty((0),dtype=str)
         # Reset the current pick file
         self.hotVar['curPickFile'].val=''
         self.hotVar['curPickFile'].update()
-        eveFileTimes=[]
         # Only accept files with proper naming convention
         for aFile in sorted(os.listdir(self.hotVar['pickDir'].val)):
             aFile=str(aFile)
@@ -622,28 +633,24 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 continue
             try:
                 int(splitFile[0])
-                eveFileTimes.append(getTimeFromFileName(aFile).timestamp)
+                getTimeFromFileName(aFile).timestamp
             except:
                 continue
-            self.hotVar['pickFiles'].val.append(aFile)
-        # Update the pick file times hot variable
-        self.hotVar['pickFileTimes'].update()
+            self.hotVar['pickFiles'].val=np.concatenate((self.hotVar['pickFiles'].val,np.array([aFile])))
+        # Sort the pick files
+        self.updateEveSort()
+        # Update the archive span widget
         self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,
                                          self.pref['archiveColorEve'].val,'reset')
-        # Finally update the pick list
-        self.updateArchiveSpanList()
     
     # With the same pick directory, force an update on the pick files...
     # ...this allows for addition of empty pick files and deletion of pick files
     def updatePickFiles(self):
-        # Resort the pick files
-        self.hotVar['pickFiles'].val=sorted(self.hotVar['pickFiles'].val)
-        # Update th pick file times, and reset their line in archiveEvent
-        self.hotVar['pickFileTimes'].update()
+        # Ensure that pick files returned are in wanted order
+        self.updateEveSort()
+        # Reset pick file time lines in archiveEvent
         self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,
                                          self.pref['archiveColorEve'].val,'reset')
-        # Clear the old GUI list, and add the new items
-        self.updateArchiveSpanList()
         # See which files were present prior to the update
         prevFiles=sorted(os.listdir(self.hotVar['pickDir'].val))
         # Delete events which are no longer present
@@ -656,10 +663,30 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             if aFile not in prevFiles:
                 newFile=open(self.hotVar['pickDir'].val+'/'+aFile,'w')
                 newFile.close()
-        # Update the current pick file (no entry) if it is no longer in the pick files
+        # Update the current pick file if it is no longer in the pick files
         if self.hotVar['curPickFile'].val not in self.hotVar['pickFiles'].val:
-            self.hotVar['curPickFile'].val=''
-            self.hotVar['curPickFile'].update()
+            # Do not bother updating curPickFile if not set
+            if self.hotVar['curPickFile'].val!='':
+                self.hotVar['curPickFile'].val=''
+                self.hotVar['curPickFile'].update()
+            
+    # Sort the pick files according to user preference...
+    # ...also update the pickFileTimes
+    def updateEveSort(self,init=False):
+        # Sort alphabetically first (will be the secondary sorting)
+        self.hotVar['pickFiles'].val=np.sort(self.hotVar['pickFiles'].val)
+        self.hotVar['pickFileTimes'].val=np.array([getTimeFromFileName(aFile).timestamp for aFile in self.hotVar['pickFiles'].val])
+        # If sorting by ID, this is the same as alphabetical (unless the ID is huge)
+        if self.pref['eveSortStyle'].val=='id':
+            pass
+        elif self.pref['eveSortStyle'].val=='time':
+            argSort=np.argsort(self.hotVar['pickFileTimes'].val)
+            self.hotVar['pickFiles'].val=self.hotVar['pickFiles'].val[argSort]
+            self.hotVar['pickFileTimes'].val=self.hotVar['pickFileTimes'].val[argSort]
+        else:
+            print 'The eveSortStyle '+self.pref['eveSortStyle'].val+' has not been implemented, sorting by id'
+        # Clear the old GUI list, and add the new items
+        self.updateArchiveSpanList()
     
     # With the same source information, go to the current pick file
     def updateCurPickFile(self):
@@ -672,13 +699,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 newFile=open(self.hotVar['pickDir'].val+'/'+self.hotVar['curPickFile'].val,'w')
                 newFile.close()
                 # Add this event to pickFiles
-                self.hotVar['pickFiles'].val.append(self.hotVar['curPickFile'].val)
+                self.hotVar['pickFiles'].val=np.concatenate((self.hotVar['pickFiles'].val,
+                                                             np.array([self.hotVar['curPickFile'].val])))
                 self.hotVar['pickFiles'].update()
         self.updateEvent()
-    
-    # Update the pick file times, given a new set of pick files
-    def updatePickFileTimes(self):
-        self.hotVar['pickFileTimes'].val=[getTimeFromFileName(aFile).timestamp for aFile in self.hotVar['pickFiles'].val]  
     
     # As the number of pick types can change in the settings...
     # ...show less/more pick type color preferences
