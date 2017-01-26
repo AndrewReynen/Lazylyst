@@ -108,5 +108,15 @@ def toggleTestSources(curTag):
     else:
         return 'testing'
         
+# Move forward in time by a portion of current range
+def panPercent(*args,**kwargs):
+    timeRange=args[0]
+    delta=timeRange[1]-timeRange[0]
+    if kwargs['direct']=='backward':
+        delta*=-1.0
+    timeRange[0]+=kwargs['percent']/100.0*delta
+    timeRange[1]+=kwargs['percent']/100.0*delta
+    return timeRange
+        
         
     

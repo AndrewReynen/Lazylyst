@@ -88,12 +88,35 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     
     # Create and activate the queue of actions following the initiation of an active action
     def processAction(self,action):
-        # If this action was triggered over top of a trace widget, get the current station
+        # If this action is timed...
+        if action.timer:
+            # ... see if already being run, and stop if so
+            curTimers=self.qTimers.keys()
+            if action.tag in curTimers:
+                print 'Stopping timed action '+action.tag
+                self.qTimers[action.tag].stop()
+                self.qTimers.pop(action.tag)
+            # ... otherwise add to the timers, and kick it off
+            else:
+                print 'Starting timed action '+action.tag
+                timer = QtCore.QTimer()
+                timer.timeout.connect(lambda: self.runActiveAction(action))
+                self.qTimers[action.tag]=timer
+                self.qTimers[action.tag].start(action.timerInterval*1000.0)
+        # If not timed, just do it once
+        else:
+            self.runActiveAction(action)
+
+    # Run the specified action
+    def runActiveAction(self,action):
+        # Set the current station, and current timeRange to be sent to actions
         self.setCurSta()
+        self.setTimeRange()
         # First check to see if there are any (passive) actions which relate
         actQueue=self.collectActQueue(action)   
         for oAct in actQueue:
             self.executeAction(oAct)
+        
                 
     # Get the appropriate order of passive functions before and after their triggered active action
     def collectActQueue(self,action):
@@ -318,6 +341,11 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         elif self.hotVar['curPage'].val<0:
             self.hotVar['curPage'].val=0
         self.updatePage()
+    
+    # Update the time range upon user request
+    def updateTimeRange(self):
+        t0,t1=self.hotVar['timeRange'].val
+        self.timeWidget.setXRange(t0,t1,padding=0.0)
         
     # Built in function to tab to the next or previous page number
     def tabCurPage(self,nextPage=False,prevPage=False,pageNum=0):
@@ -354,6 +382,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 self.hotVar['curSta'].val=widget.sta
                 return
         self.hotVar['curSta'].val=''
+    
+    # Set the timeRange variable to the current time range of the time widget
+    def setTimeRange(self):
+        self.hotVar['timeRange'].val=self.timeWidget.getTimeRange()
         
     # Add a pick to the double-clicked station (single-pick addition)
     def addClickPick(self):
@@ -776,6 +808,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.saveSource=self.setSource.value('savedSources', {})
         # Create empty variables
         self.staWidgets=[]
+        self.qTimers={}
         
     # Save all settings from current run
     def saveSettings(self):

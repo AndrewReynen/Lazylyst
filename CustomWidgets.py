@@ -68,6 +68,8 @@ class ArchiveEventWidget(pg.PlotWidget):
         self.pltItem.hideAxis('left')
         self.pltItem.hideAxis('bottom')
         self.pltItem.hideButtons()
+        # Give some x-limits (do not go prior to 1970)
+        self.pltItem.setLimits(xMin=0)
         # Disable all panning and zooming
         self.pltItem.vb.setMouseEnabled(x=False,y=False)
         self.eveLines=[]
@@ -122,7 +124,13 @@ class TimeWidget(pg.PlotWidget):
         super(TimeWidget, self).__init__(parent,name='timeAxis',axisItems={'bottom': TimeAxisItem(orientation='bottom')})
         self.getPlotItem().getAxis('left').setWidth(70)
         self.getPlotItem().setMenuEnabled(enableMenu=False)
-        self.getPlotItem().hideButtons()
+        self.getPlotItem().hideButtons()        
+        # Give some x-limits (do not go prior to 1970)
+        self.getPlotItem().setLimits(xMin=0)
+    
+    # Return the xmin,xmax (times) of the plot
+    def getTimeRange(self):
+        return self.getPlotItem().vb.viewRange()[0]
 
 # Infinite line, but now with reference to the pick type
 class PickLine(pg.InfiniteLine):
@@ -158,6 +166,8 @@ class TraceWidget(pg.PlotWidget):
         self.pltItem.hideAxis('bottom')
         self.pltItem.hideButtons()
         self.pltItem.getAxis('left').setWidth(70)
+        # Give some x-limits (do not go prior to 1970)
+        self.pltItem.setLimits(xMin=0)
         # Assign this widget a station
         self.sta=sta
         self.clickPos=clickPos

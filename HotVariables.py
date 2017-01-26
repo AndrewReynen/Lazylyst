@@ -14,6 +14,8 @@ def initHotVar():
                      funcName='updatePage',checkName='checkStaSort'),
     'curPage':HotVar(tag='curPage',val=0,dataType=int,
                      funcName='updateCurPage'),
+    'timeRange':HotVar(tag='timeRange',val=[0,1],dataType=list,
+                       funcName='updateTimeRange',checkName='checkTimeRange'),
     'sourceTag':HotVar(tag='sourceTag',val='',dataType=str,
                        funcName='updateSource',checkName='checkSourceTag'),
     'pickDir':HotVar(tag='pickDir',val='',dataType=str,
@@ -102,6 +104,21 @@ def checkStaSort(main,newSort):
     trStas=np.unique([tr.stats.station for tr in main.hotVar['pltSt'].val])
     if not np.array_equal(np.sort(trStas),np.sort(newSort)):
         print 'The return staSort does not have all and only the station present in pltSt'
+        return False
+    return True
+    
+# Ensure that the limits are in the proper order, can be floats, and just contains two values
+def checkTimeRange(main,timeRange):
+    try:
+        np.array(timeRange,dtype=float)
+    except:
+        print 'timeRange values must be numbers (timestamp (s))'
+        return False
+    if len(timeRange)!=2:
+        print 'For timeRange, two values are required to specify the time range, got '+str(len(timeRange))
+        return False
+    elif timeRange[0]>=timeRange[1]:
+        print 'For timeRange, the second (right) limit must be greater than the first limit'
         return False
     return True
 
