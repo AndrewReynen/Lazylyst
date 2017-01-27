@@ -11,7 +11,7 @@ class TimeAxisItemArchive(pg.AxisItem):
         super(TimeAxisItemArchive, self).__init__(*args, **kwargs)
 
     def tickStrings(self, values, scale, spacing):
-        return [UTCDateTime(value).strftime("%Y-%m-%d %H:%M:%S") for value in values]
+        return [UTCDateTime(value).strftime("%Y-%m-%d %H:%M") for value in values]
 
 # Widget for seeing what data times are available, and sub-selecting pick files
 class ArchiveSpanWidget(pg.PlotWidget):
@@ -31,8 +31,8 @@ class ArchiveSpanWidget(pg.PlotWidget):
         self.addItem(self.span)
         # Give a name to the data availability regions
         self.boxes=[]
-        # Give some x-limits (do not go prior to 1970)
-        self.pltItem.setLimits(xMin=0)
+        # Give some x-limits (do not go prior/after to 1970/2200)
+        self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
         # No y-axis panning or zooming allowed
         self.pltItem.vb.setMouseEnabled(y=False)
         self.pltItem.setYRange(0,1)
@@ -68,8 +68,8 @@ class ArchiveEventWidget(pg.PlotWidget):
         self.pltItem.hideAxis('left')
         self.pltItem.hideAxis('bottom')
         self.pltItem.hideButtons()
-        # Give some x-limits (do not go prior to 1970)
-        self.pltItem.setLimits(xMin=0)
+        # Give some x-limits (do not go prior/after to 1970/2200)
+        self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
         # Disable all panning and zooming
         self.pltItem.vb.setMouseEnabled(x=False,y=False)
         self.eveLines=[]
@@ -114,19 +114,64 @@ class ArchiveListWidget(QtGui.QListWidget):
 class TimeAxisItem(pg.AxisItem):
     def __init__(self, *args, **kwargs):
         super(TimeAxisItem, self).__init__(*args, **kwargs)
+        # Some nice units with respect to time
+        self.units=np.array([10**-6,10**-5,10**-4,10**-3,10**-2,10**-1,
+                             1,2,5,10,30,60,
+                             120,300,600,1800,3600,7200,
+                             3600*6,3600*24,3600*48,3600*24*5,3600*24*31,3600*24*180],dtype=float)
+        self.unitIdxs=np.arange(len(self.units))
+        # What the above units should be displayed as
+        self.unitStrs=['%S.%fs','%S.%fs','%S.%fs','%S.%fs','%S.%fs','%S.%fs',
+                       '%S.%fs','%S.%fs','%Mm%Ss','%Mm%Ss','%Mm%Ss','%Mm%Ss',
+                       '%Mm%Ss','%Hh%Mm','%Hh%Mm','%dd %Hh%Mm','%dd %Hh%Mm','%dd %Hh%Mm',
+                       '%m-%d %Hh','%m-%d %Hh','%m-%d %Hh','%Y-%m-%d','%Y-%m-%d','%Y-%m-%d']
+        # How many characters to trim off the end of the above string
+        self.strTrim=[0,0,0,0,1,2,
+                      3,3,0,0,0,0,
+                      0,0,0,0,0,0,
+                      0,0,0,0,0,0]
+        self.unitIdx=0
 
+    # Customize the locations of the ticks
+    def tickValues(self, minVal, maxVal, size):
+        # How many ticks are wanted on the page
+        numTicks=float(max([int(size/160),2]))
+        # Given how big the page is, see which units to apply
+        diff=maxVal-minVal
+        self.unitIdx=int(np.interp((diff)/numTicks,self.units,self.unitIdxs))
+        unit=self.units[self.unitIdx]
+        # In the case where zoomed in way to close
+        if unit>diff:
+            return [(0.5*diff,[minVal+0.20*diff,maxVal-0.20*diff])]
+        # In the case where zoomed out very far
+        if diff/(unit*numTicks)>2:
+            unit*=int(diff/(unit*numTicks))
+        # Start at the nearest whole unit
+        val=minVal-minVal%unit+unit
+        ticks=[]
+        while val<maxVal:
+            ticks.append(val)
+            val+=unit
+        return [(unit,ticks)]
+
+    # Customize what string are being shown
     def tickStrings(self, values, scale, spacing):
-        return [UTCDateTime(value).strftime("%H:%M:%S.%f") for value in values]
+        x=self.strTrim[self.unitIdx]
+        if x==0:
+            return [UTCDateTime(value).strftime(self.unitStrs[self.unitIdx]) for value in values]
+        else:
+            return [UTCDateTime(value).strftime(self.unitStrs[self.unitIdx])[:-(x+1)]+'s' for value in values]
 
 # Widget to nicely show the time axis, which is in sync with the trace data
 class TimeWidget(pg.PlotWidget):
     def __init__(self, parent=None):
-        super(TimeWidget, self).__init__(parent,name='timeAxis',axisItems={'bottom': TimeAxisItem(orientation='bottom')})
+        super(TimeWidget, self).__init__(parent,name='timeAxis',axisItems={'bottom': TimeAxisItem(orientation='bottom'),
+                                                                           'left':pg.AxisItem(orientation='left',showValues=False)})
         self.getPlotItem().getAxis('left').setWidth(70)
         self.getPlotItem().setMenuEnabled(enableMenu=False)
-        self.getPlotItem().hideButtons()        
-        # Give some x-limits (do not go prior to 1970)
-        self.getPlotItem().setLimits(xMin=0)
+        self.getPlotItem().hideButtons()
+        # Give some x-limits (do not go prior/after to 1970/2200)
+        self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
     
     # Return the xmin,xmax (times) of the plot
     def getTimeRange(self):
@@ -166,8 +211,8 @@ class TraceWidget(pg.PlotWidget):
         self.pltItem.hideAxis('bottom')
         self.pltItem.hideButtons()
         self.pltItem.getAxis('left').setWidth(70)
-        # Give some x-limits (do not go prior to 1970)
-        self.pltItem.setLimits(xMin=0)
+        # Give some x-limits (do not go prior/after to 1970/2200)
+        self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
         # Assign this widget a station
         self.sta=sta
         self.clickPos=clickPos

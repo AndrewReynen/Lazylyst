@@ -93,12 +93,13 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             # ... see if already being run, and stop if so
             curTimers=self.qTimers.keys()
             if action.tag in curTimers:
-                print 'Stopping timed action '+action.tag
+                ## Make some sort of drop down to show timed actions in use?
+#                print 'Stopping timed action '+action.tag
                 self.qTimers[action.tag].stop()
                 self.qTimers.pop(action.tag)
             # ... otherwise add to the timers, and kick it off
             else:
-                print 'Starting timed action '+action.tag
+#                print 'Starting timed action '+action.tag
                 timer = QtCore.QTimer()
                 timer.timeout.connect(lambda: self.runActiveAction(action))
                 self.qTimers[action.tag]=timer
