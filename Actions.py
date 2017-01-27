@@ -9,12 +9,15 @@ import os
 def defaultActions():
     act={
     'OpenOptions':Action(tag='OpenOptions',name='openConfiguration',
-                      path='$main',
-                      trigger=Qt.Key_O,locked=True),
+                         path='$main',
+                         trigger=Qt.Key_O,locked=True),
                       
     'ChangeSource':Action(tag='ChangeSource',name='openChangeSource',
-                      path='$main',
-                      trigger=Qt.Key_P,locked=True),
+                          path='$main',
+                          trigger=Qt.Key_P,locked=True),
+
+    'CloseLazylyst':Action(tag='CloseLazylyst',name='passAction',
+                           path='$main',trigger='DoubleClick',locked=True),
                       
     'PageNext':Action(tag='PageNext',name='tabCurPage',
                       path='$main',optionals={'nextPage':True},
@@ -52,7 +55,7 @@ def defaultActions():
 
     'SavePickSetOnNewEve':Action(tag='SavePickSetOnNewEve',name='savePickSet',
                                    path='$main',passive=True,
-                                   trigger=['PickFileSetToClick','PickFileNext','PickFilePrev'],
+                                   trigger=['PickFileSetToClick','PickFileNext','PickFilePrev','CloseLazylyst'],
                                    beforeTrigger=True),
     }
     return act

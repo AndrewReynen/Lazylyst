@@ -1,4 +1,4 @@
-from PyQt4 import QtGui
+from PyQt4 import QtGui,QtCore
 from PyQt4.QtCore import Qt
 from CustomFunctions import dict2Text, text2Dict
 from CustomPen import Ui_customPenDialog
@@ -290,3 +290,44 @@ class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
         self.tpDict.pop(key)
         # Reconnect to OnChanged signal
         self.tpTable.itemChanged.connect(self.updateItemText)
+        
+# Dialog to get a specific date time back
+class DateDialog(QtGui.QDialog):
+    def __init__(self, parent = None):
+        super(DateDialog, self).__init__(parent)
+
+        layout = QtGui.QVBoxLayout(self)
+        # Widget for editing the date
+        self.datetime = QtGui.QDateTimeEdit(self)
+        self.datetime.setCalendarPopup(True)
+        self.datetime.setDisplayFormat('yyyy-MM-dd hh:mm:ss')
+        layout.addWidget(self.datetime)
+
+        # OK and Cancel buttons
+        buttons = QtGui.QDialogButtonBox(
+            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+            Qt.Horizontal, self)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    # Get current date and time from the dialog
+    def dateTime(self):
+        return self.datetime.dateTime()
+
+    # Static method to create the dialog and return [timestamp, accepted]
+    @staticmethod
+    def getDateTime(bound,parent = None):
+        # Start dialog
+        dialog = DateDialog(parent)
+        # Set the previous string value
+        prevDateTime=QtCore.QDateTime()
+        prevDateTime.setTimeSpec(Qt.UTC)
+        prevDateTime.setTime_t(int(bound))
+        dialog.datetime.setDateTime(prevDateTime)
+        # Get and return value
+        result = dialog.exec_()
+        dateTime=dialog.dateTime()
+        dateTime.setTimeSpec(Qt.UTC)
+        newBound = dateTime.toTime_t()
+        return newBound, result == QtGui.QDialog.Accepted

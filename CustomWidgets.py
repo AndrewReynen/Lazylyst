@@ -9,9 +9,42 @@ from decimal import Decimal
 class TimeAxisItemArchive(pg.AxisItem):
     def __init__(self, *args, **kwargs):
         super(TimeAxisItemArchive, self).__init__(*args, **kwargs)
+        # Some nice units with respect to time
+        self.units=np.array([60,
+                             120,300,600,1800,3600,7200,
+                             3600*6,3600*24,3600*48,3600*24*5,3600*24*31,3600*24*180],dtype=float)
+        self.unitIdxs=np.arange(len(self.units))
+        # What the above units should be displayed as
+        self.unitStrs=['%Hh%Mm',
+                       '%Hh%Mm','%Hh%Mm','%Hh%Mm','%Hh%Mm','%Y-%m-%d %Hh','%Y-%m-%d %Hh',
+                       '%Y-%m-%d %Hh','%Y-%m-%d','%Y-%m-%d','%Y-%m-%d','%Y-%m-%d','%Y-%m-%d']
+        self.unitIdx=0
 
+    # Customize the locations of the ticks
+    def tickValues(self, minVal, maxVal, size):
+        # How many ticks are wanted on the page
+        numTicks=float(max([int(size/225),2]))
+        # Given how big the page is, see which units to apply
+        diff=maxVal-minVal
+        self.unitIdx=int(np.interp((diff)/numTicks,self.units,self.unitIdxs))
+        unit=self.units[self.unitIdx]
+        # In the case where zoomed in way to close
+        if unit>diff:
+            return [(0.5*diff,[minVal+0.20*diff,maxVal-0.20*diff])]
+        # In the case where zoomed out very far
+        if diff/(unit*numTicks)>2:
+            unit*=int(diff/(unit*numTicks))
+        # Start at the nearest whole unit
+        val=minVal-minVal%unit+unit
+        ticks=[]
+        while val<maxVal:
+            ticks.append(val)
+            val+=unit
+        return [(unit,ticks)]
+
+    # Customize what string are being shown
     def tickStrings(self, values, scale, spacing):
-        return [UTCDateTime(value).strftime("%Y-%m-%d %H:%M") for value in values]
+        return [UTCDateTime(value).strftime(self.unitStrs[self.unitIdx]) for value in values]
 
 # Widget for seeing what data times are available, and sub-selecting pick files
 class ArchiveSpanWidget(pg.PlotWidget):
@@ -36,22 +69,51 @@ class ArchiveSpanWidget(pg.PlotWidget):
         # No y-axis panning or zooming allowed
         self.pltItem.vb.setMouseEnabled(y=False)
         self.pltItem.setYRange(0,1)
+        
+    # Return the span bounds
+    def getSpanBounds(self):
+        t1,t2=self.span.getRegion()
+        return UTCDateTime(t1),UTCDateTime(t2)
     
     # Disable any scroll in/scroll out motions
     def wheelEvent(self,ev):
         return
         
     # Update the boxes representing the times
-    def updateBoxes(self,ranges,pen):
+    def updateBoxes(self,ranges,penInt):
         # Remove the previous boxes
         for item in self.boxes:
             self.removeItem(item)
         self.boxes=[]
-        # Add in the new boxes
-        for r in ranges:
-            box=TraceCurve([r[0],r[1]],[0.5,0.5],'BOX',pen,-10)
-            self.boxes.append(box)
-            self.addItem(box)         
+        # Skip, if no ranges to add
+        if len(ranges)==0:
+            return
+        # Try to merge these ranges (less lines)...
+        # ...sort first by range start values
+        ranges=np.array(ranges)
+        ranges=ranges[np.argsort(ranges[:,0])]
+        merge=[ranges[0]]
+        for rng in ranges:
+            # In the case they do not overlap
+            if rng[0]>merge[-1][1]:
+                merge.append(rng)
+            # If overlaping, and the new range extends further, push it
+            elif rng[1]>merge[-1][1]:
+                merge[-1][1]=rng[1]
+        merge=np.array(merge)
+        # Plot these a bit more efficiently (one disconnected line, rather than many lines)
+        connect = np.ones((len(merge), 2), dtype=np.ubyte)
+        connect[:,-1] = 0  #  disconnect segment between lines
+        path = pg.arrayToQPath(merge.reshape(len(merge)*2), np.ones((len(merge)*2))*0.5, connect.reshape(len(merge)*2))
+        item = pg.QtGui.QGraphicsPathItem(path)
+        item.setPen(pg.mkPen(QtGui.QColor(penInt)))
+        # Add in the new box
+        self.boxes.append(item)
+        self.addItem(item)
+#        for r in merge:
+#            box=TraceCurve([r[0],r[1]],[0.5,0.5],'BOX',pen,-10)
+#            self.boxes.append(box)
+#            self.addItem(box)         
         
 # Graphview widget which holds all current pick files
 class ArchiveEventWidget(pg.PlotWidget):
@@ -389,3 +451,13 @@ class HoverLineEdit(QtGui.QLineEdit):
     def updateChangeState(self,ev):
         self.changeState=True
         
+# Generic widget for QListWidget with remove only keyPresses
+class DblClickLabelWidget(QtGui.QLabel):       
+    # Return signal if label was double clicked
+    doubleClicked=QtCore.pyqtSignal()  
+    
+    def __init__(self, parent=None):
+        super(DblClickLabelWidget, self).__init__(parent)
+        
+    def mouseDoubleClickEvent(self,ev):
+        self.doubleClicked.emit()

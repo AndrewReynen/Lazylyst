@@ -11,7 +11,7 @@ from PyQt4.QtCore import QSettings
 from MainWindow import Ui_MainWindow
 from CustomWidgets import TraceWidget, keyPressToString
 from HotVariables import initHotVar
-from Preferences import defaultPreferences, Pref
+from Preferences import defaultPreferences, Pref, DateDialog
 from Actions import defaultActions, defaultPassiveOrder
 from Archive import getArchiveAvail, getTimeFromFileName, extractDataFromArchive
 from ConfigurationDialog import ConfDialog
@@ -42,7 +42,11 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def setFunctionality(self):
         # Connect the zoomed in and zoomed out views of the event files
         self.archiveSpan.span.sigRegionChanged.connect(lambda: self.archiveEvent.updateXRange(self.archiveSpan.span))
+        self.archiveSpan.span.sigRegionChanged.connect(self.updateSpanText)
         self.archiveSpan.span.sigRegionChangeFinished.connect(self.updateArchiveSpanList)
+        # Allow user to set manually the ranges (no need to use slider)
+        self.archiveSpanT0Label.doubleClicked.connect(lambda: self.setSpanBoundViaDialog('T0'))
+        self.archiveSpanT1Label.doubleClicked.connect(lambda: self.setSpanBoundViaDialog('T1'))
         # Give ability to the archive displays
         self.archiveList.graph=self.archiveEvent
         self.archiveList.graph.addNewEventSignal.connect(self.addPickFile)
@@ -93,17 +97,15 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             # ... see if already being run, and stop if so
             curTimers=self.qTimers.keys()
             if action.tag in curTimers:
-                ## Make some sort of drop down to show timed actions in use?
-#                print 'Stopping timed action '+action.tag
                 self.qTimers[action.tag].stop()
                 self.qTimers.pop(action.tag)
             # ... otherwise add to the timers, and kick it off
             else:
-#                print 'Starting timed action '+action.tag
                 timer = QtCore.QTimer()
                 timer.timeout.connect(lambda: self.runActiveAction(action))
                 self.qTimers[action.tag]=timer
                 self.qTimers[action.tag].start(action.timerInterval*1000.0)
+            self.updateStrollingList()
         # If not timed, just do it once
         else:
             self.runActiveAction(action)
@@ -230,7 +232,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             while newID in seenIDs:
                 newID+=1
         elif self.pref['eveIdGenStyle'].val=='next':
-            newID=np.max(seenIDs)+1
+            if len(seenIDs)==0:
+                newID=0
+            else:
+                newID=np.max(seenIDs)+1
         else:
             print 'The eveIDGenStyle '+self.pref['eveIdGenStyle'].val+' has not been implemented'
             return
@@ -310,10 +315,15 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             self.hotVar['pltSt'].val.sort(keys=['channel'])
             # Alphabetical sorting by default
             self.hotVar['staSort'].val=np.sort(np.unique([tr.stats.station for tr in self.hotVar['stream'].val]))
-            # Move the axis time limit to the appropriate position
-            minTime=np.min([tr.stats.starttime.timestamp for tr in self.hotVar['stream'].val])
-            maxTime=np.max([tr.stats.endtime.timestamp for tr in self.hotVar['stream'].val])
-            self.timeWidget.plotItem.setXRange(minTime,maxTime)
+            # If there is data...
+            # ...move the axis time limit to the appropriate position
+            if len(self.hotVar['stream'].val)!=0:
+                minTime=np.min([tr.stats.starttime.timestamp for tr in self.hotVar['stream'].val])
+                maxTime=np.max([tr.stats.endtime.timestamp for tr in self.hotVar['stream'].val])
+                self.timeWidget.plotItem.setXRange(minTime,maxTime)
+            # ...let user know otherwise
+            else:
+                print 'No data extracted from archive for curPickFile'
         # ...Otherwise load the default hot variables values, and reset values relating to curPickFile
         else:
             defaultHot=initHotVar()
@@ -636,6 +646,12 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         buff=(t2-t1)*0.05
         self.archiveSpan.pltItem.setXRange(t1-buff,t2+buff)
         self.archiveSpan.span.setRegion((t1,t2))
+        
+    # Update the span text so user can set their bounds easier
+    def updateSpanText(self):
+        t0,t1=self.archiveSpan.getSpanBounds()
+        self.archiveSpanT0Label.setText(str(t0)+'  to')
+        self.archiveSpanT1Label.setText(' '+str(t1))
     
     # Update the pick list with events only in the selected span
     # ...this is done after both pickFiles and pickFileTimes are updated
@@ -772,6 +788,32 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 self.hotVar['pickSet'].update()
                 break
     
+    # Update the strolling list with all in-use timed actions
+    def updateStrollingList(self):
+        strollers=self.qTimers.keys()
+        # Update the label (header)
+        self.strollingLabel.setText('Strolling Actions ('+str(len(strollers))+')')
+        # Reset the list
+        self.strollComboBox.clear()
+        self.strollComboBox.addItems(strollers)
+    
+    # Set a span bound to user specified value
+    def setSpanBoundViaDialog(self,whichBound):
+        curBounds=self.archiveSpan.span.getRegion()
+        if whichBound=='T0':
+            bound=curBounds[0]
+        else:
+            bound=curBounds[1]
+        newBound,ok=DateDialog.getDateTime(bound)
+        # If the dialog was not cancelled...
+        if not ok:
+            return
+        # Set the new bound
+        elif whichBound=='T0':
+            self.archiveSpan.span.setRegion((newBound,curBounds[1]))
+        else:
+            self.archiveSpan.span.setRegion((curBounds[0],newBound))
+    
     # Load setting from previous run, and initialize base variables
     def loadSettings(self):
         # Load the hot variables
@@ -827,9 +869,15 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.setPref.setValue('prefVals',prefVals)
         # Saved sources
         self.setSource.setValue('savedSources',self.saveSource)
-
+        
+    # For actions which are triggered via built-in qt events
+    def passAction(self):
+        pass
+    
     # When the GUI closes, will save to settings
     def closeEvent(self,ev):
+        # Run any actions which are to be done before closing
+        self.processAction(self.act['CloseLazylyst'])
         self.saveSettings()
         ev.accept()
         

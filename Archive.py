@@ -64,7 +64,6 @@ def extractDataFromArchive(archiveDir,t1,t2,fileNames,fileTimes,
     lastTime=fileTimes[-1]+archiveFileLen
     # Catch the case where this where the asked time range is completely outside the archive data availability
     if t1>lastTime or t2<fileTimes[0]:
-        print 'Archive contains data between '+str(UTCDateTime(fileTimes[0]))+' and '+str(UTCDateTime(lastTime)) 
         return EmptyStream()
     # Figure out what set of files are wanted
     firstIdx,secondIdx=np.interp(np.array([t1,t2]),fileTimes,np.arange(len(fileTimes)),
