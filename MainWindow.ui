@@ -308,7 +308,7 @@
       <number>0</number>
      </property>
      <item>
-      <widget class="QGraphicsView" name="mapWidget"/>
+      <widget class="MapWidget" name="mapWidget"/>
      </item>
     </layout>
    </widget>
@@ -338,6 +338,11 @@
   <customwidget>
    <class>DblClickLabelWidget</class>
    <extends>QLabel</extends>
+   <header>CustomWidgets.h</header>
+  </customwidget>
+  <customwidget>
+   <class>MapWidget</class>
+   <extends>QGraphicsView</extends>
    <header>CustomWidgets.h</header>
   </customwidget>
  </customwidgets>

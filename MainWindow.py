@@ -169,7 +169,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_6.setMargin(0)
         self.verticalLayout_6.setSpacing(1)
         self.verticalLayout_6.setObjectName(_fromUtf8("verticalLayout_6"))
-        self.mapWidget = QtGui.QGraphicsView(self.mayLayout)
+        self.mapWidget = MapWidget(self.mayLayout)
         self.mapWidget.setObjectName(_fromUtf8("mapWidget"))
         self.verticalLayout_6.addWidget(self.mapWidget)
         self.mapDock.setWidget(self.mayLayout)
@@ -185,4 +185,4 @@ class Ui_MainWindow(object):
         self.archiveDock.setWindowTitle(_translate("MainWindow", "Archive", None))
         self.mapDock.setWindowTitle(_translate("MainWindow", "Map View", None))
 
-from CustomWidgets import ArchiveEventWidget, ArchiveListWidget, ArchiveSpanWidget, DblClickLabelWidget, TimeWidget
+from CustomWidgets import ArchiveEventWidget, ArchiveListWidget, ArchiveSpanWidget, DblClickLabelWidget, MapWidget, TimeWidget

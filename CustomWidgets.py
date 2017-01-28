@@ -461,3 +461,41 @@ class DblClickLabelWidget(QtGui.QLabel):
         
     def mouseDoubleClickEvent(self,ev):
         self.doubleClicked.emit()
+        
+# Widget for seeing what data times are available, and sub-selecting pick files
+class MapWidget(pg.GraphicsLayoutWidget):
+    def __init__(self, parent=None):
+        super(MapWidget, self).__init__(parent)
+        # Add the map to the view, and turn off some of the automatic interactive properties
+        self.map=self.addPlot()
+        self.map.setMenuEnabled(enableMenu=False)
+        self.map.hideButtons()
+        self.mapItems=[]
+        
+    # Load the new station meta data
+    def loadStaMeta(self,staMeta):
+        # Clear away the old data
+        for item in self.mapItems:
+            self.map.removeItem(item)
+        self.mapItems=[]
+        # Add the new data
+        staScatter = pg.ScatterPlotItem(size=10, pen=pg.mkPen(None),symbol='t',
+                                        brush=pg.mkBrush(0, 255, 0, 200))
+        staScatter.addPoints(x=staMeta[:,1], y=staMeta[:,2])
+        self.map.addItem(staScatter)
+        self.mapItems.append(staScatter)
+##        staScatter.sigClicked.connect(clicked) # If want to give action to clicking on stations
+        
+#app = QtGui.QApplication([])
+#mw = QtGui.QMainWindow()
+#mw.resize(800,800)
+#view = MapWidget()
+#staMeta=np.array([[0,1,1],[0,1,2],[0,2,2],[0,2,1]],dtype=str)
+#view.loadStaMeta(staMeta)
+#mw.setCentralWidget(view)
+#mw.show()
+### Start Qt event loop unless running in interactive mode.
+#if __name__ == '__main__':
+#    import sys
+#    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
+#        QtGui.QApplication.instance().exec_()

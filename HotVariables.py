@@ -35,7 +35,8 @@ def initHotVar():
     'archFiles':HotVar(tag='archFiles',val=[],dataType=list,returnable=False),
     'archFileTimes':HotVar(tag='archFileTimes',val=[],dataType=list,returnable=False),   
     'curSta':HotVar(tag='curSta',val='',dataType=str,returnable=False),
-    'staFile':HotVar(tag='staFile',val='',dataType=str),  ## Add Check
+    'staFile':HotVar(tag='staFile',val='',dataType=str,
+                     funcName='updateStaMeta'),  ## Add Check
     'staMeta':HotVar(tag='staMeta',val=[],dataType=type(np.array([0.0])),returnable=False),
     'mainPath':HotVar(tag='mainPath',val='',dataType=str,returnable=False),
     }

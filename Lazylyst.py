@@ -665,6 +665,12 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.archiveList.clear()
         self.archiveList.addItems(toListFiles)
         
+    # Update the map with the new station metadata
+    def updateStaMeta(self):
+        meta=np.genfromtxt(self.hotVar['staFile'].val,delimiter=',',dtype=str)
+        self.hotVar['staMeta'].val=meta
+        self.mapWidget.loadStaMeta(self.hotVar['staMeta'].val)
+        
     # Load the pick file list for display, given completly new pick directory
     def updatePickDir(self):
         # Clear the old list
