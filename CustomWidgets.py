@@ -246,7 +246,7 @@ class PickLine(pg.InfiniteLine):
         self.setZValue(10) # Allow picks to be over trace data
         self.pickType=aType
         self.setValue(aTime)
-        self.setPen(pen)
+        self.setPen(pen,width=1)
 
 # Plot curve item, but now with reference to the channel
 class TraceCurve(pg.PlotCurveItem):

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>788</width>
-    <height>762</height>
+    <width>1073</width>
+    <height>402</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,9 +22,12 @@
      <number>0</number>
     </property>
     <item>
-     <layout class="QVBoxLayout" name="traceLayout">
+     <layout class="QVBoxLayout" name="traceLayout" stretch="0">
       <property name="spacing">
        <number>1</number>
+      </property>
+      <property name="sizeConstraint">
+       <enum>QLayout::SetDefaultConstraint</enum>
       </property>
       <item>
        <widget class="TimeWidget" name="timeWidget">
@@ -33,6 +36,12 @@
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>0</height>
+         </size>
         </property>
         <property name="maximumSize">
          <size>
@@ -89,7 +98,14 @@
       <number>0</number>
      </property>
      <item>
-      <widget class="QTextBrowser" name="textOutBrowser"/>
+      <widget class="QTextBrowser" name="textOutBrowser">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QLabel" name="strollingLabel">
@@ -113,21 +129,21 @@
   </widget>
   <widget class="QDockWidget" name="archiveDock">
    <property name="sizePolicy">
-    <sizepolicy hsizetype="Preferred" vsizetype="Ignored">
-     <horstretch>5</horstretch>
+    <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+     <horstretch>0</horstretch>
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
    <property name="minimumSize">
     <size>
-     <width>383</width>
-     <height>150</height>
+     <width>366</width>
+     <height>122</height>
     </size>
    </property>
    <property name="maximumSize">
     <size>
      <width>524287</width>
-     <height>150</height>
+     <height>524287</height>
     </size>
    </property>
    <property name="features">
@@ -152,7 +168,7 @@
        <item>
         <widget class="ArchiveListWidget" name="archiveList">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+          <sizepolicy hsizetype="Minimum" vsizetype="MinimumExpanding">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
@@ -160,7 +176,7 @@
          <property name="minimumSize">
           <size>
            <width>290</width>
-           <height>0</height>
+           <height>80</height>
           </size>
          </property>
          <property name="maximumSize">
@@ -174,14 +190,14 @@
       </layout>
      </item>
      <item>
-      <layout class="QVBoxLayout" name="archiveRightLayout" stretch="5,3,0">
+      <layout class="QVBoxLayout" name="archiveRightLayout" stretch="8,4,1">
        <property name="spacing">
         <number>1</number>
        </property>
        <item>
         <widget class="ArchiveSpanWidget" name="archiveSpan">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
+          <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
@@ -189,13 +205,13 @@
          <property name="minimumSize">
           <size>
            <width>0</width>
-           <height>10</height>
+           <height>50</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
            <width>16777215</width>
-           <height>200</height>
+           <height>16777215</height>
           </size>
          </property>
         </widget>
@@ -203,7 +219,7 @@
        <item>
         <widget class="ArchiveEventWidget" name="archiveEvent">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="MinimumExpanding">
+          <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
@@ -211,13 +227,13 @@
          <property name="minimumSize">
           <size>
            <width>0</width>
-           <height>10</height>
+           <height>30</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
            <width>16777215</width>
-           <height>200</height>
+           <height>16777215</height>
           </size>
          </property>
         </widget>
@@ -229,6 +245,24 @@
          </property>
          <item>
           <widget class="DblClickLabelWidget" name="archiveSpanT0Label">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>14</height>
+            </size>
+           </property>
            <property name="font">
             <font>
              <pointsize>10</pointsize>
@@ -241,6 +275,24 @@
          </item>
          <item>
           <widget class="DblClickLabelWidget" name="archiveSpanT1Label">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="minimumSize">
+            <size>
+             <width>0</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>14</height>
+            </size>
+           </property>
            <property name="font">
             <font>
              <pointsize>10</pointsize>
@@ -256,10 +308,13 @@
            <property name="orientation">
             <enum>Qt::Horizontal</enum>
            </property>
+           <property name="sizeType">
+            <enum>QSizePolicy::Expanding</enum>
+           </property>
            <property name="sizeHint" stdset="0">
             <size>
-             <width>40</width>
-             <height>20</height>
+             <width>0</width>
+             <height>14</height>
             </size>
            </property>
           </spacer>
