@@ -32,7 +32,9 @@ def defaultPreferences(main):
                                 dialog='ColorDialog',func=main.updateArchiveEveColor),
     'archiveColorSelect':Pref(tag='archiveColorSelect',val=16711935,dataType=int,
                                 dialog='ColorDialog',func=main.updateArchiveEveColor),
-    'customPen':Pref(tag='customPen',val={'default':[4294967295,1.0,0.0]},dataType=dict,
+    'customPen':Pref(tag='customPen',val={'default':[4294967295,1.0,0.0],
+                                          'highlight':[255,1.0,6.0],
+                                          'lowlight':[13158600,0.3,3.0],},dataType=dict,
                     dialog='CustomPenDialog',func=main.updateCustomPen),
     }
     return pref

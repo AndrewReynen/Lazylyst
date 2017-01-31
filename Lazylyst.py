@@ -52,6 +52,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.archiveList.graph.addNewEventSignal.connect(self.addPickFile)
         self.archiveList.clicked.connect(self.setFocus) # Do not let it steal focus from keybinds
         self.archiveList.doubleClicked.connect(self.archiveListDoubleClickEvent)
+        # Give ability to the map
+        self.mapWidget.staDblClicked.connect(self.mapDoubleClickEvent)
         # Allow stdout to be sent to the Trace Log
         XStream.stdout().messageWritten.connect(self.textOutBrowser.insertPlainText)
         XStream.stderr().messageWritten.connect(self.textOutBrowser.insertPlainText)
@@ -90,6 +92,11 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         action=self.act['PickFileSetToClick']
         self.processAction(action)
     
+    # Function to handle double clicks from the map widget
+    def mapDoubleClickEvent(self):
+        action=self.act['MapStaDblClicked']
+        self.processAction(action)
+    
     # Create and activate the queue of actions following the initiation of an active action
     def processAction(self,action):
         # If this action is timed...
@@ -113,7 +120,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     # Run the specified action
     def runActiveAction(self,action):
         # Set the current station, and current timeRange to be sent to actions
-        self.setCurSta()
+        self.setCurTraceSta()
         self.setTimeRange()
         # First check to see if there are any (passive) actions which relate
         actQueue=self.collectActQueue(action)   
@@ -165,17 +172,22 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Go through each of the returns in order, and update...
         # ...check first to see the number of returns are correct
         # ...and that the previous/new types match
+        # ...pass (ignore) updates on variables with "$pass" as the return value
         if len(action.returns)==len(returnVals):
             skipUpdates=False
             # Ensure all the variable types match before updating any hot variables...
             # ...also ensure that the hot variables ("sanity") check function passes
             for i,aReturnKey in enumerate(action.returns):
+                # Do not do any checks if the user wanted to pass this returns value
+                if returnVals[i]=='$pass':
+                    continue
                 if self.hotVar[aReturnKey].dataType!=type(returnVals[i]):
                     print ('Action '+action.tag+' expected variable '+str(self.hotVar[aReturnKey].dataType)+
                            ' for hot variable '+aReturnKey+', got '+str(type(returnVals[i])))
                     skipUpdates=True
                     # If the type is wrong, no point in the longer check
                     continue
+                # Test if the return variable passes the built in check
                 if self.hotVar[aReturnKey].check==None:
                     continue
                 elif not self.hotVar[aReturnKey].check(self,returnVals[i]):
@@ -183,10 +195,14 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                     skipUpdates=True
             if skipUpdates: 
                 return
-            # Process the return keys in order 
+            # Process the return keys in order ...
             for i,aReturnKey in enumerate(action.returns):
-                self.hotVar[aReturnKey].val=returnVals[i]
-                self.hotVar[aReturnKey].update()
+                # ... passing over any which have $pass as the return value
+                if returnVals[i]=='$pass':
+                    pass
+                else:
+                    self.hotVar[aReturnKey].val=returnVals[i]
+                    self.hotVar[aReturnKey].update()
         else:
             print ('For action '+action.tag+' got '+str(len(returnVals))+
                    ' return values, expected '+str(len(action.returns)))
@@ -327,7 +343,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # ...Otherwise load the default hot variables values, and reset values relating to curPickFile
         else:
             defaultHot=initHotVar()
-            for key in ['stream','pltSt','staSort','pickSet','curSta']:
+            for key in ['stream','pltSt','staSort','pickSet','curTraceSta']:
                 self.hotVar[key].val=defaultHot[key].val
         # Add data, and picks to the station widgets
         self.updatePage()
@@ -387,12 +403,12 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             self.archiveSpan.span.setRegion((t1,t2))
         
     # Set which station is currently being hovered over
-    def setCurSta(self):
+    def setCurTraceSta(self):
         for widget in self.staWidgets:
             if widget.hasFocus():
-                self.hotVar['curSta'].val=widget.sta
+                self.hotVar['curTraceSta'].val=widget.sta
                 return
-        self.hotVar['curSta'].val=''
+        self.hotVar['curTraceSta'].val=''
     
     # Set the timeRange variable to the current time range of the time widget
     def setTimeRange(self):
@@ -670,6 +686,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         meta=np.genfromtxt(self.hotVar['staFile'].val,delimiter=',',dtype=str)
         self.hotVar['staMeta'].val=meta
         self.mapWidget.loadStaMeta(self.hotVar['staMeta'].val)
+        
+    # Update the selected (double clicked) station on the map view
+    def updateMapSelectSta(self):
+        self.hotVar['curMapSta'].val=self.mapWidget.selectSta
         
     # Load the pick file list for display, given completly new pick directory
     def updatePickDir(self):

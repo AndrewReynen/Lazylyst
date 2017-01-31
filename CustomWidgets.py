@@ -1,6 +1,7 @@
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt
 import pyqtgraph as pg
+from pyqtgraph.dockarea import DockArea, Dock
 from obspy import UTCDateTime
 import numpy as np
 from decimal import Decimal
@@ -457,9 +458,32 @@ class DblClickLabelWidget(QtGui.QLabel):
         
     def mouseDoubleClickEvent(self,ev):
         self.doubleClicked.emit()
-        
+
+# Scatter Item class, but allow double click signal
+class CustScatter(pg.ScatterPlotItem):
+    dblClicked=QtCore.Signal(object)
+    
+    def __init__(self, *args, **kwargs):
+        super(CustScatter, self).__init__(*args, **kwargs)
+    
+    # Return the clicked points upon double clicking
+    def mouseDoubleClickEvent(self,ev):
+        if ev.button() == QtCore.Qt.LeftButton:
+            pts = self.pointsAt(ev.pos())
+            if len(pts) > 0:
+                self.clickPos=np.array([ev.pos().x(),ev.pos().y()])
+                self.ptsClicked = pts
+                self.dblClicked.emit(self)
+                ev.accept()
+            else:
+                ev.ignore()
+        else:
+            ev.ignore()
+
 # Widget for seeing what data times are available, and sub-selecting pick files
 class MapWidget(pg.GraphicsLayoutWidget):
+    staDblClicked=QtCore.Signal()
+    
     def __init__(self, parent=None):
         super(MapWidget, self).__init__(parent)
         # Add the map to the view, and turn off some of the automatic interactive properties
@@ -467,9 +491,16 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.map.setMenuEnabled(enableMenu=False)
         self.map.hideButtons()
         self.mapItems=[]
+        self.stas=[]
+        self.selectSta=None
         
-    def staClicked(self,ev):
-        print ev
+    # Figure out which station was closest to the clicked position, and emit the station name
+    def staClicked(self,staScat):
+        cPos=staScat.clickPos
+        selPos=np.array([[point.pos().x(),point.pos().y()] for point in staScat.ptsClicked])
+        selPoint=staScat.ptsClicked[np.argmin(np.sum((selPos-cPos)**2))]
+        self.selectSta=str(self.stas[np.where(staScat.points()==selPoint)[0][0]])
+        self.staDblClicked.emit()
         
     # Load the new station meta data
     def loadStaMeta(self,staMeta):
@@ -477,26 +508,35 @@ class MapWidget(pg.GraphicsLayoutWidget):
         for item in self.mapItems:
             self.map.removeItem(item)
         self.mapItems=[]
-        # Add the new data
-        ## Symbol can be a list ##
-#        ScatterPlotItem.Symbols[key] = shape
-        staScatter = pg.ScatterPlotItem(size=10)
-        staScatter.addPoints(x=staMeta[:,1], y=staMeta[:,2],symbol='t1',
-                             pen=pg.mkPen(None),brush=pg.mkBrush(0, 255, 0, 200))
-        staScatter.sigClicked.connect(self.staClicked) # If want to give action to clicking on stations
+        self.selectSta=None
+        # Generate the station items
+        staScatter = CustScatter(size=10,symbol='t1',pen=pg.mkPen(None),brush=pg.mkBrush(0, 255, 0, 200))
+        staScatter.addPoints(x=staMeta[:,1], y=staMeta[:,2])
+        self.stas=staMeta[:,0]
+        # Give some clicking ability to the 
+        staScatter.dblClicked.connect(self.staClicked)
+        # Add the station scatter items
         self.map.addItem(staScatter)
         self.mapItems.append(staScatter)
+#        # Give some station labels ## Should this be included?
+#        for sta in staMeta: 
+#            textItem=pg.TextItem(text=sta[0],anchor=(sta[1],sta[2]))
+#            self.map.addItem(textItem)
+#            self.mapItems.append(textItem)
+
+
+## For when a QWidget can be promoted to a DockArea/Dock in qtDesigner ##
+## Testing the dock area class
+#class CustDockArea(DockArea):
+#    def __init__(self, parent=None):
+#        super(CustDockArea, self).__init__(parent) 
+#
+## Testing the dock class      
+#class CustDock(Dock):
+#    def __init__(self, parent=None):
+#        super(CustDock, self).__init__(parent)
         
-#app = QtGui.QApplication([])
-#mw = QtGui.QMainWindow()
-#mw.resize(800,800)
-#view = MapWidget()
-#staMeta=np.array([[0,1,1],[0,1,2],[0,2,2],[0,2,1]],dtype=str)
-#view.loadStaMeta(staMeta)
-#mw.setCentralWidget(view)
-#mw.show()
-### Start Qt event loop unless running in interactive mode.
-#if __name__ == '__main__':
-#    import sys
-#    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-#        QtGui.QApplication.instance().exec_()
+
+        
+
+        

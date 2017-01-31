@@ -10,7 +10,7 @@ def initHotVar():
     'stream':HotVar(tag='stream',val=emptyStream(),dataType=type(emptyStream()),returnable=False),
     'pltSt':HotVar(tag='pltSt',val=emptyStream(),dataType=type(emptyStream()),
                    funcName='updateTraces',checkName='checkPltSt'),
-    'staSort':HotVar(tag='staSort',val=[],dataType=list,
+    'staSort':HotVar(tag='staSort',val=[],dataType=type(np.array([''])),
                      funcName='updatePage',checkName='checkStaSort'),
     'curPage':HotVar(tag='curPage',val=0,dataType=int,
                      funcName='updateCurPage'),
@@ -34,10 +34,11 @@ def initHotVar():
                      funcName='updateArchive'),
     'archFiles':HotVar(tag='archFiles',val=[],dataType=list,returnable=False),
     'archFileTimes':HotVar(tag='archFileTimes',val=[],dataType=list,returnable=False),   
-    'curSta':HotVar(tag='curSta',val='',dataType=str,returnable=False),
+    'curTraceSta':HotVar(tag='curTraceSta',val='',dataType=str,returnable=False),
     'staFile':HotVar(tag='staFile',val='',dataType=str,
                      funcName='updateStaMeta'),  ## Add Check
     'staMeta':HotVar(tag='staMeta',val=[],dataType=type(np.array([0.0])),returnable=False),
+    'curMapSta':HotVar(tag='curMapSta',val='',dataType=str,returnable=False),
     'mainPath':HotVar(tag='mainPath',val='',dataType=str,returnable=False),
     }
     return hotVar

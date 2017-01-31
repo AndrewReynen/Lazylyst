@@ -88,6 +88,12 @@ class Ui_CsDialog(object):
         QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL(_fromUtf8("accepted()")), CsDialog.accept)
         QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL(_fromUtf8("rejected()")), CsDialog.reject)
         QtCore.QMetaObject.connectSlotsByName(CsDialog)
+        CsDialog.setTabOrder(self.csTagLineEdit, self.csArchiveLineEdit)
+        CsDialog.setTabOrder(self.csArchiveLineEdit, self.csPickLineEdit)
+        CsDialog.setTabOrder(self.csPickLineEdit, self.csStationLineEdit)
+        CsDialog.setTabOrder(self.csStationLineEdit, self.csSaveSourceButton)
+        CsDialog.setTabOrder(self.csSaveSourceButton, self.csSaveSourceList)
+        CsDialog.setTabOrder(self.csSaveSourceList, self.buttonBox)
 
     def retranslateUi(self, CsDialog):
         CsDialog.setWindowTitle(_translate("CsDialog", "Change Source", None))

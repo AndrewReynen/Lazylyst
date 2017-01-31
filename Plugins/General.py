@@ -117,6 +117,16 @@ def panPercent(*args,**kwargs):
     timeRange[0]+=kwargs['percent']/100.0*delta
     timeRange[1]+=kwargs['percent']/100.0*delta
     return timeRange
+
+# Go to the last double clicked station on the map 
+def goToStaPage(curMapSta,staSort,staPerPage,curPage):
+    if curMapSta not in staSort:
+        return '$pass'
+    goToPage=np.where(staSort==curMapSta)[0][0]/staPerPage
+    if goToPage==curPage:
+        return '$pass'
+    else:
+        return int(goToPage)
         
         
     

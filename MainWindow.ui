@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1073</width>
-    <height>402</height>
+    <height>409</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -136,14 +136,14 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>366</width>
-     <height>122</height>
+     <width>373</width>
+     <height>125</height>
     </size>
    </property>
    <property name="maximumSize">
     <size>
      <width>524287</width>
-     <height>524287</height>
+     <height>150</height>
     </size>
    </property>
    <property name="features">
@@ -156,6 +156,18 @@
     <number>4</number>
    </attribute>
    <widget class="QWidget" name="archiveLayout">
+    <property name="sizePolicy">
+     <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+      <horstretch>0</horstretch>
+      <verstretch>0</verstretch>
+     </sizepolicy>
+    </property>
+    <property name="maximumSize">
+     <size>
+      <width>16777215</width>
+      <height>125</height>
+     </size>
+    </property>
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0">
      <property name="spacing">
       <number>1</number>
@@ -193,6 +205,9 @@
       <layout class="QVBoxLayout" name="archiveRightLayout" stretch="8,4,1">
        <property name="spacing">
         <number>1</number>
+       </property>
+       <property name="sizeConstraint">
+        <enum>QLayout::SetMaximumSize</enum>
        </property>
        <item>
         <widget class="ArchiveSpanWidget" name="archiveSpan">

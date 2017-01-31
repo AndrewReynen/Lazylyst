@@ -386,6 +386,25 @@
    <header>CustomWidgets.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>actTagLineEdit</tabstop>
+  <tabstop>actNameLineEdit</tabstop>
+  <tabstop>actPathLineEdit</tabstop>
+  <tabstop>actOptionalsLineEdit</tabstop>
+  <tabstop>actActiveRadio</tabstop>
+  <tabstop>activeTimerCheck</tabstop>
+  <tabstop>actTriggerLineEdit</tabstop>
+  <tabstop>actIntervalLineEdit</tabstop>
+  <tabstop>actPassiveRadio</tabstop>
+  <tabstop>passiveBeforeCheck</tabstop>
+  <tabstop>actSelectTriggerList</tabstop>
+  <tabstop>actAvailTriggerList</tabstop>
+  <tabstop>actSelectInputList</tabstop>
+  <tabstop>actAvailInputList</tabstop>
+  <tabstop>actSelectReturnList</tabstop>
+  <tabstop>actAvailReturnList</tabstop>
+  <tabstop>actButtonBox</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>

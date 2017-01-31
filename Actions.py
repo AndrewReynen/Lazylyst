@@ -40,7 +40,7 @@ def defaultActions():
                      
     'PickDelete':Action(tag='PickDelete',name='delPick',
                         path='Plugins.General',trigger=Qt.Key_4,
-                        inputs=['pickSet','pickMode','curSta'],returns=['pickSet']),
+                        inputs=['pickSet','pickMode','curTraceSta'],returns=['pickSet']),
                      
     'PickFileSetToClick':Action(tag='PickFileSetToClick',name='setCurPickFileOnClick',
                                 path='$main',trigger='DoubleClick',returns=['curPickFile'],locked=True),
@@ -57,6 +57,10 @@ def defaultActions():
                                    path='$main',passive=True,
                                    trigger=['PickFileSetToClick','PickFileNext','PickFilePrev','CloseLazylyst'],
                                    beforeTrigger=True),
+                                   
+    'MapStaDblClicked':Action(tag='MapStaDblClicked',name='updateMapSelectSta',
+                           path='$main',trigger='DoubleClick',locked=True),
+                                   
     }
     return act
     

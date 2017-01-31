@@ -138,6 +138,15 @@
    <header>CustomWidgets.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>csTagLineEdit</tabstop>
+  <tabstop>csArchiveLineEdit</tabstop>
+  <tabstop>csPickLineEdit</tabstop>
+  <tabstop>csStationLineEdit</tabstop>
+  <tabstop>csSaveSourceButton</tabstop>
+  <tabstop>csSaveSourceList</tabstop>
+  <tabstop>buttonBox</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
