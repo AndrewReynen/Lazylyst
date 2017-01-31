@@ -101,7 +101,7 @@ class ArchiveSpanWidget(pg.PlotWidget):
             elif rng[1]>merge[-1][1]:
                 merge[-1][1]=rng[1]
         merge=np.array(merge)
-        # Plot these a bit more efficiently (one disconnected line, rather than many lines)
+        # Plot these efficiently (one disconnected line, rather than many lines)
         connect = np.ones((len(merge), 2), dtype=np.ubyte)
         connect[:,-1] = 0  #  disconnect segment between lines
         path = pg.arrayToQPath(merge.reshape(len(merge)*2), np.ones((len(merge)*2))*0.5, connect.reshape(len(merge)*2))
@@ -109,11 +109,7 @@ class ArchiveSpanWidget(pg.PlotWidget):
         item.setPen(pg.mkPen(QtGui.QColor(penInt)))
         # Add in the new box
         self.boxes.append(item)
-        self.addItem(item)
-#        for r in merge:
-#            box=TraceCurve([r[0],r[1]],[0.5,0.5],'BOX',pen,-10)
-#            self.boxes.append(box)
-#            self.addItem(box)         
+        self.addItem(item)      
         
 # Graphview widget which holds all current pick files
 class ArchiveEventWidget(pg.PlotWidget):
@@ -472,6 +468,9 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.map.hideButtons()
         self.mapItems=[]
         
+    def staClicked(self,ev):
+        print ev
+        
     # Load the new station meta data
     def loadStaMeta(self,staMeta):
         # Clear away the old data
@@ -479,12 +478,14 @@ class MapWidget(pg.GraphicsLayoutWidget):
             self.map.removeItem(item)
         self.mapItems=[]
         # Add the new data
-        staScatter = pg.ScatterPlotItem(size=10, pen=pg.mkPen(None),symbol='t',
-                                        brush=pg.mkBrush(0, 255, 0, 200))
-        staScatter.addPoints(x=staMeta[:,1], y=staMeta[:,2])
+        ## Symbol can be a list ##
+#        ScatterPlotItem.Symbols[key] = shape
+        staScatter = pg.ScatterPlotItem(size=10)
+        staScatter.addPoints(x=staMeta[:,1], y=staMeta[:,2],symbol='t1',
+                             pen=pg.mkPen(None),brush=pg.mkBrush(0, 255, 0, 200))
+        staScatter.sigClicked.connect(self.staClicked) # If want to give action to clicking on stations
         self.map.addItem(staScatter)
         self.mapItems.append(staScatter)
-##        staScatter.sigClicked.connect(clicked) # If want to give action to clicking on stations
         
 #app = QtGui.QApplication([])
 #mw = QtGui.QMainWindow()

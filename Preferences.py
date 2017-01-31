@@ -156,6 +156,7 @@ class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
     def __init__(self,tpDict,parent=None):
         QtGui.QDialog.__init__(self,parent)
         self.setupUi(self)
+        self.setWindowTitle('Custom Pen')
         self.tpDict=tpDict
         self.keyOrder=sorted(self.tpDict.keys()) # Used to reference back before the last user change
         # Fill in the current customPen information (before setting functionality, as functionality has a "onChanged" signal)
@@ -295,6 +296,9 @@ class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
 class DateDialog(QtGui.QDialog):
     def __init__(self, parent = None):
         super(DateDialog, self).__init__(parent)
+        
+        # Give a window title
+        self.setWindowTitle('Date Time Select')
 
         layout = QtGui.QVBoxLayout(self)
         # Widget for editing the date
