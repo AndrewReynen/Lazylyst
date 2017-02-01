@@ -546,7 +546,12 @@ class MapWidget(pg.GraphicsLayoutWidget):
             self.curEveItem=scatter
         else:
             self.prevEveItem=scatter
-        
+    
+    # Change the pen of the axis and axis labels
+    def setPen(self,pen):
+        for item in self.items():
+            if type(item)==pg.graphicsItems.AxisItem.AxisItem:
+                item.setPen(pen)
         
 
 ## For when a QWidget can be promoted to a DockArea/Dock in qtDesigner ##

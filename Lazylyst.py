@@ -610,6 +610,15 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                                             trace.stats.channel,pen,depth)
             i+=1
     
+    # Update the text label colors
+    def updateTextColor(self,init=False):
+        pen=mkPen(QtGui.QColor(self.pref['lazylystColorText'].val))
+        for widget in self.staWidgets+[self.timeWidget,self.archiveEvent,
+                                       self.archiveSpan]:
+            widget.getPlotItem().getAxis('bottom').setPen(pen)
+            widget.getPlotItem().getAxis('left').setPen(pen)
+        self.mapWidget.setPen(pen)
+    
     # Update all custom pens
     def updateCustomPen(self,init=False):
         self.updateTracePen()
@@ -722,6 +731,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             aWidget.setParent(None)
             self.traceLayout.removeWidget(aWidget)
             self.staWidgets=[]
+        axisPen=mkPen(QtGui.QColor(self.pref['lazylystColorText'].val))
         # Add the desired number of staWidgets
         while len(self.staWidgets)<self.pref['staPerPage'].val:
             self.staWidgets.append(TraceWidget(self.mainLayout))
@@ -729,6 +739,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             self.traceLayout.addWidget(self.staWidgets[-1])
             # Connect the double click signal to the add pick signal
             self.staWidgets[-1].doubleClickSignal.connect(self.traceDoubleClickEvent)
+            # Color the axes properly
+            self.staWidgets[-1].getPlotItem().getAxis('left').setPen(axisPen)
         self.updateTraceBackground()
         self.updatePage()
         
