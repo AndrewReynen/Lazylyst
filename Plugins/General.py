@@ -87,6 +87,29 @@ def alternateTraceColor(curAssign):
     elif '*Z' in curAssign['alt3']:
         return {'alt1':['*Z'],'alt2':['*2','*N'],'alt3':['*1','*E']}
 
+# Alternate the colors of the station color assignment
+def alternateStaColorAssign(curAssign,staSort):
+    # Do nothing if no stations to color
+    if len(staSort)==0:
+        return '$pass'
+    # If given the staMeta instead of the staSort
+    if len(staSort.shape)==2:
+        staSort=staSort[:,0]
+    # If nothing assigned, make one
+    num=0
+    if curAssign=={}:
+        pass
+    elif staSort[0] in curAssign['alt1']:
+        num=1
+    curAssign={'alt1':[],'alt2':[]}
+    # Add all the new stations to the coloring assignment
+    for i in np.arange(len(staSort)):
+        if i%2==num:
+            curAssign['alt1'].append(staSort[i])
+        else:
+            curAssign['alt2'].append(staSort[i])          
+    return curAssign
+
 # Remove the current pick file
 def removeCurPickFile(curPickFile,pickFiles):
     if curPickFile in pickFiles:
@@ -128,5 +151,20 @@ def goToStaPage(curMapSta,staSort,staPerPage,curPage):
     else:
         return int(goToPage)
         
+# Return some random set of current and previous events
+def randomEves(staMeta):
+    # Do nothing if no stations have been added
+    if len(staMeta)==0:
+        return '$pass','$pass'
+    staMeta=staMeta[:,1:].astype(float)
+    # Make a random distribution of events bounded by the station limits
+    xmin,xmax=np.min(staMeta[:,0]),np.max(staMeta[:,0])
+    ymin,ymax=np.min(staMeta[:,1]),np.max(staMeta[:,1])
+    xArr=np.random.rand(100)*(xmax-xmin)+xmin
+    yArr=np.random.rand(100)*(ymax-ymin)+ymin
+    zArr=np.ones(100)
+    prevArr=np.vstack((xArr,yArr,zArr)).T
+    curArr=prevArr[:3,:]
+    return curArr,prevArr     
         
     

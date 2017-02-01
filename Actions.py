@@ -41,6 +41,10 @@ def defaultActions():
     'PickDelete':Action(tag='PickDelete',name='delPick',
                         path='Plugins.General',trigger=Qt.Key_4,
                         inputs=['pickSet','pickMode','curTraceSta'],returns=['pickSet']),
+
+    'PickFileCurDelete':Action(tag='PickFileCurDelete',name='removeCurPickFile',
+                        path='Plugins.General',trigger=Qt.Key_Delete,
+                        inputs=['curPickFile','pickFiles'],returns=['pickFiles']),
                      
     'PickFileSetToClick':Action(tag='PickFileSetToClick',name='setCurPickFileOnClick',
                                 path='$main',trigger='DoubleClick',returns=['curPickFile'],locked=True),

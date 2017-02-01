@@ -31,9 +31,13 @@ def initHotVar():
     'tracePenAssign':HotVar(tag='tracePenAssign',val={},dataType=dict,
                             funcName='updateTracePen',checkName='checkTracePenAssign'),
     'traceBgPenAssign':HotVar(tag='traceBgPenAssign',val={},dataType=dict,
-                            funcName=None), ## Add Check
+                            funcName='updateTraceBackground',checkName='checkStaColAssign'),
     'mapStaPenAssign':HotVar(tag='mapStaPenAssign',val={},dataType=dict,
-                            funcName=None), ## Add Check
+                            funcName='updateMapStations',checkName='checkStaColAssign'),
+    'mapCurEve':HotVar(tag='mapCurEve',val=np.empty((0,3)),dataType=type(np.array([0.0])),
+                       funcName='updateMapCurEve',checkName='checkEveArr'),
+    'mapPrevEve':HotVar(tag='mapPrevEve',val=np.empty((0,3)),dataType=type(np.array([0.0])),
+                       funcName='updateMapPrevEve',checkName='checkEveArr'),
     'archDir':HotVar(tag='archDir',val='',dataType=str,
                      funcName='updateArchive'),
     'archFiles':HotVar(tag='archFiles',val=[],dataType=list,returnable=False),
@@ -41,7 +45,7 @@ def initHotVar():
     'curTraceSta':HotVar(tag='curTraceSta',val='',dataType=str,returnable=False),
     'staFile':HotVar(tag='staFile',val='',dataType=str,
                      funcName='updateStaMeta'),  ## Add Check
-    'staMeta':HotVar(tag='staMeta',val=[],dataType=type(np.array([0.0])),returnable=False),
+    'staMeta':HotVar(tag='staMeta',val=np.empty((0,4)),dataType=type(np.array([0.0])),returnable=False),
     'curMapSta':HotVar(tag='curMapSta',val='',dataType=str,returnable=False),
     'mainPath':HotVar(tag='mainPath',val='',dataType=str,returnable=False),
     }
@@ -207,11 +211,43 @@ def checkTracePenAssign(main,penAssign):
             return False
         # Each entry (channel) in the list should be a string, and <= 3 characters long
         for entry in val:
-            if type(entry)!=str:
-                print 'Returned tracePenAssign lists should only contain strings'
+            if type(entry) not in [str,np.string_]:
+                print 'Returned tracePenAssign, lists should only contain strings, got type '+str(type(entry))
                 return False
             elif len(entry)>3:
-                print 'Returned tracePenAssign list entries refer to channels, which are max 3 characters long'
+                print 'Returned tracePenAssign, list entries refer to channels, which are max 3 characters long'
                 return False
+    return True
+
+# Ensure that the returned pen assignment (for stations) dictionary is holding the right data types
+def checkStaColAssign(main,colAssign):
+    # Check to see that each returned value is a list
+    for key,val in colAssign.iteritems():
+        if type(val)!=list:
+            print 'For all traceBgPenAssign/mapStaPenAssign returned key:value pairs, the value should be a list'
+            return False
+        # Each entry (station) in the list should be a string, and <= 5 characters long
+        for entry in val:
+            if type(entry) not in [str,np.string_]:
+                print 'Returned traceBgPenAssign/mapStaPenAssign, lists should only contain strings, got type '+str(type(entry))
+                return False
+            elif len(entry)>5:
+                print 'Returned traceBgPenAssign/mapStaPenAssign, list entries refer to stations, which are max 5 characters long'
+                return False
+    return True
+    
+# Ensure that the current/previous event array is of the proper dimensions and datatype
+def checkEveArr(main,eveArr):
+    if len(eveArr.shape)!=2:
+        print 'The current/previous event array must be 2 dimensional'
+        return False
+    elif eveArr.shape[1]!=3:
+        print 'The current/previous event array must have 3 columns'
+        return False
+    try:
+        eveArr.astype(float)
+    except:
+        print 'The current/previous event array contains [X,Y,Z], which must all be numbers'
+        return False
     return True
     
