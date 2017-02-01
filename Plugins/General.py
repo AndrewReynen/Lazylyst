@@ -163,7 +163,7 @@ def randomEves(staMeta):
     xArr=np.random.rand(100)*(xmax-xmin)+xmin
     yArr=np.random.rand(100)*(ymax-ymin)+ymin
     zArr=np.ones(100)
-    prevArr=np.vstack((xArr,yArr,zArr)).T
+    prevArr=np.vstack((zArr,xArr,yArr,zArr,zArr)).T
     curArr=prevArr[:3,:]
     return curArr,prevArr     
         

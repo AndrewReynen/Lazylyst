@@ -539,7 +539,7 @@ class MapWidget(pg.GraphicsLayoutWidget):
         # Add in all of the new points
         scatter=pg.ScatterPlotItem(size=size,symbol='o',pen=pg.mkPen(None),
                                    brush=pg.mkBrush(QCol.red(),QCol.green(),QCol.blue(),alpha))
-        scatter.addPoints(x=eveMeta[:,0],y=eveMeta[:,1])
+        scatter.addPoints(x=eveMeta[:,1],y=eveMeta[:,2])
         self.map.addItem(scatter)
         # Update the scatter item reference
         if eveType=='cur':

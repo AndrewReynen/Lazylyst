@@ -34,9 +34,9 @@ def initHotVar():
                             funcName='updateTraceBackground',checkName='checkStaColAssign'),
     'mapStaPenAssign':HotVar(tag='mapStaPenAssign',val={},dataType=dict,
                             funcName='updateMapStations',checkName='checkStaColAssign'),
-    'mapCurEve':HotVar(tag='mapCurEve',val=np.empty((0,3)),dataType=type(np.array([0.0])),
+    'mapCurEve':HotVar(tag='mapCurEve',val=np.empty((0,5)),dataType=type(np.array([0.0])),
                        funcName='updateMapCurEve',checkName='checkEveArr'),
-    'mapPrevEve':HotVar(tag='mapPrevEve',val=np.empty((0,3)),dataType=type(np.array([0.0])),
+    'mapPrevEve':HotVar(tag='mapPrevEve',val=np.empty((0,5)),dataType=type(np.array([0.0])),
                        funcName='updateMapPrevEve',checkName='checkEveArr'),
     'archDir':HotVar(tag='archDir',val='',dataType=str,
                      funcName='updateArchive'),
@@ -241,13 +241,13 @@ def checkEveArr(main,eveArr):
     if len(eveArr.shape)!=2:
         print 'The current/previous event array must be 2 dimensional'
         return False
-    elif eveArr.shape[1]!=3:
-        print 'The current/previous event array must have 3 columns'
+    elif eveArr.shape[1]!=5:
+        print 'The current/previous event array must have 5 columns'
         return False
     try:
         eveArr.astype(float)
     except:
-        print 'The current/previous event array contains [X,Y,Z], which must all be numbers'
+        print 'The current/previous event array contains [ID,X,Y,Z,Timestamp(s)], which must all be numbers'
         return False
     return True
     
