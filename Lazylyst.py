@@ -104,15 +104,14 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             # ... see if already being run, and stop if so
             curTimers=self.qTimers.keys()
             if action.tag in curTimers:
-                self.qTimers[action.tag].stop()
-                self.qTimers.pop(action.tag)
+                self.stopTimedAction(action)
             # ... otherwise add to the timers, and kick it off
             else:
                 timer = QtCore.QTimer()
                 timer.timeout.connect(lambda: self.runActiveAction(action))
                 self.qTimers[action.tag]=timer
                 self.qTimers[action.tag].start(action.timerInterval*1000.0)
-            self.updateStrollingList()
+                self.updateStrollingList()
         # If not timed, just do it once
         else:
             self.runActiveAction(action)
@@ -194,6 +193,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                     print 'Action '+action.tag+' failed '+aReturnKey+' check'
                     skipUpdates=True
             if skipUpdates: 
+                # Stop the action if it is timed
+                if action.timer:
+                    self.stopTimedAction(action)
                 return
             # Process the return keys in order ...
             for i,aReturnKey in enumerate(action.returns):
@@ -206,6 +208,12 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         else:
             print ('For action '+action.tag+' got '+str(len(returnVals))+
                    ' return values, expected '+str(len(action.returns)))
+        
+    # Remove a timed action from the queue
+    def stopTimedAction(self,action):
+        self.qTimers[action.tag].stop()
+        self.qTimers.pop(action.tag)
+        self.updateStrollingList()
     
     # Open the configuration window
     def openConfiguration(self):
