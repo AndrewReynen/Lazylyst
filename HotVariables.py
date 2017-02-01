@@ -30,6 +30,10 @@ def initHotVar():
     'pickMode':HotVar(tag='pickMode',val='',dataType=str),
     'tracePenAssign':HotVar(tag='tracePenAssign',val={},dataType=dict,
                             funcName='updateTracePen',checkName='checkTracePenAssign'),
+    'traceBgPenAssign':HotVar(tag='traceBgPenAssign',val={},dataType=dict,
+                            funcName=None), ## Add Check
+    'mapStaPenAssign':HotVar(tag='mapStaPenAssign',val={},dataType=dict,
+                            funcName=None), ## Add Check
     'archDir':HotVar(tag='archDir',val='',dataType=str,
                      funcName='updateArchive'),
     'archFiles':HotVar(tag='archFiles',val=[],dataType=list,returnable=False),

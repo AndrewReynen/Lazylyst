@@ -490,9 +490,11 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.map=self.addPlot()
         self.map.setMenuEnabled(enableMenu=False)
         self.map.hideButtons()
-        self.mapItems=[]
-        self.stas=[]
-        self.selectSta=None
+        self.stas=[] # The station names for the station spot items
+        self.staItems=[] # The station scatter item
+        self.selectSta=None # Which station is currently selected
+        self.curEveItem=None # The current event scatter item
+        self.prevEveItem=None # The previous event scatter item 
         
     # Figure out which station was closest to the clicked position, and emit the station name
     def staClicked(self,staScat):
@@ -503,27 +505,43 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.staDblClicked.emit()
         
     # Load the new station meta data
-    def loadStaMeta(self,staMeta):
+    def loadStaMeta(self,staMeta,Colors):
         # Clear away the old data
-        for item in self.mapItems:
+        for item in self.staItems:
             self.map.removeItem(item)
-        self.mapItems=[]
         self.selectSta=None
+        ## Have to go through the color assignment ##
         # Generate the station items
-        staScatter = CustScatter(size=10,symbol='t1',pen=pg.mkPen(None),brush=pg.mkBrush(0, 255, 0, 200))
+        staScatter = CustScatter(size=10,symbol='t1',pen=pg.mkPen(None),
+                                 brush=pg.mkBrush(Colors.red(),Colors.green(),Colors.blue(),200))
         staScatter.addPoints(x=staMeta[:,1], y=staMeta[:,2])
         self.stas=staMeta[:,0]
         # Give some clicking ability to the 
         staScatter.dblClicked.connect(self.staClicked)
         # Add the station scatter items
         self.map.addItem(staScatter)
-        self.mapItems.append(staScatter)
-#        # Give some station labels ## Should this be included?
-#        for sta in staMeta: 
-#            textItem=pg.TextItem(text=sta[0],anchor=(sta[1],sta[2]))
-#            self.map.addItem(textItem)
-#            self.mapItems.append(textItem)
-
+        self.staItems=staScatter
+        
+    # Load a set of event points
+    def loadEvePoints(self,eveMeta,eveType,QCol):
+        if eveType=='cur':
+            item,size,alpha=self.curEveItem,6,200
+        else:
+            item,size,alpha=self.prevEveItem,2,125
+        # Remove the previous item
+        if item!=None:
+            self.map.removeItem(item)
+        # Add in all of the new points
+        scatter=pg.ScatterPlotItem(size=size,symbol='o',pen=pg.mkPen(None),
+                                   brush=pg.mkBrush(QCol.red(),QCol.green(),QCol.blue(),alpha))
+        self.map.addItem(scatter)
+        # Update the scatter item reference
+        if eveType=='cur':
+            self.curEveItem=scatter
+        else:
+            self.prevEveItem=scatter
+        
+        
 
 ## For when a QWidget can be promoted to a DockArea/Dock in qtDesigner ##
 ## Testing the dock area class

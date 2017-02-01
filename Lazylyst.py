@@ -490,7 +490,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     # Match all streams channels to its appropriate pen
     def getStreamPens(self):
         penRef={} # Dictionary to return with all unique channels pens
-        acceptKeys=[key for key in self.pref['customPen'].val.keys()] ##
+        acceptKeys=[key for key in self.pref['customPen'].val.keys()]
         unqChas=np.unique([tr.stats.channel for tr in self.hotVar['stream'].val])
         # First check what tracePenAssign keys are actually accepted
         useKeys=[]
@@ -520,6 +520,21 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 colorInt,width,depth=self.pref['customPen'].val['default']
             pen=mkPen(QtGui.QColor(colorInt),width=width)
             penRef[cha]=[pen,depth]
+        return penRef
+    
+    # Gather the pen assignment on a per station basis
+    def getStaPens(self,assignType):
+        penRef={}
+        # See which custom pens are present
+        acceptKeys=[key for key in self.pref['customPen'].val.keys()]
+        # Only set the pen reference for stations which are present
+        if assignType=='mapSta':
+            unqStas=np.unique(self.hotVar['staMeta'].val[:,0])
+            defaultColInt=self.pref['defaultColorMapSta'].val
+        else:
+            unqStas=np.unique([tr.stats.channel for tr in self.hotVar['stream'].val])
+            defaultColInt=self.pref['defaultColorTraceBg'].val
+        # Assign stations colors (if none present, use defaultColInt)
         return penRef
     
     # Update the trace curves on the current page
@@ -572,18 +587,18 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     
     # Change the color of the trace background
     def updateTraceBackground(self,init=False):
-        col=QtGui.QColor(self.pref['backgroundColorTrace'].val)
+        col=QtGui.QColor(self.pref['defaultColorTraceBg'].val)
         for aWidget in self.staWidgets:
             aWidget.setBackground(col)
     
     # Change the color of time time axis
     def updateTimeBackground(self,init=False):
-        col=QtGui.QColor(self.pref['backgroundColorTime'].val)
+        col=QtGui.QColor(self.pref['defaultColorTimeBg'].val)
         self.timeWidget.setBackground(col)
     
     # Change the color of the archive axis
     def updateArchiveBackground(self,init=False):
-        col=QtGui.QColor(self.pref['backgroundColorArchive'].val)
+        col=QtGui.QColor(self.pref['archiveColorBackground'].val)
         self.archiveSpan.setBackground(col)
         self.archiveEvent.setBackground(col)
         
@@ -592,7 +607,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         col=QtGui.QColor(self.pref['archiveColorAvail'].val)
         for box in self.archiveSpan.boxes:
             box.setPen(col)
-    
+            
     # Change the color of the archive span select
     def updateArchiveSpanColor(self,init=False):
         col=QtGui.QColor(self.pref['archiveColorSpan'].val)
@@ -623,6 +638,29 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Use the select for highlighting the span when hovered
         for line in self.archiveSpan.span.lines:
             line.setHoverPen(col1)
+            
+    # Update the color of the map axis
+    def updateMapBackground(self,init=False):
+        col=QtGui.QColor(self.pref['defaultColorMapBg'].val)
+        self.mapWidget.setBackground(col)
+    
+    # Update the color of all of the station spots, with user specified colors
+    def updateMapStaColor(self,init=False):
+        penAssign=[]
+    
+    # Update the color of the previous event symbols
+    def updateMapPrevEveColor(self,init=False): 
+        col=QtGui.QColor(self.pref['defaultColorMapPrevEve'].val)
+        item=self.mapWidget.prevEveItem
+        if item!=None:
+            item.setBrush(mkBrush(col.red(),col.green(),col.blue(),125))
+        
+    # Update the color of the current event symbols
+    def updateMapCurEveColor(self,init=False): 
+        col=QtGui.QColor(self.pref['defaultColorMapCurEve'].val)
+        item=self.mapWidget.curEveItem
+        if item!=None:
+            item.setBrush(mkBrush(col.red(),col.green(),col.blue(),200))
         
     # Update how many widgets are on the main page
     def updateStaPerPage(self,init=False):
@@ -684,8 +722,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     # Update the map with the new station metadata
     def updateStaMeta(self):
         meta=np.genfromtxt(self.hotVar['staFile'].val,delimiter=',',dtype=str)
+        colors=QtGui.QColor(65280)
+        ## Have to add in these colors
         self.hotVar['staMeta'].val=meta
-        self.mapWidget.loadStaMeta(self.hotVar['staMeta'].val)
+        self.mapWidget.loadStaMeta(self.hotVar['staMeta'].val,colors)
         
     # Update the selected (double clicked) station on the map view
     def updateMapSelectSta(self):
