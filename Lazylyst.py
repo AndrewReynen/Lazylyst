@@ -612,12 +612,17 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     
     # Update the text label colors
     def updateTextColor(self,init=False):
-        pen=mkPen(QtGui.QColor(self.pref['lazylystColorText'].val))
+        col=QtGui.QColor(self.pref['defaultColorText'].val)
+        pen=mkPen(col)
+        # Change all axis colors (axis line and ticks)
         for widget in self.staWidgets+[self.timeWidget,self.archiveEvent,
                                        self.archiveSpan]:
             widget.getPlotItem().getAxis('bottom').setPen(pen)
             widget.getPlotItem().getAxis('left').setPen(pen)
         self.mapWidget.setPen(pen)
+        # Change pick file title color
+        title=self.timeWidget.getPlotItem().titleLabel.text
+        self.timeWidget.getPlotItem().titleLabel.setText(title,color=col)
     
     # Update all custom pens
     def updateCustomPen(self,init=False):
@@ -731,7 +736,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             aWidget.setParent(None)
             self.traceLayout.removeWidget(aWidget)
             self.staWidgets=[]
-        axisPen=mkPen(QtGui.QColor(self.pref['lazylystColorText'].val))
+        axisPen=mkPen(QtGui.QColor(self.pref['defaultColorText'].val))
         # Add the desired number of staWidgets
         while len(self.staWidgets)<self.pref['staPerPage'].val:
             self.staWidgets.append(TraceWidget(self.mainLayout))

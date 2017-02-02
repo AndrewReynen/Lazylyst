@@ -18,7 +18,7 @@ def defaultPreferences(main):
     'archiveLoadMethod':Pref(tag='archiveLoadMethod',val='fast'),
     'pickTypesMaxCountPerSta':Pref(tag='pickTypesMaxCountPerSta',val={'P':1,'S':1},dataType=dict,
                                    func=main.updatePickColorPrefs,condition={'bound':[1,999]}),
-    'lazylystColorText':Pref(tag='lazylystColorText',val=13158600,dataType=int,
+    'defaultColorText':Pref(tag='defaultColorText',val=13158600,dataType=int,
                                 dialog='ColorDialog',func=main.updateTextColor),
     'defaultColorTraceBg':Pref(tag='defaultColorTraceBg',val=0,dataType=int,
                                 dialog='ColorDialog',func=main.updateTraceBackground),
