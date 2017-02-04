@@ -125,7 +125,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         actQueue=self.collectActQueue(action)   
         for oAct in actQueue:
             self.executeAction(oAct)
-        
                 
     # Get the appropriate order of passive functions before and after their triggered active action
     def collectActQueue(self,action):
@@ -583,6 +582,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 self.staWidgets[i].removeItem(curve)
             self.staWidgets[i].traceCurves=[]
             self.staWidgets[i].pltItem.setLabel(axis='left',text='empty')
+            self.staWidgets[i].sta=''
         # Add in the trace data for the current page
         i=0
         stas=np.array([tr.stats.station for tr in self.hotVar['pltSt'].val])
@@ -731,6 +731,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         
     # Update how many widgets are on the main page
     def updateStaPerPage(self,init=False):
+        if not init:
+            # Go back to the first page when updating number of staWidgets
+            self.hotVar['curPage'].val=0
         # First remove the previous staWidgets
         for aWidget in self.staWidgets:
             aWidget.setParent(None)
@@ -746,7 +749,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             self.staWidgets[-1].doubleClickSignal.connect(self.traceDoubleClickEvent)
             # Color the axes properly
             self.staWidgets[-1].getPlotItem().getAxis('left').setPen(axisPen)
-        self.updateTraceBackground()
         self.updatePage()
         
     # Set the archive availability
@@ -907,6 +909,11 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 prefVals=self.setPref.value('prefVals', {})
                 if tag in [key for key in prefVals.keys()]:
                     self.pref[tag].val=prefVals[tag]
+                # Give some default colors, to the default pick types
+                elif tag =='pickColor_P':
+                    self.pref[tag].val=65280
+                elif tag =='pickColor_S':
+                    self.pref[tag].val=16776960
         # Remove any entries which may have been taken away from curPickTypes
         for tag in curPickColors:
             if tag.split('_')[1] not in curPickTypes:

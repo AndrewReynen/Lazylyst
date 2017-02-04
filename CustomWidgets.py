@@ -543,8 +543,10 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.map.addItem(scatter)
         # Update the scatter item reference
         if eveType=='cur':
+            scatter.setZValue(3.0)
             self.curEveItem=scatter
         else:
+            scatter.setZValue(-1.0)
             self.prevEveItem=scatter
     
     # Change the pen of the axis and axis labels

@@ -27,13 +27,34 @@ def defaultActions():
                       path='$main',optionals={'prevPage':True},
                       trigger=Qt.Key_A,locked=True),  
                       
+    'FiltNone':Action(tag='FiltNone',name='streamFilter',
+                      path='Plugins.Filters',optionals={'type':'raw'},
+                      trigger=QtGui.QKeySequence('Shift+~'),inputs=['stream'],returns=['pltSt']),
     'FiltHP1':Action(tag='FiltHP1',name='streamFilter',
                       path='Plugins.Filters',optionals={'type':'highpass','freq':1,'corners':1,'zerophase':True},
                       trigger=QtGui.QKeySequence('Shift+Q'),inputs=['stream'],returns=['pltSt']),
+    'FiltHP5':Action(tag='FiltHP5',name='streamFilter',
+                      path='Plugins.Filters',optionals={'type':'highpass','freq':5,'corners':1,'zerophase':True},
+                      trigger=QtGui.QKeySequence('Shift+W'),inputs=['stream'],returns=['pltSt']),
+    'FiltHP10':Action(tag='FiltHP10',name='streamFilter',
+                      path='Plugins.Filters',optionals={'type':'highpass','freq':10,'corners':1,'zerophase':True},
+                      trigger=QtGui.QKeySequence('Shift+E'),inputs=['stream'],returns=['pltSt']),
+    'FiltDeriv':Action(tag='FiltDeriv',name='streamFilter',
+                      path='Plugins.Filters',optionals={'type':'derivative'},
+                      trigger=QtGui.QKeySequence('Shift+R'),inputs=['stream'],returns=['pltSt']),
 
-    'PickChangeMode':Action(tag='PickChangeMode',name='togglePickMode',
-                      path='Plugins.General',
+    'PickModeP':Action(tag='PickModeP',name='setPickMode',
+                      path='Plugins.General',optionals={'wantMode':'P'},
                       trigger=QtGui.QKeySequence('1'),inputs=['pickMode','pickTypesMaxCountPerSta'],returns=['pickMode']),
+
+    'PickModeS':Action(tag='PickModeS',name='setPickMode',
+                      path='Plugins.General',optionals={'wantMode':'S'},
+                      trigger=QtGui.QKeySequence('2'),inputs=['pickMode','pickTypesMaxCountPerSta'],returns=['pickMode']),
+
+    'ToggleTracePen':Action(tag='ToggleTracePen',name='setTracePenAssign',
+                            path='Plugins.General',passive=True,
+                            trigger=['PickModeP','PickModeS'],
+                            inputs=['pickMode','tracePenAssign'],returns=['tracePenAssign']),
 
     'PickAdd':Action(tag='PickAdd',name='addClickPick',
                      path='$main',trigger='DoubleClick',locked=True),
@@ -49,12 +70,12 @@ def defaultActions():
     'PickFileSetToClick':Action(tag='PickFileSetToClick',name='setCurPickFileOnClick',
                                 path='$main',trigger='DoubleClick',returns=['curPickFile'],locked=True),
 
-    'PickFileNext':Action(tag='PickFileNext',name='setCurPickFile',optionals={'nextFile':True},
-                          path='Plugins.General',trigger=QtGui.QKeySequence('Shift+D'),locked=True,
+    'PickFileNext':Action(tag='PickFileNext',name='setCurPickFile',path='Plugins.General',
+                          optionals={'nextFile':True},trigger=QtGui.QKeySequence('Shift+D'),locked=True,
                           inputs=['curPickFile','pickFiles'],returns=['curPickFile']),
 
-    'PickFilePrev':Action(tag='PickFilePrev',name='setCurPickFile',optionals={'prevFile':True},
-                          path='Plugins.General',trigger=QtGui.QKeySequence('Shift+A'),locked=True,
+    'PickFilePrev':Action(tag='PickFilePrev',name='setCurPickFile',path='Plugins.General',
+                          optionals={'prevFile':True},trigger=QtGui.QKeySequence('Shift+A'),locked=True,
                           inputs=['curPickFile','pickFiles'],returns=['curPickFile']),
 
     'SavePickSetOnNewEve':Action(tag='SavePickSetOnNewEve',name='savePickSet',
@@ -64,14 +85,26 @@ def defaultActions():
                                    
     'MapStaDblClicked':Action(tag='MapStaDblClicked',name='updateMapSelectSta',
                            path='$main',trigger='DoubleClick',locked=True),
-                                   
+
+    'GoToStaPage':Action(tag='GoToStaPage',name='goToStaPage',path='Plugins.General',
+                         passive=True,trigger=['MapStaDblClicked'],
+                         inputs=['curMapSta','staSort','staPerPage','curPage'],
+                         returns=['curPage']),
+                           
+    'SimpleLocate':Action(tag='SimpleLocate',name='simpleLocator',path='Plugins.Locate',
+                          optionals={'Vp':5.0,'Vs':2.9,'Dp':0,'Ds':0},passive=True,
+                          trigger=['PickAdd','PickDelete','PickFileCurDelete',
+                                   'PickFileNext','PickFilePrev','PickFileSetToClick'],
+                          inputs=['pickSet','staMeta','mapCurEve','staSort'],
+                          returns=['mapCurEve','traceBgPenAssign','mapStaPenAssign']),
+                                  
     }
     return act
     
-# Return the action tags in alphabetical order...
-# ...may be more customized later (by default)
+# Give the passive actions above some default ordering (ie. which is called first)
 def defaultPassiveOrder(actions):
     order=sorted([act.tag for tag,act in actions.iteritems() if act.passive])
+#    order=['SavePickSetOnNewEve','SimpleLocate'] ## Ensure this includes ALL default passive
     return order
     
 # Capabilities of an action
