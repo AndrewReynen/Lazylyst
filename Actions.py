@@ -92,12 +92,37 @@ def defaultActions():
                          returns=['curPage']),
                            
     'SimpleLocate':Action(tag='SimpleLocate',name='simpleLocator',path='Plugins.Locate',
-                          optionals={'Vp':5.0,'Vs':2.9,'Dp':0,'Ds':0},passive=True,
+                          passive=True,
                           trigger=['PickAdd','PickDelete','PickFileCurDelete',
                                    'PickFileNext','PickFilePrev','PickFileSetToClick'],
-                          inputs=['pickSet','staMeta','mapCurEve','staSort'],
+                          inputs=['pickSet','staMeta','mapCurEve','staSort','sourceTag'],
                           returns=['mapCurEve','traceBgPenAssign','mapStaPenAssign']),
+
+    'StaSortAlph':Action(tag='StaSortAlph',name='staSortAlph',path='Plugins.Sorting',
+                         trigger=QtGui.QKeySequence('Z'),
+                         inputs=['staSort'],
+                         returns=['staSort']),
+
+    'StaSortPickTime':Action(tag='StaSortPickTime',name='staSortPickTime',path='Plugins.Sorting',
+                         trigger=QtGui.QKeySequence('X'),
+                         inputs=['staSort','pickSet','pickMode'],
+                         returns=['staSort']),
+
+    'StaSortDist':Action(tag='StaSortDist',name='staSortDist',path='Plugins.Sorting',
+                         trigger=QtGui.QKeySequence('C'),
+                         inputs=['staSort','staMeta','mapCurEve'],
+                         returns=['staSort']),
+
+    'StaSortResidual':Action(tag='StaSortResidual',name='staSortResidual',path='Plugins.Sorting',
+                         trigger=QtGui.QKeySequence('V'),
+                         inputs=['staSort','staMeta','sourceTag','pickSet','mapCurEve'],
+                         returns=['staSort']),
                                   
+    'StaSortReverse':Action(tag='StaSortReverse',name='staSortReverse',path='Plugins.Sorting',
+                         trigger=QtGui.QKeySequence('B'),
+                         inputs=['staSort'],
+                         returns=['staSort']),
+                                                                    
     }
     return act
     

@@ -19,11 +19,7 @@ def goToPage(*args,**kwargs):
     else:
         pageNumber=0
     return pageNumber
-    
-# Reverse the station sorting
-def reverseStaSort(staSort):
-    return staSort[::-1]
-    
+        
 # Toggle trace coloring between channels
 def toggleTraceColor(curAssign):
     if 'lowlight' not in curAssign.keys():

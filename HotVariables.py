@@ -1,5 +1,6 @@
 from obspy import Stream as emptyStream
 from Archive import getTimeFromFileName
+from copy import deepcopy
 import importlib
 import os
 import numpy as np
@@ -65,6 +66,11 @@ class HotVar(object):
         self.returnable=returnable # If this hot variable is allowed to be returned for update
         self.check=check # Function used to check the validity of the input data
         self.checkName=checkName # Name of the check function within $main
+    
+    # Return a deep copy of the objects value
+    def getVal(self):
+        val=deepcopy(self.val)
+        return val
         
     # Call the specified function to update the hot variable value
     def update(self):

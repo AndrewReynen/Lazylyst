@@ -153,9 +153,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             if key=='stream':
                 inputs.append(self.hotVar[key].val.copy())
             elif key in hotVarKeys:
-                inputs.append(self.hotVar[key].val)
+                inputs.append(self.hotVar[key].getVal())
             else:
-                inputs.append(self.pref[key].val)
+                inputs.append(self.pref[key].getVal())
         # Call the function with args and kwargs
         returnVals=action.func(*inputs,**action.optionals)
         # Update all return (hot variable) values...
@@ -593,8 +593,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             # Figure out which traces are associated with the next station in staSort
             thisSta=self.hotVar['staSort'].val[self.hotVar['curPage'].val*self.pref['staPerPage'].val+i]
             wantIdxs=np.where(stas==thisSta)[0]
-            # Set the background color
-            self.staWidgets[i].setBackground(self.traceBgColors[thisSta])
             # Also set the y-limits
             ymin=np.min([np.min(self.hotVar['pltSt'].val[idx].data) for idx in wantIdxs])
             ymax=np.max([np.max(self.hotVar['pltSt'].val[idx].data) for idx in wantIdxs])
@@ -609,6 +607,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 self.staWidgets[i].addTrace(trace.times()+trace.stats.starttime.timestamp,trace.data,
                                             trace.stats.channel,pen,depth)
             i+=1
+        # Set the background color
+        for widget in self.staWidgets:                        
+            widget.setBackground(self.traceBgColors[widget.sta])
     
     # Update the text label colors
     def updateTextColor(self,init=False):

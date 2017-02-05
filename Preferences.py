@@ -2,6 +2,7 @@ from PyQt4 import QtGui,QtCore
 from PyQt4.QtCore import Qt
 from CustomFunctions import dict2Text, text2Dict
 from CustomPen import Ui_customPenDialog
+from copy import deepcopy
 
 # Default Preferences
 def defaultPreferences(main):
@@ -63,7 +64,12 @@ class Pref(object):
         self.dataType=dataType # What kind of data is expected upon update
         self.dialog=dialog # The dialog which will pop up to return a value
         self.func=func # Function which is called on successful updates
-        self.condition=condition # Key-word conditionals (see "LineEditDialog" in this file)
+        self.condition=condition # Key-word conditionals (see "LineEditDialog" in this file)    
+    
+    # Return a deep copy of the objects value
+    def getVal(self):
+        val=deepcopy(self.val)
+        return val
     
     # If the key was asked to be updated
     def update(self,hostWidget,init=False):
