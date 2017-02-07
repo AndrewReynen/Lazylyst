@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# Version 0.0.1
 import sys
 import logging
 import sip
