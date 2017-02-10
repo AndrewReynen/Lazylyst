@@ -369,10 +369,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     
     # Function to handle updates of the hot variable curPage
     def updateCurPage(self):
-        # Clip to the max/minimum if outside the accepted range
         maxPageNum=(len(self.hotVar['staSort'].val)-1)/self.pref['staPerPage'].val
         if maxPageNum==-1:
             return
+        # Clip to the max/minimum if outside the accepted range
         if self.hotVar['curPage'].val>maxPageNum:
             self.hotVar['curPage'].val=maxPageNum
         elif self.hotVar['curPage'].val<0:
@@ -538,7 +538,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def getStaColors(self,assignType):
         # Only set the pen reference for stations which are present
         if assignType=='mapSta':
-            unqStas=np.unique(self.hotVar['staMeta'].val[:,0])
+            if self.hotVar['staMeta'].val.shape[0]==0:
+                unqStas=[]
+            else:
+                unqStas=np.unique(self.hotVar['staMeta'].val[:,0])
             defaultColInt=self.pref['defaultColorMapSta'].val
             assignKey='mapStaPenAssign'
         else:
@@ -797,6 +800,11 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def updateStaMeta(self):
         # Load in the new station metadata
         self.hotVar['staMeta'].val=np.genfromtxt(self.hotVar['staFile'].val,delimiter=',',dtype=str)
+        # If the file was empty or just one line, try and convert to appropriate shape
+        if 0 in self.hotVar['staMeta'].val.shape:
+            self.hotVar['staMeta'].val=np.empty((0,4))
+        elif len(self.hotVar['staMeta'].val.shape)==1:
+            self.hotVar['staMeta'].val=np.array([self.hotVar['staMeta'].val])
         self.updateMapStations(init=True)
         
     # Update the selected (double clicked) station on the map view

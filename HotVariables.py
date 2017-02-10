@@ -40,12 +40,12 @@ def initHotVar():
     'mapPrevEve':HotVar(tag='mapPrevEve',val=np.empty((0,5)),dataType=type(np.array([0.0])),
                        funcName='updateMapPrevEve',checkName='checkEveArr'),
     'archDir':HotVar(tag='archDir',val='',dataType=str,
-                     funcName='updateArchive'),
+                     funcName='updateArchive',checkName='checkArchDir'),
     'archFiles':HotVar(tag='archFiles',val=[],dataType=list,returnable=False),
     'archFileTimes':HotVar(tag='archFileTimes',val=[],dataType=list,returnable=False),   
     'curTraceSta':HotVar(tag='curTraceSta',val='',dataType=str,returnable=False),
     'staFile':HotVar(tag='staFile',val='',dataType=str,
-                     funcName='updateStaMeta'),  ## Add Check
+                     funcName='updateStaMeta',checkName='checkStaFile'),
     'staMeta':HotVar(tag='staMeta',val=np.empty((0,4)),dataType=type(np.array([0.0])),returnable=False),
     'curMapSta':HotVar(tag='curMapSta',val='',dataType=str,returnable=False),
     'mainPath':HotVar(tag='mainPath',val='',dataType=str,returnable=False),
@@ -256,4 +256,38 @@ def checkEveArr(main,eveArr):
         print 'The current/previous event array contains [ID,X,Y,Z,Timestamp(s)], which must all be numbers'
         return False
     return True
+
+# Ensure that the archive directory exists  
+def checkArchDir(main,archDir):
+    if not os.path.isdir(archDir):
+        print 'Archive directory does not exist'
+        return False
+    return True
     
+# Ensure that the station file exists and is in the proper format
+def checkStaFile(main,staFileName):
+    # First see if the file exists
+    if not os.path.isfile(staFileName):
+        print 'Station file does not exist'
+        return False
+    try:
+        staMeta=np.genfromtxt(staFileName,delimiter=',',dtype=str)
+    except:
+        print 'Station file was not in csv format'
+        return False
+    # If the file was empty or just one line, try and convert to appropriate shape
+    if 0 in staMeta.shape:
+        staMeta=np.empty((0,4))
+    elif len(staMeta.shape)==1:
+        staMeta=np.array([staMeta])
+    # Check the array dimensions
+    if staMeta.shape[1]!=4:
+        print 'Station file must have 4 columns'
+        return False
+    # Check that the positions are numbers
+    try:
+        staMeta[:,1:].astype(float)
+    except:
+        print 'The station file contains [StationCode,X,Y,Z], X, Y and Z must all be numbers'
+        return False
+    return True

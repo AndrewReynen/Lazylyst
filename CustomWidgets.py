@@ -513,14 +513,18 @@ class MapWidget(pg.GraphicsLayoutWidget):
         if init:
             self.selectSta=None
         # Generate the station items
-        self.stas=staMeta[:,0]
+        if len(staMeta)==0:
+            self.stas=[]
+        else:
+            self.stas=staMeta[:,0]
         # Get the brush values to be assigned
         brushArr=[]
         for sta in self.stas:
             color=colorAssign[sta]
             brushArr.append(pg.mkBrush(color.red(),color.green(),color.blue(),200))
         staScatter = CustScatter(size=8,symbol='t1',pen=pg.mkPen(None))
-        staScatter.addPoints(x=staMeta[:,1], y=staMeta[:,2], brush=brushArr)
+        if len(staMeta)!=0:
+            staScatter.addPoints(x=staMeta[:,1], y=staMeta[:,2], brush=brushArr)
         # Give some clicking ability to the stations
         staScatter.dblClicked.connect(self.staClicked)
         # Add the station scatter items
