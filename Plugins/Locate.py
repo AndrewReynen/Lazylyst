@@ -54,7 +54,10 @@ def simpleLocator(pickSet,staMeta,mapCurEve,staSort,sourceTag):
         pickSet=pickSet[np.where((pickSet[:,1]=='P')|(pickSet[:,1]=='S'))]
     # Set up the pen assignment arrays
     traceBgPenAssign={'noStaData':[sta for sta in staSort if sta not in staMeta[:,0]]}
-    mapStaPenAssign={'noTraceData':[row[0] for row in staMeta if row[0] not in staSort]}
+    if len(staSort)==0:
+        mapStaPenAssign={'noTraceData':[row[0] for row in staMeta]}
+    else:
+        mapStaPenAssign={'noTraceData':[row[0] for row in staMeta if row[0] not in staSort]}
     mapStaPenAssign['goodMap']=list(np.unique(pickSet[:,0]))
     data,stas=getPickData(pickSet,staMeta,vdInfo)    
     # If there are too few picks, do not try to locate

@@ -15,8 +15,6 @@ def defaultPreferences(main):
                          condition={'isOneOf':['fill','next']}),
     'eveSortStyle':Pref(tag='eveSortStyle',val='time',dataType=str,
                         func=main.updateEveSort,condition={'isOneOf':['id','time']}),
-    'archiveFileLen':Pref(tag='archiveFileLen',val=1800,dataType=float),
-    'archiveLoadMethod':Pref(tag='archiveLoadMethod',val='fast',condition={'isOneOf':['fast']}),
     'pickTypesMaxCountPerSta':Pref(tag='pickTypesMaxCountPerSta',val={'P':1,'S':1},dataType=dict,
                                    func=main.updatePickColorPrefs,condition={'bound':[1,999]}),
     'defaultColorText':Pref(tag='defaultColorText',val=14474460,dataType=int,

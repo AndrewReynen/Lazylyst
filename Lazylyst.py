@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.0.1
+# Version 0.0.2
 import sys
 import logging
 import sip
@@ -330,9 +330,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             # Get the wanted time, and query for the data
             aTime=getTimeFromFileName(self.hotVar['curPickFile'].val).timestamp
             t1,t2=aTime+self.pref['evePreTime'].val,aTime+self.pref['evePostTime'].val
-            self.hotVar['stream'].val=extractDataFromArchive(self.hotVar['archDir'].val,t1,t2,self.hotVar['archFiles'].val,
-                                                             self.hotVar['archFileTimes'].val,
-                                                             archiveFileLen=self.pref['archiveFileLen'].val)
+            self.hotVar['stream'].val=extractDataFromArchive(t1,t2,self.hotVar['archFiles'].val,
+                                                             self.hotVar['archFileTimes'].val)
             # Get the trace background coloring
             self.traceBgColors=self.getStaColors('traceBg')
             # Make a copy for any filtering to be applied
@@ -758,22 +757,21 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         
     # Set the archive availability
     def updateArchive(self):
-        # Load in all of the start times of the archive
+        # Load in all of the start times of the archive...
         archiveFiles,archiveTimes=getArchiveAvail(self.hotVar['archDir'].val)
+        # ...and sort them by start time (required for when extracting an events data)
+        argSort=np.argsort(archiveTimes[:,0])
+        archiveFiles,archiveTimes=archiveFiles[argSort],archiveTimes[argSort]
         self.hotVar['archFiles'].val=archiveFiles
         self.hotVar['archFileTimes'].val=archiveTimes
+        # Update the time boxes
+        self.archiveSpan.updateBoxes(archiveTimes,self.pref['archiveColorAvail'].val)
+        # Do not bother changing the span if nowhere to go
         if len(archiveFiles)==0:
             print 'No miniseed files in '+self.hotVar['archDir'].val
             return
-        # Update the time boxes
-        if self.pref['archiveLoadMethod'].val=='fast':
-            ranges=[[t,t+self.pref['archiveFileLen'].val] for t in archiveTimes]
-            self.archiveSpan.updateBoxes(ranges,self.pref['archiveColorAvail'].val)
-        else:
-            print 'Unsupported archive load method'
-            return
         # Set the initial span boundaries, and x-limits
-        t1,t2=archiveTimes[0],archiveTimes[-1]+self.pref['archiveFileLen'].val
+        t1,t2=np.min(archiveTimes[:,0]),np.max(archiveTimes[:,1])
         buff=(t2-t1)*0.05
         self.archiveSpan.pltItem.setXRange(t1-buff,t2+buff)
         self.archiveSpan.span.setRegion((t1,t2))
