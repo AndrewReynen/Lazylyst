@@ -1,9 +1,10 @@
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt
 import pyqtgraph as pg
-from pyqtgraph.dockarea import DockArea, Dock
-from obspy import UTCDateTime
 import numpy as np
+#from pyqtgraph.dockarea import DockArea, Dock
+from CustomFunctions import getTimeFromFileName
+from obspy import UTCDateTime
 from decimal import Decimal
 
 # Custom axis labels for the archive widget
@@ -131,7 +132,8 @@ class ArchiveEventWidget(pg.PlotWidget):
         self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
         # Disable all panning and zooming
         self.pltItem.vb.setMouseEnabled(x=False,y=False)
-        self.eveLines=[]
+        self.curEveLine=None # For the highlighted event
+        self.otherEveLine=None # For all other events
     
     # Scale to where ever the archiveSpan has selected
     def updateXRange(self,linkWidget):
@@ -149,14 +151,43 @@ class ArchiveEventWidget(pg.PlotWidget):
         self.addNewEventSignal.emit()
     
     # Reset the event lines, given a new set of event times
-    def updateEveLines(self,fileTimes,pen,method):
-        if method=='reset':
-            self.eveLines=[]
-            self.clear()
-        for t in fileTimes:
-            line=pg.InfiniteLine(pos=t,pen=pen)
-            self.eveLines.append(line)
+    def updateEveLines(self,fileTimes,curFile,penInt,penIntSelect):
+        # Remove the not-current event lines
+        if self.otherEveLine!=None:
+            self.removeItem(self.otherEveLine)
+            self.otherEveLine=None
+        # Generate the many pick lines as one disconnected line
+        if len(fileTimes)!=0:
+            fileTimes=np.reshape(fileTimes,(len(fileTimes),1))
+            times=np.hstack((fileTimes,fileTimes))
+            connect = np.ones((len(times), 2), dtype=np.ubyte)
+            connect[:,-1] = 0  #  disconnect segment between lines
+            connect=connect.reshape(len(times)*2)
+            path = pg.arrayToQPath(times.reshape(len(times)*2),connect,connect)
+            item = pg.QtGui.QGraphicsPathItem(path)
+            item.setPen(pg.mkPen(QtGui.QColor(penInt)))
+            item.setZValue(0)
+            # Reference and plot the line
+            self.otherEveLine=item
+            self.addItem(item)
+        # Generate and plot the current pick file (if present)
+        self.updateEveLineSelect(curFile,penIntSelect)
+    
+    # Update the current event line to proper position, and appropriate color
+    def updateEveLineSelect(self,curFile,penIntSelect):
+        # Remove this line if no current file
+        if self.curEveLine!=None:
+            self.removeItem(self.curEveLine)
+            self.curEveLine=None
+        # Add the line if a pick file is selected
+        if curFile!='':
+            t=getTimeFromFileName(curFile)
+            line=pg.InfiniteLine(pos=t,pen=pg.mkPen(QtGui.QColor(penIntSelect)))
+            line.setZValue(10)
+            # Reference and plot the line
+            self.curEveLine=line
             self.addItem(line)
+        
         
 # List widget which holds all current pick files
 class ArchiveListWidget(QtGui.QListWidget):       
@@ -231,6 +262,14 @@ class TimeWidget(pg.PlotWidget):
         self.getPlotItem().hideButtons()
         # Give some x-limits (do not go prior/after to 1970/2200)
         self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
+        self.getPlotItem().vb.setMouseEnabled(y=False,x=False)
+    
+    # Null any built in hover actions
+    def enterEvent(self,event):
+        return
+    
+    def leaveEvent(self,event):
+        return
     
     # Return the xmin,xmax (times) of the plot
     def getTimeRange(self):

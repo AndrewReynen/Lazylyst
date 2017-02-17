@@ -27,7 +27,7 @@ def defaultPreferences(main):
                                 dialog='ColorDialog',func=main.updateMapBackground),
     'defaultColorMapSta':Pref(tag='defaultColorMapSta',val=16777215,dataType=int,
                                 dialog='ColorDialog',func=main.updateMapStations),
-    'defaultColorMapCurEve':Pref(tag='defaultColorMapCurEve',val=16711680,dataType=int,
+    'defaultColorMapCurEve':Pref(tag='defaultColorMapCurEve',val=16776960,dataType=int,
                                 dialog='ColorDialog',func=main.updateMapCurEveColor),
     'defaultColorMapPrevEve':Pref(tag='defaultColorMapPrevEve',val=0,dataType=int,
                                 dialog='ColorDialog',func=main.updateMapPrevEveColor),
@@ -39,7 +39,7 @@ def defaultPreferences(main):
                                 dialog='ColorDialog',func=main.updateArchiveSpanColor),
     'archiveColorEve':Pref(tag='archiveColorEve',val=65280,dataType=int,
                                 dialog='ColorDialog',func=main.updateArchiveEveColor),
-    'archiveColorSelect':Pref(tag='archiveColorSelect',val=16711935,dataType=int,
+    'archiveColorSelect':Pref(tag='archiveColorSelect',val=16711680,dataType=int,
                                 dialog='ColorDialog',func=main.updateArchiveEveColor),
     'customPen':Pref(tag='customPen',val={'default':[16777215,1.0,0.0],
                                           'noStaData':[3289650,1.0,0.0],
@@ -96,14 +96,14 @@ class Pref(object):
                 # The updates to the preference is done within the dialog (and the checks are done there)
                 val,ok=self.val,True
             else:
-                print 'New dialog?'
+                print('New dialog?')
                 val,ok=None,False
             # If the dialog was canceled, skip
             if not ok:
                 return
             # If the no value was returned, skip
             if val==None:
-                print 'Value did not conform to '+str(self.dataType)+' and conditionals '+str(self.condition)
+                print('Value did not conform to '+str(self.dataType)+' and conditionals '+str(self.condition))
                 return
             # Update the preference value
             self.val=val
@@ -142,7 +142,7 @@ class LineEditDialog(QtGui.QDialog):
             if self.dataType==dict:
                 val=text2Dict(val)
                 if val=={}:
-                    print 'No keys are present in the dictionary'
+                    print('No keys are present in the dictionary')
                     return None
             else:
                 val=self.dataType(val)
@@ -246,10 +246,10 @@ class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
                 val=-99999
             # Ensure the width value is reasonable, if not change back the original
             if prefIdx==1 and (val<0 or val>10):
-                print 'Width should be in the range [0,10]'
+                print('Width should be in the range [0,10]')
                 item.setText(str(self.tpDict[itemKey][prefIdx]))
             elif prefIdx==2 and (val<-10 or val>=10):
-                print 'Depth should be in the range [-10,10)'
+                print('Depth should be in the range [-10,10)')
                 item.setText(str(self.tpDict[itemKey][prefIdx]))
             # If passed checks, update the tpDict with the new width or depth
             else:
@@ -261,7 +261,7 @@ class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
                 pass
             # Do not allow duplicate tags
             elif item.text() in [key for key in self.tpDict.keys() if key!=itemKey]:
-                print 'This tag is already present, update denied'
+                print('This tag is already present, update denied')
                 item.setText(itemKey)
             else:
                 # If passed checks, update the tpDict with the new tag
@@ -276,7 +276,7 @@ class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
     def insertPen(self):        
         # If the "NewPen" key is still present, ask to change it...
         if 'NewPen' in [key for key in self.tpDict.keys()]:
-            print 'Change the tag "NewPen", to be able to add another custom pen"'
+            print('Change the tag "NewPen", to be able to add another custom pen"')
             return
         # Disconnect the OnChanged signal (as this would trigger it)
         self.tpTable.itemChanged.disconnect(self.updateItemText)
@@ -302,7 +302,7 @@ class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
         key=str(self.tpTable.item(idx,0).text())
         # Not allowed to delete default
         if key=='default':
-            print 'Cannot delete the pen tagged default'
+            print('Cannot delete the pen tagged default')
             return
         # Disconnect the OnChanged signal (as this would trigger it)
         self.tpTable.itemChanged.disconnect(self.updateItemText)

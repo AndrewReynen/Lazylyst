@@ -1,4 +1,5 @@
 import numpy as np
+from obspy import UTCDateTime
 
 # Convert a string into easy to read text, assumes no lists
 def dict2Text(aDict):  
@@ -37,3 +38,8 @@ def text2Dict(text):
         except:
             continue
     return aDict
+    
+# Return the UTCDateTime from the forced file naming convention
+def getTimeFromFileName(fileName):
+    timeStr=fileName.split('_')[1].replace('.'+fileName.split('.')[-1],'')
+    return UTCDateTime().strptime(timeStr,'%Y%m%d.%H%M%S.%f')

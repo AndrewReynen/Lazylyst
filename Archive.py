@@ -18,7 +18,7 @@ def RemoveOddRateTraces(stream):
     # ...figure out which station has two rates 
     unqRate,countRate=np.unique(rates,return_counts=True)
     if len(unqRate)==1:
-        print 'merge will fail, not issue of multiple sampling rates on same station'
+        print('merge will fail, not issue of multiple sampling rates on same station')
     else:
         # ... and remove the traces with less common rates
         unqSta,countSta=np.unique(stas,return_counts=True)
@@ -29,7 +29,7 @@ def RemoveOddRateTraces(stream):
             if tr.stats.station in rmStas and tr.stats.delta in rmRates:
                 continue
             trimRateStream+=tr
-        print 'stations:',str(rmStas),'had some traces removed (duplicate rates same channel)'
+        print('stations:',str(rmStas),'had some traces removed (duplicate rates same channel)')
         stream=trimRateStream
     return stream
 
@@ -61,11 +61,6 @@ def extractDataFromArchive(t1,t2,fileNames,fileTimes,
     # Trim to wanted times
     stream.trim(UTCDateTime(t1),UTCDateTime(t2))
     return stream
-
-# Return the UTCDateTime from the forced file naming convention
-def getTimeFromFileName(fileName):
-    timeStr=fileName.split('_')[1].replace('.'+fileName.split('.')[-1],'')
-    return UTCDateTime().strptime(timeStr,'%Y%m%d.%H%M%S.%f')
     
 # Get a list of all files of the accepted extension types, and their metadata
 def getDirFiles(mainDir,acceptedExtensions):
@@ -75,7 +70,7 @@ def getDirFiles(mainDir,acceptedExtensions):
         return metaData
     # The directories yet to be scanned
     toScanDirs=[mainDir]
-    print 'Scanning archive directory for all trace files...'
+#    print('Scanning archive directory for any changes...')
     while len(toScanDirs)!=0:
         toAddToScan=[] # Directories to be found in this iteration
         for aDir in toScanDirs:
@@ -91,7 +86,7 @@ def getDirFiles(mainDir,acceptedExtensions):
                                      aStat.st_ctime,aStat.st_size])
         # Add all of the new directories which were found
         toScanDirs=toAddToScan
-    print '...scan complete'
+#    print('...scan complete')
     return metaData
 
 # Get the previously loaded archives file metadata and start/end times
@@ -192,7 +187,7 @@ class ArchLoadProgressBar(QtGui.QDialog):
     def cancelLoad(self):
         self.timer.stop()
         self.holder.value=self.fileMinMaxs
-        print len(self.fileMinMaxs),' archive files were updated'
+        print(len(self.fileMinMaxs),' archive files were updated')
         self.close()
 
     # If closed, treat as canceled

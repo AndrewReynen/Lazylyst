@@ -4,9 +4,13 @@ import warnings
 warnings.simplefilter("ignore", optimize.OptimizeWarning)
 
 # Get the velocity and delay values based on the current source...
-# ...use for the simple locator
+# ...used for the simple locator (see simpleLocatorFunc for the equation, units in km and s)
+# ...Vp=P-velocity,Vs=S-velocity,Dp=P-delay,Ds=S-delay
+# ...tResThresh is the time residual which is residual value beyond which is considered poor
 def getVelDelay(sourceTag):
-    sources={'testing':{'Vp':5.0,'Vs':2.9,'Dp':0,'Ds':0,'tResThresh':0.5}}
+    sources={'testing':{'Vp':5.0,'Vs':2.9,'Dp':0,'Ds':0,'tResThresh':0.5},
+             'NX':{'Vp':6.19,'Vs':3.57,'Dp':0.74,'Ds':1.13,'tResThresh':1.0},
+            }
     if sourceTag in sources.keys():
         return sources[sourceTag]
     else:
@@ -71,7 +75,7 @@ def simpleLocator(pickSet,staMeta,mapCurEve,staSort,sourceTag):
         params, pcov = optimize.curve_fit(simpleLocatorFunc, data[:,:5], data[:,5],(0,0,0,0))
         x0,y0,z0,t0=params
     except:
-        print 'simpleLocator failed'
+        print('simpleLocator failed')
         return np.empty((0,5)),traceBgPenAssign,mapStaPenAssign
     # Get the residual values...
     # ...predicted arrival times

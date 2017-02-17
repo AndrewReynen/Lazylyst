@@ -1,5 +1,5 @@
 from obspy import Stream as emptyStream
-from Archive import getTimeFromFileName
+from CustomFunctions import getTimeFromFileName
 from copy import deepcopy
 import importlib
 import os
@@ -98,20 +98,20 @@ class HotVar(object):
                 linkCheck=True
             except:
                 linkCheck=False
-                print self.tag+' check function did not load from $main.'+self.checkName
+                print(self.tag+' check function did not load from $main.'+self.checkName)
         # If the link to the check function passed, link to the update function
         if linkCheck:
             try:
                 self.func=getattr(main,self.funcName)
             except:
-                print self.tag+' update function did not load from $main.'+self.funcName
+                print(self.tag+' update function did not load from $main.'+self.funcName)
 
 # Ensure that the new plot stream has the same combination of stations as stream
 def checkPltSt(main,pltSt):
     oStas=np.unique([tr.stats.station for tr in main.hotVar['stream'].val])
     nStas=np.unique([tr.stats.station for tr in pltSt])
     if not np.array_equal(np.sort(oStas),np.sort(nStas)):
-        print 'The return pltSt does not have all and only the station present in stream'
+        print('The return pltSt does not have all and only the station present in stream')
         return False
     return True
     
@@ -119,7 +119,7 @@ def checkPltSt(main,pltSt):
 def checkStaSort(main,newSort):
     trStas=np.unique([tr.stats.station for tr in main.hotVar['pltSt'].val])
     if not np.array_equal(np.sort(trStas),np.sort(newSort)):
-        print 'The return staSort does not have all and only the station present in pltSt'
+        print('The return staSort does not have all and only the station present in pltSt')
         return False
     return True
     
@@ -128,20 +128,20 @@ def checkTimeRange(main,timeRange):
     try:
         np.array(timeRange,dtype=float)
     except:
-        print 'timeRange values must be numbers (timestamp (s))'
+        print('timeRange values must be numbers (timestamp (s))')
         return False
     if len(timeRange)!=2:
-        print 'For timeRange, two values are required to specify the time range, got '+str(len(timeRange))
+        print('For timeRange, two values are required to specify the time range, got '+str(len(timeRange)))
         return False
     elif timeRange[0]>=timeRange[1]:
-        print 'For timeRange, the second (right) limit must be greater than the first limit'
+        print('For timeRange, the second (right) limit must be greater than the first limit')
         return False
     return True
 
 # Ensure that the specified tag actually exists
 def checkSourceTag(main,tag):
     if tag not in main.saveSource.keys():
-        print 'The sourceTag '+tag+' is not currently a saved source'
+        print('The sourceTag '+tag+' is not currently a saved source')
         return False
     return True
 
@@ -149,10 +149,10 @@ def checkSourceTag(main,tag):
 def checkPickDir(main,pickDir):
     if not os.path.exists(pickDir):
         try:
-            print 'The pickDir did not exist, folder has been created'
+            print('The pickDir did not exist, folder has been created')
             os.makedirs(pickDir)
         except:
-            print 'The pickDir did not exist, supplied string not compatible as a directory name'
+            print('The pickDir did not exist, supplied string not compatible as a directory name')
             return False
     return True
 
@@ -162,7 +162,7 @@ def checkPickFileNames(main,pickFiles):
     for i,aFile in enumerate(pickFiles):
         splitFile=aFile.split('_')
         if len(splitFile)!=2 or 'picks'!=aFile.split('.')[-1]:
-            print aFile+' does not match format IntegerID_%Y%m%d.%H%M%S.%f.picks'
+            print(aFile+' does not match format IntegerID_%Y%m%d.%H%M%S.%f.picks')
             passTest=False
             continue
         try:
@@ -170,10 +170,10 @@ def checkPickFileNames(main,pickFiles):
             pickFiles[i]=str(int(splitFile[0])).zfill(10)+'_'+splitFile[1]
             continue
         except:
-            print aFile+' does not match format IntegerID_%Y%m%d.%H%M%S.%f.picks'
+            print(aFile+' does not match format IntegerID_%Y%m%d.%H%M%S.%f.picks')
             passTest=False
     if len(np.unique(pickFiles))!=len(pickFiles):
-        print 'Pick file names were non unique'
+        print('Pick file names were non unique')
         passTest=False
     return passTest
 
@@ -181,7 +181,7 @@ def checkPickFileNames(main,pickFiles):
 def checkCurPickFile(main,pickFile):
     # If the pick directory has not been set, don't try
     if main.hotVar['pickDir'].val=='':
-        print 'The pickDir has not been set'
+        print('The pickDir has not been set')
         return False
     # If the user wants to return to a blank screen, let them
     if pickFile=='':
@@ -195,16 +195,16 @@ def checkCurPickFile(main,pickFile):
 # Ensure that the pick set has the proper dimensions and data types [str,str,float] (although held as string)
 def checkPickSet(main,pickSet):
     if len(pickSet.shape)!=2:
-        print 'The pickSet must be 2 dimensional'
+        print('The pickSet must be 2 dimensional')
         return False
     elif pickSet.shape[1]!=3:
-        print 'The pickSet must have 3 columns'
+        print('The pickSet must have 3 columns')
         return False
     try:
         pickSet[:,:2].astype(str)
         pickSet[:,2].astype(float)
     except:
-        print 'The pickSet contains [station,pickType,timestamp(s)]'
+        print('The pickSet contains [station,pickType,timestamp(s)]')
         return False
     return True
 
@@ -213,15 +213,15 @@ def checkTracePenAssign(main,penAssign):
     # Check to see that each returned value is a list
     for key,val in penAssign.iteritems():
         if type(val)!=list:
-            print 'For all tracePenAssign returned key:value pairs, the value should be a list'
+            print('For all tracePenAssign returned key:value pairs, the value should be a list')
             return False
         # Each entry (channel) in the list should be a string, and <= 3 characters long
         for entry in val:
             if type(entry) not in [str,np.string_]:
-                print 'Returned tracePenAssign, lists should only contain strings, got type '+str(type(entry))
+                print('Returned tracePenAssign, lists should only contain strings, got type '+str(type(entry)))
                 return False
             elif len(entry)>3:
-                print 'Returned tracePenAssign, list entries refer to channels, which are max 3 characters long'
+                print('Returned tracePenAssign, list entries refer to channels, which are max 3 characters long')
                 return False
     return True
 
@@ -230,37 +230,37 @@ def checkStaColAssign(main,colAssign):
     # Check to see that each returned value is a list
     for key,val in colAssign.iteritems():
         if type(val)!=list:
-            print 'For all traceBgPenAssign/mapStaPenAssign returned key:value pairs, the value should be a list'
+            print('For all traceBgPenAssign/mapStaPenAssign returned key:value pairs, the value should be a list')
             return False
         # Each entry (station) in the list should be a string, and <= 5 characters long
         for entry in val:
             if type(entry) not in [str,np.string_]:
-                print 'Returned traceBgPenAssign/mapStaPenAssign, lists should only contain strings, got type '+str(type(entry))
+                print('Returned traceBgPenAssign/mapStaPenAssign, lists should only contain strings, got type '+str(type(entry)))
                 return False
             elif len(entry)>5:
-                print 'Returned traceBgPenAssign/mapStaPenAssign, list entries refer to stations, which are max 5 characters long'
+                print('Returned traceBgPenAssign/mapStaPenAssign, list entries refer to stations, which are max 5 characters long')
                 return False
     return True
     
 # Ensure that the current/previous event array is of the proper dimensions and datatype
 def checkEveArr(main,eveArr):
     if len(eveArr.shape)!=2:
-        print 'The current/previous event array must be 2 dimensional'
+        print('The current/previous event array must be 2 dimensional')
         return False
     elif eveArr.shape[1]!=5:
-        print 'The current/previous event array must have 5 columns'
+        print('The current/previous event array must have 5 columns')
         return False
     try:
         eveArr.astype(float)
     except:
-        print 'The current/previous event array contains [ID,X,Y,Z,Timestamp(s)], which must all be numbers'
+        print('The current/previous event array contains [ID,X,Y,Z,Timestamp(s)], which must all be numbers')
         return False
     return True
 
 # Ensure that the archive directory exists  
 def checkArchDir(main,archDir):
     if not os.path.isdir(archDir):
-        print 'Archive directory does not exist'
+        print('Archive directory does not exist')
         return False
     return True
     
@@ -268,12 +268,12 @@ def checkArchDir(main,archDir):
 def checkStaFile(main,staFileName):
     # First see if the file exists
     if not os.path.isfile(staFileName):
-        print 'Station file does not exist'
+        print('Station file does not exist')
         return False
     try:
         staMeta=np.genfromtxt(staFileName,delimiter=',',dtype=str)
     except:
-        print 'Station file was not in csv format'
+        print('Station file was not in csv format')
         return False
     # If the file was empty or just one line, try and convert to appropriate shape
     if 0 in staMeta.shape:
@@ -282,12 +282,12 @@ def checkStaFile(main,staFileName):
         staMeta=np.array([staMeta])
     # Check the array dimensions
     if staMeta.shape[1]!=4:
-        print 'Station file must have 4 columns'
+        print('Station file must have 4 columns')
         return False
     # Check that the positions are numbers
     try:
         staMeta[:,1:].astype(float)
     except:
-        print 'The station file contains [StationCode,X,Y,Z], X, Y and Z must all be numbers'
+        print('The station file contains [StationCode,X,Y,Z], X, Y and Z must all be numbers')
         return False
     return True

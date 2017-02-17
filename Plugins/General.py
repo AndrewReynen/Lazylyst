@@ -10,7 +10,7 @@ def setPickMode(*args,**kwargs):
     elif 'S' in availPickModes and kwargs['wantMode']=='S':
         return 'S'
     else:
-        print 'Could not change to wanted mode as it is not in "pickTypesMaxCountPerSta"'
+        print('Could not change to wanted mode as it is not in "pickTypesMaxCountPerSta"')
         return curMode
 
 # Swap between highlightint the vertical (P-picking mode) or horizontals (S-picking mode)
@@ -18,8 +18,8 @@ def setTracePenAssign(curMode,curAssign):
     # If highlight not defined, define it
     if 'highlight' not in curAssign.keys():
         curAssign={'highlight':['*Z'],'lowlight':['*1','*2','*E','*N']}
-    # If pickMode is P, highlight vertical
-    if curMode=='P':
+    # If pickMode is P, highlight vertical (also do this by default with no picking mode)
+    if curMode in ['P','']:
         return {'highlight':['*Z'],'lowlight':['*1','*2','*E','*N']}
     # If pickMode is S, highlight the horizontal (toggle between horizontals if already highlighted)
     elif curMode=='S':

@@ -53,7 +53,7 @@ def defaultActions():
 
     'ToggleTracePen':Action(tag='ToggleTracePen',name='setTracePenAssign',
                             path='Plugins.General',passive=True,
-                            trigger=['PickModeP','PickModeS'],
+                            trigger=['PickModeP','PickModeS','PickFileSetToClick','PickFileNext','PickFilePrev'],
                             inputs=['pickMode','tracePenAssign'],returns=['tracePenAssign']),
 
     'PickAdd':Action(tag='PickAdd',name='addClickPick',
@@ -164,18 +164,18 @@ class Action(object):
             modPath=main.hotVar['mainPath'].val+'/'+self.path.replace('.','/')
             funcDir=modPath[:-(len(self.path.split('.')[-1])+1)]
             if not os.path.exists(modPath+'.py'):
-                print self.tag+' related module does not exist at path '+self.path
+                print(self.tag+' related module does not exist at path '+self.path)
                 return
             # Next ensure that this path includes a __init__.py file
             elif not os.path.exists(funcDir+'/__init__.py'):
-                print 'created __init__.py at '+funcDir
+                print('created __init__.py at '+funcDir)
                 initFile=open(funcDir+'/__init__.py','w')
                 initFile.close()
             # Extract the function
             try:
                 func = getattr(importlib.import_module(self.path),self.name)
             except:
-                print 'Action '+self.tag+' did not load from '+self.path+'.'+self.name
+                print('Action '+self.tag+' did not load from '+self.path+'.'+self.name)
                 return
         # Otherwise, grab function from predefined location
         else:
@@ -183,7 +183,7 @@ class Action(object):
                 if self.path=='$main':
                     func=getattr(main,self.name)
             except:
-                print self.tag+' did not load from '+self.path+'.'+self.name
+                print(self.tag+' did not load from '+self.path+'.'+self.name)
                 return
         # Assign the function to the action
         self.func=func
@@ -306,7 +306,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
             if action.passive or action.trigger=='DoubleClick':
                 continue
             if action.trigger.toString()==keyBindText and action.tag!=self.action.tag:
-                print action.tag+' already uses key-bind '+keyBindText
+                print(action.tag+' already uses key-bind '+keyBindText)
                 return
         # Otherwise, update the trigger line edit (trigger value is updated upon close)
         self.actTriggerLineEdit.setText(keyBindText)
@@ -355,7 +355,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # If the user has change from passive to active, remind that this will not be saved...
         # ...unless the trigger value is updated
         if (not self.trigReminder) and (not init):
-            print 'If changing between active and passive, update the trigger value'
+            print('If changing between active and passive, update the trigger value')
             self.trigReminder=True
 
     # Check the tag name to ensure that it doesn't conflict with other actions
@@ -363,7 +363,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         curTag=self.actTagLineEdit.text()
         for tag,action in self.actDict.iteritems():
             if curTag==tag and action.tag!=self.action.tag:
-                print 'This tag is already in use - if left as is changes will not be accepted'
+                print('This tag is already in use - if left as is changes will not be accepted')
                 return False
         return True
         
@@ -374,7 +374,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
             sendFalse=False
             for entry in self.actSelectTriggerList.visualListOrder():
                 if entry not in self.passiveTriggers:
-                    print 'The active trigger tag '+entry+' no longer exists'
+                    print('The active trigger tag '+entry+' no longer exists')
                     sendFalse=True
             if sendFalse:
                 return False
@@ -393,16 +393,16 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # First check to see that the new parameters make sense and the action is to be updated,
         # ... checking that the tag and the trigger are appropriate, also that the timer makes sense
         if self.action.trigger=='DoubleClick':
-            print 'No changes can be made to actions with DoubleClick triggers'
+            print('No changes can be made to actions with DoubleClick triggers')
             return None
         if self.actTagLineEdit.text()=='New action':
-            print 'Action update declined, tag was still default'
+            print('Action update declined, tag was still default')
             return None
         if not self.unqTagName():
-            print 'Action update declined, tag is not unique'
+            print('Action update declined, tag is not unique')
             return None
         if not self.appropTrigger():
-            print 'Action update declined, trigger was not set correctly'
+            print('Action update declined, trigger was not set correctly')
             return None
         if self.activeTimerCheck.isChecked():
             try:
@@ -410,7 +410,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
             except:
                 if float(self.actIntervalLineEdit.text())>0:
                     pass
-                print 'Action update declined, timer interval was not a positive number'
+                print('Action update declined, timer interval was not a positive number')
                 return None
         # Set information from line edits...
         self.action.tag=self.actTagLineEdit.text()
@@ -421,7 +421,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         try:
             optionals=text2Dict(optText)
         except:
-            print 'optionals were not formatted correctly, leaving as blank'
+            print('optionals were not formatted correctly, leaving as blank')
             optionals={}
         self.action.optionals=optionals
         # ...set whether this is an active or passive action
@@ -449,7 +449,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         try:
             self.action.linkToFunction(self.main)
         except:
-            print 'Failed to link '+self.action.tag+' to '+self.action.name+' at '+self.action.path 
+            print('Failed to link '+self.action.tag+' to '+self.action.name+' at '+self.action.path)
         return self.action
         
         

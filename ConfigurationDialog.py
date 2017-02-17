@@ -52,10 +52,10 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
                     action=self.openActionSetup(Action(passive=True,trigger=[]))
             # Skip if no action was selected
             elif curList.currentItem()==None:
-                print 'No action was selected'
+                print('No action was selected')
             # Not allowed to edit any timed active action which is currently in use
             elif curList.currentItem().text() in self.main.qTimers.keys():
-                print 'Not allowed to change any timed active action which is currently in use'
+                print('Not allowed to change any timed active action which is currently in use')
             # Updating an action (Backspace Key -> which is triggered by double click)
             elif curList.key==Qt.Key_Backspace:
                 action=self.openActionSetup(self.act[curList.currentItem().text()])   
@@ -64,7 +64,7 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
                 actTag=curList.currentItem().text()
                 # If this is a locked action, the user cannot delete it
                 if self.act[actTag].locked:
-                    print actTag+' is a built-in action, it cannot be deleted'
+                    print(actTag+' is a built-in action, it cannot be deleted')
                     return
                 # Remove from the list
                 curList.takeItem(curList.currentRow())

@@ -19,7 +19,7 @@ class SaveSource(object):
                          ['pick directory',self.pickDir],
                          ['station file',self.staFile]]:
             if not os.path.exists(path):
-                print 'The '+txt+' does not exist at: '+path
+                print('The '+txt+' does not exist at: '+path)
                 allPathsExist=False
         return allPathsExist
 
@@ -78,7 +78,7 @@ class CsDialog(QtGui.QDialog, Ui_CsDialog):
         source=self.curSource()
         for text in [source.tag,source.archDir,source.pickDir,source.staFile]:
             if text.replace(' ','')=='':
-                print 'Fill in the source information to save'
+                print('Fill in the source information to save')
                 return
         # Add this to the saved sources list
         if source.tag not in [key for key in self.saveSource.keys()]:
