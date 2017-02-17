@@ -63,6 +63,10 @@ def defaultActions():
                         path='Plugins.General',trigger=Qt.Key_4,
                         inputs=['pickSet','pickMode','curTraceSta'],returns=['pickSet']),
 
+    'PickSetDelete':Action(tag='PickSetDelete',name='delPickSet',
+                        path='Plugins.General',trigger=QtGui.QKeySequence('Shift+$'),
+                        inputs=[],returns=['pickSet']),
+
     'PickFileCurDelete':Action(tag='PickFileCurDelete',name='removeCurPickFile',
                         path='Plugins.General',trigger=Qt.Key_Delete,
                         inputs=['curPickFile','pickFiles'],returns=['pickFiles']),
@@ -93,7 +97,7 @@ def defaultActions():
                            
     'SimpleLocate':Action(tag='SimpleLocate',name='simpleLocator',path='Plugins.Locate',
                           passive=True,
-                          trigger=['PickAdd','PickDelete','PickFileCurDelete',
+                          trigger=['PickAdd','PickDelete','PickSetDelete','PickFileCurDelete',
                                    'PickFileNext','PickFilePrev','PickFileSetToClick'],
                           inputs=['pickSet','staMeta','mapCurEve','staSort','sourceTag'],
                           returns=['mapCurEve','traceBgPenAssign','mapStaPenAssign']),

@@ -37,6 +37,10 @@ def delPick(pickSet,pickMode,curSta):
         return np.empty((0,3))
     pickSet=pickSet[np.where((pickSet[:,0]!=curSta)|(pickSet[:,1]!=pickMode))]
     return pickSet
+    
+# Remove all picks from the current pick set
+def delPickSet():
+    return np.empty((0,3))
         
 # Set the current pick file
 def setCurPickFile(curPickFile,pickFiles,nextFile=False,prevFile=False):

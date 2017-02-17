@@ -660,6 +660,11 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 pen,depth=self.chaPenRef[curve.cha]
                 curve.setPen(pen)
                 curve.setZValue(depth)
+                # If width of zero, do not show the curve
+                if pen.widthF()==0:
+                    curve.setVisible(False)
+                else:
+                    curve.setVisible(True)
     
     # Change the color of the trace background
     def updateTraceBackground(self,init=False):

@@ -291,6 +291,9 @@ class TraceCurve(pg.PlotCurveItem):
         self.setData(x=x,y=y,pen=pen)
         self.cha=cha
         self.setZValue(dep)
+        # If width of zero, do not show the curve
+        if pen.widthF()==0:
+            self.setVisible(False)
 
 # Widget which will hold the trace data, and respond to picking keybinds     
 class TraceWidget(pg.PlotWidget):
