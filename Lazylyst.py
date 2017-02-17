@@ -267,7 +267,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Use the previous file ID length, default at 10 if no files present
         zFillLen=10
         if len(seenIDs)>0:
-            zFillLen=len(self.hotVar['pickFiles'].val.split('_')[0])
+            zFillLen=len(self.hotVar['pickFiles'].val[0].split('_')[0])
         newPickFile=str(newID).zfill(zFillLen)+'_'+aTimeStr+'.picks'
         # Add to the picks directory
         newFile=open(self.hotVar['pickDir'].val+'/'+newPickFile,'w')
