@@ -167,7 +167,7 @@ def checkPickFileNames(main,pickFiles):
             continue
         try:
             getTimeFromFileName(aFile)
-            pickFiles[i]=str(int(splitFile[0])).zfill(10)+'_'+splitFile[1]
+            int(splitFile[0])
             continue
         except:
             print(aFile+' does not match format IntegerID_%Y%m%d.%H%M%S.%f.picks')

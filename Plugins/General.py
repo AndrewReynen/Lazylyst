@@ -68,4 +68,19 @@ def goToStaPage(curMapSta,staSort,staPerPage,curPage):
         return '$pass'
     else:
         return int(goToPage)
+        
+# Pan between events
+def goToNextPickFile(curPickFile,pickFiles):
+    # If not pick files to go to, pass
+    if len(pickFiles)==0:
+        return '$pass'
+    # If the current file isn't present, go to the first
+    if curPickFile not in pickFiles:
+        idx=0
+    # Otherwise go to the next in the list
+    else:
+        idx=np.where((pickFiles==curPickFile))[0][0]+1
+        if idx==len(pickFiles):
+            idx=0
+    return pickFiles[idx]
     

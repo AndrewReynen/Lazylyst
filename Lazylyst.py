@@ -21,6 +21,7 @@ from SaveSource import CsDialog
 from fnmatch import fnmatch
 from pyqtgraph import mkPen,mkBrush
 
+
 # Main window class
 class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def __init__(self):
@@ -181,7 +182,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 # Do not do any checks if the user wanted to pass this returns value
                 if str(returnVals[i])=='$pass':
                     continue
-                if self.hotVar[aReturnKey].dataType!=type(returnVals[i]):
+                if not self.testReturnType(self.hotVar[aReturnKey].dataType,type(returnVals[i])):
                     print('Action '+action.tag+' expected variable '+str(self.hotVar[aReturnKey].dataType)+
                            ' for hot variable '+aReturnKey+', got '+str(type(returnVals[i])))
                     skipUpdates=True
@@ -209,7 +210,19 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         else:
             print('For action '+action.tag+' got '+str(len(returnVals))+
                    ' return values, expected '+str(len(action.returns)))
-        
+    
+    # As some variable types are quite similar, allow some to be treated the same...
+    # ... for now just str and np.string_
+    def testReturnType(self,wantType,returnType):
+        # Accepted variations for strings
+        if wantType==str and returnType in [str,np.string_]:
+            return True
+        # All other data types
+        elif wantType==returnType:
+            return True
+        return False
+            
+            
     # Remove a timed action from the queue
     def stopTimedAction(self,action):
         self.qTimers[action.tag].stop()
