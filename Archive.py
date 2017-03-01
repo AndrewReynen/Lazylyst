@@ -35,8 +35,7 @@ def RemoveOddRateTraces(stream):
 
 # Given two timestamps, extract all information...
 # fileTimes contains [startTime,endTime] of the archive files
-def extractDataFromArchive(t1,t2,fileNames,fileTimes,
-                           fillVal=None,wantedStaChas=[['*','*']]):
+def extractDataFromArchive(t1,t2,fileNames,fileTimes,wantedStaChas=[['*','*']]):
     # Return nothing if there is no data
     if len(fileTimes)==0:
         return EmptyStream()
@@ -44,20 +43,22 @@ def extractDataFromArchive(t1,t2,fileNames,fileTimes,
     if t1>fileTimes[-1,1] or t2<fileTimes[0,0]:
         return EmptyStream()
     # Figure out what set of files are wanted
-    firstIdx,secondIdx=np.interp(np.array([t1,t2]),fileTimes[:,0],np.arange(len(fileTimes)),
-                                 left=0,right=len(fileTimes)-1).astype(int)
+    collectArgs=np.where((fileTimes[:,0]<=t2)&(fileTimes[:,1]>=t1))[0]
     stream=EmptyStream()
     # Read in all of the information
-    for aFile in fileNames[firstIdx:secondIdx+1]:
+    for aFile in fileNames[collectArgs]:
         aStream=read(aFile)
         for aSta,aCha in wantedStaChas:
             stream+=aStream.select(station=aSta,channel=aCha)
     # Merge traces which are adjacent
     try:
-        stream.merge(method=1,fill_value=fillVal)
+        stream.merge(method=1)
     except:
         stream=RemoveOddRateTraces(stream)
-        stream.merge(method=1,fill_value=fillVal)
+        stream.merge(method=1)
+    # If any trace has masked values, split
+    if True in [isinstance(tr.data, np.ma.masked_array) for tr in stream]:
+        stream=stream.split()
     # Trim to wanted times
     stream.trim(UTCDateTime(t1),UTCDateTime(t2))
     return stream
