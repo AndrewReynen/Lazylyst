@@ -3,6 +3,7 @@ from PyQt4.QtCore import Qt
 from CustomFunctions import dict2Text, text2Dict
 from CustomPen import Ui_customPenDialog
 from copy import deepcopy
+from future.utils import iteritems
 
 # Default Preferences
 def defaultPreferences(main):
@@ -150,7 +151,7 @@ class LineEditDialog(QtGui.QDialog):
             return None
         # Loop through all values (usually just one, can be more for dictionary)
         if self.dataType==dict:
-            vals=[aVal for key,aVal in val.iteritems()]
+            vals=[aVal for key,aVal in iteritems(val)]
         else:
             vals=[val]
         # ...and check against the built in conditionals

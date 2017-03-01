@@ -1,11 +1,12 @@
 import numpy as np
 from obspy import UTCDateTime
+from future.utils import iteritems
 
 # Convert a string into easy to read text, assumes no lists
 def dict2Text(aDict):  
     # Get all values first as strings
-    keys=np.array([key for key,val in aDict.iteritems()])
-    vals=np.array([str(val) for key,val in aDict.iteritems()])
+    keys=np.array([key for key,val in iteritems(aDict)])
+    vals=np.array([str(val) for key,val in iteritems(aDict)])
     # Sort them alphabetically (better than random atleast)
     argSort=np.argsort(keys)
     vals=vals[argSort]
@@ -24,7 +25,7 @@ def text2Dict(text):
         return {}
     aDict=dict(x.split('=') for x in text.split(','))
     # Check if any of the values represent type other than string
-    for key,val in aDict.iteritems():
+    for key,val in iteritems(aDict):
         # Do not convert numbers to bool
         if val in ['True','False']:
             aDict[key]=bool(val)

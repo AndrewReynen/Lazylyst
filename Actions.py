@@ -2,6 +2,7 @@ from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
 from ActionSetup import Ui_actionDialog
 from CustomFunctions import dict2Text, text2Dict
+from future.utils import iteritems
 import importlib
 import os
 
@@ -132,7 +133,7 @@ def defaultActions():
     
 # Give the passive actions above some default ordering (ie. which is called first)
 def defaultPassiveOrder(actions):
-    order=sorted([act.tag for tag,act in actions.iteritems() if act.passive])
+    order=sorted([act.tag for tag,act in iteritems(actions) if act.passive])
 #    order=['SavePickSetOnNewEve','SimpleLocate'] ## Ensure this includes ALL default passive
     return order
     
@@ -249,7 +250,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         else:
             self.actTriggerLineEdit.setText(self.action.trigger.toString())
         # ...trigger list, use only triggers which are active
-        self.passiveTriggers=[action.tag for key,action in self.actDict.iteritems() if not action.passive]
+        self.passiveTriggers=[action.tag for key,action in iteritems(self.actDict) if not action.passive]
         self.actAvailTriggerList.addItems(sorted(self.passiveTriggers))
         # Set the appropriate radio button on
         if self.action.passive:
@@ -272,12 +273,12 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         self.togglePassiveActive(init=True)
         # Fill in the available inputs and returns...
         # ...hot variables can go into inputs and outputs
-        for key, hotVar in self.hotVar.iteritems():
+        for key, hotVar in iteritems(self.hotVar):
             self.actAvailInputList.addItem(key)
             if hotVar.returnable:
                 self.actAvailReturnList.addItem(key)
         # ...preferences are only allowed as inputs
-        for key, pref in self.pref.iteritems():
+        for key, pref in iteritems(self.pref):
             # ...no need to add colors here (just adds clutter)
             if 'color' in key.lower():
                 continue
@@ -305,7 +306,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         if self.actPassiveRadio.isChecked():
             return
         # If the key-bind is already in use, do not allow update
-        for tag,action in self.actDict.iteritems():
+        for tag,action in iteritems(self.actDict):
             # Only active actions have key-binds (do not need to check passive)
             if action.passive or action.trigger=='DoubleClick':
                 continue
@@ -365,7 +366,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
     # Check the tag name to ensure that it doesn't conflict with other actions
     def unqTagName(self):
         curTag=self.actTagLineEdit.text()
-        for tag,action in self.actDict.iteritems():
+        for tag,action in iteritems(self.actDict):
             if curTag==tag and action.tag!=self.action.tag:
                 print('This tag is already in use - if left as is changes will not be accepted')
                 return False

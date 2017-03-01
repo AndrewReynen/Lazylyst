@@ -1,6 +1,7 @@
 from obspy import Stream as emptyStream
 from CustomFunctions import getTimeFromFileName
 from copy import deepcopy
+from future.utils import iteritems
 import importlib
 import os
 import numpy as np
@@ -69,8 +70,11 @@ class HotVar(object):
     
     # Return a deep copy of the objects value
     def getVal(self):
-        val=deepcopy(self.val)
-        return val
+        # If a list has no entries, return the default (empty list) instead of the deepcopy
+        if self.dataType in [list,type(np.array([0.0]))]:
+            if len(self.val)==0:
+                return initHotVar()[self.tag].val
+        return deepcopy(self.val)
         
     # Call the specified function to update the hot variable value
     def update(self):
@@ -211,13 +215,13 @@ def checkPickSet(main,pickSet):
 # Ensure that the returned pen assignment (for traces) dictionary is holding the right data types
 def checkTracePenAssign(main,penAssign):
     # Check to see that each returned value is a list
-    for key,val in penAssign.iteritems():
+    for key,val in iteritems(penAssign):
         if type(val)!=list:
             print('For all tracePenAssign returned key:value pairs, the value should be a list')
             return False
         # Each entry (channel) in the list should be a string, and <= 3 characters long
         for entry in val:
-            if type(entry) not in [str,np.string_]:
+            if type(entry) not in [str,np.string_,np.str_]:
                 print('Returned tracePenAssign, lists should only contain strings, got type '+str(type(entry)))
                 return False
             elif len(entry)>3:
@@ -228,13 +232,13 @@ def checkTracePenAssign(main,penAssign):
 # Ensure that the returned pen assignment (for stations) dictionary is holding the right data types
 def checkStaColAssign(main,colAssign):
     # Check to see that each returned value is a list
-    for key,val in colAssign.iteritems():
+    for key,val in iteritems(colAssign):
         if type(val)!=list:
             print('For all traceBgPenAssign/mapStaPenAssign returned key:value pairs, the value should be a list')
             return False
         # Each entry (station) in the list should be a string, and <= 5 characters long
         for entry in val:
-            if type(entry) not in [str,np.string_]:
+            if type(entry) not in [str,np.string_,np.str_]:
                 print('Returned traceBgPenAssign/mapStaPenAssign, lists should only contain strings, got type '+str(type(entry)))
                 return False
             elif len(entry)>5:

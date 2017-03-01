@@ -1,9 +1,13 @@
 import numpy as np
-from scandir import scandir
 from obspy import read, UTCDateTime
 from obspy import Stream as EmptyStream
 from PyQt4 import QtGui, QtCore
 import os
+import sys
+if sys.version_info[0]==2:
+    from scandir import scandir
+else:
+    from os import scandir
 
 # If the stream was not able to be merged, check to see if multiple sampling rates on the same channel...
 # ... and remove the ones with the uncommon sampling rate
@@ -127,7 +131,7 @@ def getArchiveAvail(archDir,acceptFileTypes=['seed','miniseed','mseed']):
     checkIdxs=np.array(checkIdxs)
     # ...as well as which files were not previously present (load)
     if len(checkIdxs)==0:
-        loadIdxs=range(len(curMeta))
+        loadIdxs=list(range(len(curMeta)))
     else:
         loadIdxs=[i for i in range(len(curMeta)) if i not in checkIdxs[:,0]]
     # Set the current time to be the previous times (where present) by default

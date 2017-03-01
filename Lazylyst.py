@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.0.4
+# Version 0.1.0
 import sys
 import logging
 import sip
@@ -19,8 +19,8 @@ from Archive import getArchiveAvail, extractDataFromArchive
 from ConfigurationDialog import ConfDialog
 from SaveSource import CsDialog
 from fnmatch import fnmatch
+from future.utils import iteritems
 from pyqtgraph import mkPen,mkBrush
-
 
 # Main window class
 class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
@@ -37,7 +37,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def applyPreferences(self):
         # The pick color preferences are generated here if not already present...
         # ...so iterate through static version of prefs
-        curPrefs=[aPref for key, aPref in self.pref.iteritems()]
+        curPrefs=[aPref for key, aPref in iteritems(self.pref)]
         for aPref in curPrefs:
             aPref.update(self,init=True)
         
@@ -80,7 +80,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             return
         # Loop through all actions and see if one is activated...
         # ... use the original set (an action may be added part way through, so can mess with the loop)
-        actions=[action for key,action in self.act.iteritems() if action.trigger!='DoubleClick']
+        actions=[action for key,action in iteritems(self.act) if action.trigger!='DoubleClick']
         for action in actions:
             if not action.passive and action.trigger.toString()==keyname:
                 self.processAction(action)
@@ -253,6 +253,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                             ['staFile',source.staFile]]:
                 self.hotVar[key].val=val
                 self.hotVar[key].update()
+            ## Reset some source specific hot variables ##
         else:
             print('Source update skipped')
 
@@ -488,7 +489,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                     if sta in visStas:
                         self.staWidgets[visStas.index(sta)].removePicks(pickType,len(potIdxs)-pickCountMax)
         # Remove the picks from the hot variable pickSet
-        keepIdxs=np.array([i for i in range(len(self.hotVar['pickSet'].val)) if i not in delIdxs])
+        keepIdxs=np.array([i for i in np.arange(len(self.hotVar['pickSet'].val)) if i not in delIdxs])
         self.hotVar['pickSet'].val=self.hotVar['pickSet'].val[keepIdxs]
         
     # Function to handle updates to the hot variable pickSet (assumes all picks have changed)
@@ -598,7 +599,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # As new channels could have been added, update the pen reference
         self.chaPenRef=self.getStreamPens()
         # Clear away all previous curves, and references to this station
-        for i in range(len(self.staWidgets)):
+        for i in np.arange(len(self.staWidgets)):
             for curve in self.staWidgets[i].traceCurves:
                 self.staWidgets[i].removeItem(curve)
             self.staWidgets[i].traceCurves=[]
@@ -768,7 +769,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             self.staWidgets[-1].doubleClickSignal.connect(self.traceDoubleClickEvent)
             # Color the axes properly
             self.staWidgets[-1].getPlotItem().getAxis('left').setPen(axisPen)
-        self.updatePage()
+        # If Lazylyst is initiating (first load), no need to update the page
+        if not init:
+            self.updatePage()
         
     # Set the archive availability
     def updateArchive(self):
@@ -819,6 +822,11 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         elif len(self.hotVar['staMeta'].val.shape)==1:
             self.hotVar['staMeta'].val=np.array([self.hotVar['staMeta'].val])
         self.updateMapStations(init=True)
+        # Reset any additional map related visuals
+        defaultHot=initHotVar()
+        for key in ['mapCurEve','mapPrevEve']:
+            self.hotVar[key].val=defaultHot[key].val
+            self.hotVar[key].update()
         
     # Update the selected (double clicked) station on the map view
     def updateMapSelectSta(self):
@@ -926,7 +934,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                             dialog='ColorDialog',func=self.updatePage)
             # If Lazylyst is starting, still have to load in the previous pick colors (if set already)
             if init:
-                prefVals=self.setPref.value('prefVals', {})
+                prefVals=self.setPref.value('prefVals',{})
                 if tag in [key for key in prefVals.keys()]:
                     self.pref[tag].val=prefVals[tag]
                 # Give some default colors, to the default pick types
@@ -982,11 +990,11 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Get this scripts path, as functions will be relative to this
         mainPath=os.path.dirname(os.path.realpath(__file__))
         self.hotVar['mainPath'].val=mainPath
-        for key,hotVar in self.hotVar.iteritems():
+        for key,hotVar in iteritems(self.hotVar):
             hotVar.linkToFunction(self)
         # Get all values from settings
         self.setGen=QSettings(mainPath+'/setGen.ini', QSettings.IniFormat)
-        self.setAct= QSettings(mainPath+'/setAct.ini', QSettings.IniFormat)
+        self.setAct=QSettings(mainPath+'/setAct.ini', QSettings.IniFormat)
         self.setPref=QSettings(mainPath+'/setPref.ini', QSettings.IniFormat)
         self.setSource=QSettings(mainPath+'/setSource.ini', QSettings.IniFormat)
         # UI size
@@ -997,11 +1005,11 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         if self.actPassiveOrder==None:
             self.actPassiveOrder=[]
         # ...link all actions to their appropriate functions
-        for key,action in self.act.iteritems():
+        for key,action in iteritems(self.act):
             action.linkToFunction(self)
         # Preferences (start)
         self.pref=defaultPreferences(self)
-        prefVals=self.setPref.value('prefVals', {})
+        prefVals=self.setPref.value('prefVals',{})
         # Preferences (finish)
         for aKey in prefVals.keys():
             # Skip any preferences which are generated a bit later
@@ -1009,7 +1017,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 continue
             self.pref[aKey].val=prefVals[aKey]
         # Saved sources
-        self.saveSource=self.setSource.value('savedSources', {})
+        self.saveSource=self.setSource.value('savedSources',{})
         # Create empty variables
         self.staWidgets=[]
         self.qTimers={}
@@ -1060,7 +1068,7 @@ class XStream(QtCore.QObject):
         return -1
     def write( self, msg ):
         if ( not self.signalsBlocked() ):
-            self.messageWritten.emit(unicode(msg))
+            self.messageWritten.emit(str(msg))
     @staticmethod
     def stdout():
         if ( not XStream._stdout ):
