@@ -6,6 +6,8 @@ def streamFilter(*args,**kwargs):
     if 'sepChas' in kwargs.keys():
         doSepChas=kwargs['sepChas']
         kwargs.pop('sepChas')
+    else:
+        doSepChas=False
     # If want to return the raw, or derivative...
     stream=args[0]
     if kwargs['type']=='raw':

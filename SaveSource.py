@@ -87,17 +87,33 @@ class CsDialog(QtGui.QDialog, Ui_CsDialog):
         
     # Function to open a dialog and get the path name
     def getPathName(self,thisLineEdit):
-        name=str(QtGui.QFileDialog.getExistingDirectory(self, "Select Folder"))
-        name=name.replace('\\','/')
+        # Check which line was clicked
         if thisLineEdit=='arch':
-            self.csArchiveLineEdit.setText(name)
+            line=self.csArchiveLineEdit
         else:
-            self.csPickLineEdit.setText(name)
+            line=self.csPickLineEdit
+        # If the value is already set, start from there
+        if os.path.isdir(line.text()):
+            startFolder=line.text()
+        else:
+            startFolder=os.path.dirname(os.path.realpath(__file__))
+        name=str(QtGui.QFileDialog.getExistingDirectory(self, "Select Folder",startFolder))
+        name=name.replace('\\','/')
+        # If a folder was selected, update the line edit
+        if name!='' and os.path.isdir(name):
+            line.setText(name)
             
     # Function to open a dialog and get the file name
     def getFileName(self):
-        name=str(QtGui.QFileDialog.getOpenFileName(self, "Select File"))
-        self.csStationLineEdit.setText(name)
+        # Start the dialog from the previously selected file (if it exists)
+        if os.path.isfile(self.csStationLineEdit.text()):
+            startFolder=os.path.dirname(os.path.realpath(self.csStationLineEdit.text()))
+        else:
+            startFolder=os.path.dirname(os.path.realpath(__file__))
+        name=str(QtGui.QFileDialog.getOpenFileName(self, "Select File",startFolder))
+        # If a folder was selected, update the line edit
+        if name!='' and os.path.isfile(name):
+            self.csStationLineEdit.setText(name)
         
     # Create a source object from the line edit
     def curSource(self):
