@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 # Version 0.1.0
+# Copyright Andrew.M.G.Reynen
 import sys
 import logging
 import sip
