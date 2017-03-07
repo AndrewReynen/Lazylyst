@@ -33,7 +33,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.applyPreferences()
         self.setFunctionality()
         self.introduction()
-    
+     
     # Go through all preferences, and call their update functions
     def applyPreferences(self):
         # The pick color preferences are generated here if not already present...
@@ -54,7 +54,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Give ability to the archive displays
         self.archiveList.graph=self.archiveEvent
         self.archiveList.graph.addNewEventSignal.connect(self.addPickFile)
-        self.archiveList.clicked.connect(self.setFocus) # Do not let it steal focus from keybinds
         self.archiveList.doubleClicked.connect(self.archiveListDoubleClickEvent)
         # Give ability to the map
         self.mapWidget.staDblClicked.connect(self.mapDoubleClickEvent)
@@ -67,6 +66,22 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def scrollTextOut(self):
         scrollBar=self.textOutBrowser.verticalScrollBar()
         scrollBar.setValue(scrollBar.maximum())
+        
+    # Toggle a dock on or off
+    def toggleDock(self,**kwargs):
+        dock=[self.archiveDock,self.mapDock,self.textOutDock][['archive','map','stdout'].index(kwargs['whichDock'])]
+        if dock.isHidden():
+            dock.show()
+        else:
+            dock.hide()
+            
+    # Reload plugins from the specified modules
+    def reloadPlugins(self):
+        for key,action in iteritems(self.act):
+            if action.path=='$main':
+                continue
+            action.linkToFunction(self,reloadMod=True)
+        print('Reloaded plugins')
     
     # Report the current keybinds for the configuration and change source actions
     def introduction(self):
@@ -239,14 +254,19 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     # Open the change source window
     def openChangeSource(self):
         self.dialog=CsDialog(self.hotVar,self.saveSource)
-        # Extract the wanted source
+        # Extract the wanted source and activate (does not require to be a saved source)
         if self.dialog.exec_():
-            self.hotVar['sourceTag'].val=self.dialog.returnSource().tag
-            self.hotVar['sourceTag'].update()
+            source=self.dialog.returnSource()
+            self.hotVar['sourceTag'].val=source.tag
+            self.setLazySource(source)
     
-    # Update the source to a specific source tag
+    # Update the source to a specific source tag, given via hot variable update
     def updateSource(self):
         source=self.saveSource[self.hotVar['sourceTag'].val]
+        self.setLazySource(source)
+
+    # Set the specified source
+    def setLazySource(self,source):
         # If the files exist, update the hot variables
         if source.pathExist():
             for key,val in [['archDir',source.archDir],
@@ -254,7 +274,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                             ['staFile',source.staFile]]:
                 self.hotVar[key].val=val
                 self.hotVar[key].update()
-            ## Reset some source specific hot variables ##
         else:
             print('Source update skipped')
 
@@ -644,6 +663,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             widget.getPlotItem().getAxis('bottom').setPen(pen)
             widget.getPlotItem().getAxis('left').setPen(pen)
         self.mapWidget.setPen(pen)
+        # Change the hovered station label color
+        self.mapWidget.hoverStaItem.setColor(col)
         # Change pick file title color
         title=self.timeWidget.getPlotItem().titleLabel.text
         self.timeWidget.getPlotItem().titleLabel.setText(title,color=col)

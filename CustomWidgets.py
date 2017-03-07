@@ -200,6 +200,16 @@ class ArchiveListWidget(QtGui.QListWidget):
         args=np.array([self.indexFromItem(self.item(i)).row() for i in range(self.count())])
         return [str(aFile) for aFile in aList[np.argsort(args)]]
         
+    # Ensure that key presses are sent to the widget which the mouse is hovering over
+    def enterEvent(self,ev):
+        super(ArchiveListWidget, self).enterEvent(ev)
+        self.setFocus()
+        
+    # Exit focus when the list widget is left
+    def leaveEvent(self,ev):
+        super(ArchiveListWidget, self).leaveEvent(ev)
+        self.clearFocus()
+        
 # Custom axis labels for the time widget        
 class TimeAxisItem(pg.AxisItem):
     def __init__(self, *args, **kwargs):
@@ -537,17 +547,29 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.selectSta=None # Which station is currently selected
         self.curEveItem=None # The current event scatter item
         self.prevEveItem=None # The previous event scatter item 
+        # Add in the hovered over station label
+        self.hoverStaItem=pg.TextItem(text='',color=(255,255,255),anchor=(0.5,1))
+        self.hoverStaItem.hide()
+        self.map.addItem(self.hoverStaItem)
         
-    # Figure out which station was closest to the clicked position, and emit the station name
+    # Get the station which was closest to the double click event, and set the selected station
     def staClicked(self,staScat):
         cPos=staScat.clickPos
-        selPos=np.array([[point.pos().x(),point.pos().y()] for point in staScat.ptsClicked])
-        selPoint=staScat.ptsClicked[np.argmin(np.sum((selPos-cPos)**2))]
-        self.selectSta=str(self.stas[np.where(staScat.points()==selPoint)[0][0]])
+        self.selectSta=self.getSelectSta(cPos,staScat.ptsClicked)
         self.staDblClicked.emit()
+        
+    # Function to return the nearest station to the current moused point
+    def getSelectSta(self,mousePos,nearPoints):
+        selPos=np.array([[point.pos().x(),point.pos().y()] for point in nearPoints])
+        selPoint=nearPoints[np.argmin(np.sum((selPos-mousePos)**2))]
+        return str(self.stas[np.where(self.staItem.points()==selPoint)[0][0]])
         
     # Load the new station meta data
     def loadStaMeta(self,staMeta,colorAssign,init):
+        # Enable the autoscaling temporarily
+        self.map.vb.enableAutoRange()
+        # Hide the hovered station label
+        self.hoverStaItem.hide()
         # Clear away the old station spots
         if self.staItem!=None:
             self.map.removeItem(self.staItem)
@@ -565,13 +587,34 @@ class MapWidget(pg.GraphicsLayoutWidget):
             color=colorAssign[sta]
             brushArr.append(pg.mkBrush(color.red(),color.green(),color.blue(),200))
         staScatter = CustScatter(size=8,symbol='t1',pen=pg.mkPen(None))
+        # Add in the points
         if len(staMeta)!=0:
             staScatter.addPoints(x=staMeta[:,1], y=staMeta[:,2], brush=brushArr)
         # Give some clicking ability to the stations
         staScatter.dblClicked.connect(self.staClicked)
+        self.scene().sigMouseMoved.connect(self.onHover)
         # Add the station scatter items
         self.map.addItem(staScatter)
         self.staItem=staScatter
+        # Disable autoscaling the for map items
+        self.map.vb.disableAutoRange() 
+    
+    # See which station is being hovered over
+    def onHover(self,pixPoint):
+        if len(self.stas)==0:
+            return
+        # Get the nearby points
+        mousePoint=self.staItem.mapFromScene(pixPoint)
+        nearPoints = self.staItem.pointsAt(mousePoint)
+        # Grab the nearest ones station code and update the 
+        if len(nearPoints)==0:
+            self.hoverStaItem.hide()
+        else:
+            mousePos=np.array([mousePoint.x(),mousePoint.y()])
+            sta=self.getSelectSta(mousePos,nearPoints)
+            self.hoverStaItem.setText(sta)
+            self.hoverStaItem.setPos(mousePoint)
+            self.hoverStaItem.show()
         
     # Load a set of event points
     def loadEvePoints(self,eveMeta,eveType,QCol):
@@ -600,7 +643,6 @@ class MapWidget(pg.GraphicsLayoutWidget):
         for item in self.items():
             if type(item)==pg.graphicsItems.AxisItem.AxisItem:
                 item.setPen(pen)
-        
 
 ## For when a QWidget can be promoted to a DockArea/Dock in qtDesigner ##
 ## Testing the dock area class

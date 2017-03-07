@@ -4,6 +4,7 @@ from ActionSetup import Ui_actionDialog
 from CustomFunctions import dict2Text, text2Dict
 from future.utils import iteritems
 import importlib
+import sys
 import os
 
 # Default Actions
@@ -19,6 +20,18 @@ def defaultActions():
 
     'CloseLazylyst':Action(tag='CloseLazylyst',name='passAction',
                            path='$main',trigger='DoubleClick',locked=True),
+                           
+    'ToggleDockArchive':Action(tag='ToggleDockArchive',name='toggleDock',optionals={'whichDock':'archive'},
+                           path='$main',trigger=QtGui.QKeySequence('F1'),locked=True),
+                           
+    'ToggleDockMap':Action(tag='ToggleDockMap',name='toggleDock',optionals={'whichDock':'map'},
+                           path='$main',trigger=QtGui.QKeySequence('F2'),locked=True),
+
+    'ToggleDockStdout':Action(tag='ToggleDockStdout',name='toggleDock',optionals={'whichDock':'stdout'},
+                           path='$main',trigger=QtGui.QKeySequence('F3'),locked=True),
+
+    'ReloadPlugins':Action(tag='ReloadPlugins',name='reloadPlugins',
+                           path='$main',trigger=QtGui.QKeySequence('F5'),locked=True),
                       
     'PageNext':Action(tag='PageNext',name='tabCurPage',
                       path='$main',optionals={'nextPage':True},
@@ -162,7 +175,7 @@ class Action(object):
             self.trigger=QtGui.QKeySequence(self.trigger)
     
     # When loading the previous settings, must link the action to its functions again
-    def linkToFunction(self,main):
+    def linkToFunction(self,main,reloadMod=False):
         # If the path does not relate to already defined function locations
         if self.path not in ['$main']:
             # First check to see that the specified functions folder exists
@@ -178,7 +191,14 @@ class Action(object):
                 initFile.close()
             # Extract the function
             try:
-                func = getattr(importlib.import_module(self.path),self.name)
+                mod=importlib.import_module(self.path)
+                # Force reloading of the module if wanted
+                if reloadMod:
+                    if sys.version_info[0]==2:
+                        reload(mod)
+                    else:
+                        importlib.reload(mod)
+                func=getattr(mod,self.name)
             except:
                 print('Action '+self.tag+' did not load from '+self.path+'.'+self.name)
                 return

@@ -27,17 +27,20 @@ def text2Dict(text):
     # Check if any of the values represent type other than string
     for key,val in iteritems(aDict):
         # Do not convert numbers to bool
-        if val in ['True','False']:
-            aDict[key]=bool(val)
+        if val=='True':
+            aDict[key]=True
+        elif val=='False':
+            aDict[key]=False
         # Otherwise see if it is a number
-        try:
-            if '.' in val:
-                aDict[key]=float(val)
-            else:
-                aDict[key]=int(val)
-        # If none of the above, leave as a string
-        except:
-            continue
+        else:
+            try:
+                if '.' in val:
+                    aDict[key]=float(val)
+                else:
+                    aDict[key]=int(val)
+            # If none of the above, leave as a string
+            except:
+                continue
     return aDict
     
 # Return the UTCDateTime from the forced file naming convention
