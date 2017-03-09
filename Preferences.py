@@ -9,39 +9,59 @@ from future.utils import iteritems
 def defaultPreferences(main):
     pref={
     'staPerPage':Pref(tag='staPerPage',val=6,dataType=int,
-                      func=main.updateStaPerPage,condition={'bound':[1,30]}),
-    'evePreTime':Pref(tag='evePreTime',val=-30,dataType=float),
-    'evePostTime':Pref(tag='evePostTime',val=60,dataType=float),
+                      func=main.updateStaPerPage,condition={'bound':[1,30]},
+                      tip='Number of stations (trace widgets) to display on each page'),
+    'evePreTime':Pref(tag='evePreTime',val=-30,dataType=float,
+                      tip='Time in seconds prior to the selected pick file names time to grab data'),
+    'evePostTime':Pref(tag='evePostTime',val=60,dataType=float,
+                      tip='Time in seconds after to the selected pick file names time to grab data'),
     'eveIdGenStyle':Pref(tag='eveIdGenStyle',val='next',dataType=str,
-                         condition={'isOneOf':['fill','next']}),
+                         condition={'isOneOf':['fill','next']},
+                         tip='Style used to generate a new empty pick files ID (when double clicking the archive event widget)'),
     'eveSortStyle':Pref(tag='eveSortStyle',val='time',dataType=str,
-                        func=main.updateEveSort,condition={'isOneOf':['id','time']}),
+                        func=main.updateEveSort,condition={'isOneOf':['id','time']},
+                        tip='How the archive list widget is sorted, also sorts hot variable pickFiles and pickTimes'),
     'pickTypesMaxCountPerSta':Pref(tag='pickTypesMaxCountPerSta',val={'P':1,'S':1},dataType=dict,
-                                   func=main.updatePickColorPrefs,condition={'bound':[1,999]}),
+                                   func=main.updatePickColorPrefs,condition={'bound':[1,999]},
+                                   tip='Max number of picks of a given phase type allowed on any individual trace widget'),
     'defaultColorText':Pref(tag='defaultColorText',val=14474460,dataType=int,
-                                dialog='ColorDialog',func=main.updateTextColor),
+                            dialog='ColorDialog',func=main.updateTextColor,
+                            tip='Color of all axis and label text'),
     'defaultColorTraceBg':Pref(tag='defaultColorTraceBg',val=0,dataType=int,
-                                dialog='ColorDialog',func=main.updateTraceBackground),
+                               dialog='ColorDialog',func=main.updateTraceBackground,
+                               tip='Default background color of trace widget background,'+
+                               ' can be overwritten by hot variable "traceBgPenAssign"'),
     'defaultColorTimeBg':Pref(tag='defaultColorTimeBg',val=0,dataType=int,
-                                dialog='ColorDialog',func=main.updateTimeBackground),
+                              dialog='ColorDialog',func=main.updateTimeBackground,
+                              tip='Background color of the time widget'),
     'defaultColorMapBg':Pref(tag='defaultColorMapBg',val=0,dataType=int,
-                                dialog='ColorDialog',func=main.updateMapBackground),
+                             dialog='ColorDialog',func=main.updateMapBackground,
+                             tip='Background color of the map widget'),
     'defaultColorMapSta':Pref(tag='defaultColorMapSta',val=16777215,dataType=int,
-                                dialog='ColorDialog',func=main.updateMapStations),
+                              dialog='ColorDialog',func=main.updateMapStations,
+                              tip='Default color of the station triangles on the map widget,'+
+                               ' can be overwritten by hot variable "mapStaPenAssign"'),
     'defaultColorMapCurEve':Pref(tag='defaultColorMapCurEve',val=16776960,dataType=int,
-                                dialog='ColorDialog',func=main.updateMapCurEveColor),
+                                 dialog='ColorDialog',func=main.updateMapCurEveColor,
+                                 tip='Color of the current event points on the map widget'),
     'defaultColorMapPrevEve':Pref(tag='defaultColorMapPrevEve',val=0,dataType=int,
-                                dialog='ColorDialog',func=main.updateMapPrevEveColor),
+                                  dialog='ColorDialog',func=main.updateMapPrevEveColor,
+                                  tip='Color of the previous event points on the map widget'),
     'archiveColorBackground':Pref(tag='archiveColorBackground',val=0,dataType=int,
-                                dialog='ColorDialog',func=main.updateArchiveBackground),
+                                  dialog='ColorDialog',func=main.updateArchiveBackground,
+                                  tip='Background color of the archive event and archive span widgets'),
     'archiveColorAvail':Pref(tag='archiveColorAvail',val=65280,dataType=int,
-                                dialog='ColorDialog',func=main.updateArchiveAvailColor),
+                                dialog='ColorDialog',func=main.updateArchiveAvailColor,
+                                tip='Color of the data availability lines in the archive span widget'),
     'archiveColorSpan':Pref(tag='archiveColorSpan',val=3289800,dataType=int,
-                                dialog='ColorDialog',func=main.updateArchiveSpanColor),
-    'archiveColorEve':Pref(tag='archiveColorEve',val=65280,dataType=int,
-                                dialog='ColorDialog',func=main.updateArchiveEveColor),
+                                dialog='ColorDialog',func=main.updateArchiveSpanColor,
+                                tip='Color of the span select in the archive span widget'),
+    'archiveColorEve':Pref(tag='archiveColorEve',val=135,dataType=int,
+                                dialog='ColorDialog',func=main.updateArchiveEveColor,
+                                tip='Color of events not currently selected in the archive event widget'),
     'archiveColorSelect':Pref(tag='archiveColorSelect',val=16711680,dataType=int,
-                                dialog='ColorDialog',func=main.updateArchiveEveColor),
+                              dialog='ColorDialog',func=main.updateArchiveEveColor,
+                              tip='Color of the currently selected event in the archive event widget'),
     'customPen':Pref(tag='customPen',val={'default':[16777215,1.0,0.0],
                                           'noStaData':[3289650,1.0,0.0],
                                           'noTraceData':[8224125,1.0,0.0],
@@ -49,7 +69,8 @@ def defaultPreferences(main):
                                           'poorMap':[16711680,1.0,0.0],
                                           'highlight':[255,1.0,6.0],
                                           'lowlight':[13158600,0.3,3.0],},dataType=dict,
-                    dialog='CustomPenDialog',func=main.updateCustomPen),
+                    dialog='CustomPenDialog',func=main.updateCustomPen,
+                    tip='Defines the pen values: tag, color, width, and depth (in/out position) referenced by various hot variables'),
     }
     return pref
 
@@ -57,13 +78,14 @@ def defaultPreferences(main):
 class Pref(object):
     def __init__(self,tag=None,val=None,dataType=str,
                  dialog='LineEditDialog',
-                 func=None,condition={}):
+                 func=None,condition={},tip=''):
         self.tag=tag # The preference key, and user visible name
         self.val=val # The preference value
         self.dataType=dataType # What kind of data is expected upon update
         self.dialog=dialog # The dialog which will pop up to return a value
         self.func=func # Function which is called on successful updates
-        self.condition=condition # Key-word conditionals (see "LineEditDialog" in this file)    
+        self.condition=condition # Key-word conditionals (see "LineEditDialog" in this file) 
+        self.tip=tip # Short description of the preference
     
     # Return a deep copy of the objects value
     def getVal(self):

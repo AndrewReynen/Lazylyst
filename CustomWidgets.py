@@ -129,11 +129,32 @@ class ArchiveEventWidget(pg.PlotWidget):
         self.pltItem.hideAxis('bottom')
         self.pltItem.hideButtons()
         # Give some x-limits (do not go prior/after to 1970/2200)
-        self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
+        self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp,yMin=-0.3,yMax=1.3)
         # Disable all panning and zooming
         self.pltItem.vb.setMouseEnabled(x=False,y=False)
         self.curEveLine=None # For the highlighted event
         self.otherEveLine=None # For all other events
+        # Give some text upon hovering
+        self.scene().sigMouseMoved.connect(self.onHover)
+        self.hoverTimeItem=pg.TextItem(text='',anchor=(0.5,1))
+        self.hoverTimeItem.setZValue(5)
+        self.hoverTimeItem.hide()
+        self.addItem(self.hoverTimeItem)
+        
+    # Update the mouse position text
+    def onHover(self,pixPoint):
+        mousePoint=self.pltItem.vb.mapSceneToView(pixPoint)
+        self.hoverTimeItem.setText(str(UTCDateTime(Decimal(mousePoint.x()))))
+        t1,t2=self.getPlotItem().vb.viewRange()[0]
+        if t2<=1:
+            return
+        self.hoverTimeItem.setPos(t1+(t2-t1)*0.5,0)
+        self.hoverTimeItem.show()
+        
+    # Turn off the time when not hovering
+    def leaveEvent(self,ev):
+        super(ArchiveEventWidget, self).leaveEvent(ev)
+        self.hoverTimeItem.hide()
     
     # Scale to where ever the archiveSpan has selected
     def updateXRange(self,linkWidget):
@@ -273,11 +294,13 @@ class TimeWidget(pg.PlotWidget):
         # Give some x-limits (do not go prior/after to 1970/2200)
         self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
         self.getPlotItem().vb.setMouseEnabled(y=False,x=False)
+        # Turn off all interaction
+        self.setEnabled(False)
     
     # Null any built in hover actions
     def enterEvent(self,event):
         return
-    
+        
     def leaveEvent(self,event):
         return
     
@@ -548,7 +571,7 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.curEveItem=None # The current event scatter item
         self.prevEveItem=None # The previous event scatter item 
         # Add in the hovered over station label
-        self.hoverStaItem=pg.TextItem(text='',color=(255,255,255),anchor=(0.5,1))
+        self.hoverStaItem=pg.TextItem(text='',anchor=(0.5,1))
         self.hoverStaItem.hide()
         self.map.addItem(self.hoverStaItem)
         
@@ -643,6 +666,54 @@ class MapWidget(pg.GraphicsLayoutWidget):
         for item in self.items():
             if type(item)==pg.graphicsItems.AxisItem.AxisItem:
                 item.setPen(pen)
+                
+# Widget to hold raster information for plotting
+class ImageWidget(pg.PlotWidget): 
+
+    def __init__(self, parent=None):
+        super(ImageWidget, self).__init__(parent)        
+        self.pltItem=self.getPlotItem()
+        self.pltItem.setMenuEnabled(enableMenu=False)
+        # Speed up the panning and zooming
+        self.pltItem.setClipToView(True)
+        # Turn off the auto ranging
+        self.pltItem.vb.disableAutoRange()
+        # Only show the left axis
+        self.pltItem.hideAxis('bottom')
+        self.pltItem.hideButtons()
+        self.pltItem.getAxis('left').setWidth(70)
+        # Give some x-limits (do not go prior/after to 1970/2200)
+        self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
+        # No y-axis panning or zooming allowed
+        self.pltItem.vb.setMouseEnabled(y=False)
+        # Create a blank image item
+        self.imageItem=pg.ImageItem()
+        self.addItem(self.imageItem)
+        self.prevPosX,self.prevScaleX=0,1
+        
+    # Update the image on this widget
+    def loadImage(self,imgDict):
+        self.imageItem.setImage(imgDict['data'])
+        # Set position and scale of image...
+        diff=imgDict['t0']-self.prevPosX
+        self.imageItem.scale(self.prevScaleX/imgDict['sps'],1)
+        self.imageItem.translate(diff*imgDict['sps'], 0)
+        self.prevPosX+=diff
+        self.prevScaleX=imgDict['sps']
+        # Set the coloring
+        lut=self.getLUT() 
+        self.imageItem.setLookupTable(lut)
+        # Set Y-limit to bound the image
+        self.setYRange(0,imgDict['data'].shape[1],padding=0.0)
+    
+    # Get the look-up-table (color map) 
+    def getLUT(self):
+        pos = np.array([0.0, 0.5, 1.0])
+        color = np.array([[0,0,0,255], [255,128,0,255], [255,255,0,255]], dtype=np.ubyte)
+        aMap = pg.ColorMap(pos, color)
+        lut = aMap.getLookupTable(0.0, 1.0, 256)
+        return lut
+        
 
 ## For when a QWidget can be promoted to a DockArea/Dock in qtDesigner ##
 ## Testing the dock area class

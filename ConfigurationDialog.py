@@ -28,9 +28,15 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
     
     # Load in all of the lists from previous state
     def loadLists(self):
-        self.confPrefList.addItems([key for key in self.pref.keys()])
         self.confActiveList.addItems([key for key in self.act.keys() if not self.act[key].passive])
         self.confPassiveList.addItems(self.main.actPassiveOrder)
+        # Give tips for the preferences
+        for key in self.pref.keys():
+            item=QtGui.QListWidgetItem()
+            item.setText(key)
+            item.setToolTip(self.pref[key].tip)
+            self.confPrefList.addItem(item)
+#        self.confPrefList.addItems([key for key in self.pref.keys()])
         
     # Function to handle calls to the active and passive lists
     ## May want to split this up... getting pretty rediculous ##

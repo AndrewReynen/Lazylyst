@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.1.1
+# Version 0.1.2
 # Copyright Andrew.M.G.Reynen
 import sys
 import logging
@@ -29,10 +29,16 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         QtGui.QMainWindow.__init__(self)
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
+        self.tweakUi()
         self.loadSettings()
         self.applyPreferences()
         self.setFunctionality()
         self.introduction()
+    
+    # Update UI for the few commands not captured in Qt Designer
+    def tweakUi(self):
+        self.traceLayout.setContentsMargins(0,0,0,0)
+        self.timeImageLayout.setContentsMargins(0,0,0,0)
      
     # Go through all preferences, and call their update functions
     def applyPreferences(self):
@@ -57,6 +63,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.archiveList.doubleClicked.connect(self.archiveListDoubleClickEvent)
         # Give ability to the map
         self.mapWidget.staDblClicked.connect(self.mapDoubleClickEvent)
+        # Link the image axis to the time axis
+        self.imageWidget.setXLink('timeAxis')
         # Allow stdout to be sent to the Trace Log
         XStream.stdout().messageWritten.connect(self.textOutBrowser.insertPlainText)
         XStream.stderr().messageWritten.connect(self.textOutBrowser.insertPlainText)
@@ -67,12 +75,19 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         scrollBar=self.textOutBrowser.verticalScrollBar()
         scrollBar.setValue(scrollBar.maximum())
         
-    # Toggle a dock on or off
-    def toggleDock(self,**kwargs):
-        dock=[self.archiveDock,self.mapDock,self.textOutDock][['archive','map','stdout'].index(kwargs['whichDock'])]
+    # Toggle the "optional" widgets (map, archive, stdout, and image views) on or off
+    def toggleWidget(self,**kwargs):
+        dock=[self.archiveDock,self.mapDock,self.textOutDock,
+              self.imageWidget][['archive','map','stdout','image'].index(kwargs['whichWidget'])]
         if dock.isHidden():
             dock.show()
+            if kwargs['whichWidget']=='image' and self.traceSplitSizes!=None:
+                self.traceSplitter.setSizes(self.traceSplitSizes)
         else:
+            if kwargs['whichWidget']=='image':
+                self.traceSplitSizes=self.traceSplitter.sizes()
+                maxHeight=self.timeWidget.maximumHeight()
+                self.traceSplitter.setSizes([maxHeight,np.sum(self.traceSplitSizes)-maxHeight])
             dock.hide()
             
     # Reload plugins from the specified modules
@@ -659,12 +674,13 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         pen=mkPen(col)
         # Change all axis colors (axis line and ticks)
         for widget in self.staWidgets+[self.timeWidget,self.archiveEvent,
-                                       self.archiveSpan]:
+                                       self.archiveSpan,self.imageWidget]:
             widget.getPlotItem().getAxis('bottom').setPen(pen)
             widget.getPlotItem().getAxis('left').setPen(pen)
         self.mapWidget.setPen(pen)
-        # Change the hovered station label color
+        # Change the hovered station and time label colors
         self.mapWidget.hoverStaItem.setColor(col)
+        self.archiveEvent.hoverTimeItem.setColor(col)
         # Change pick file title color
         title=self.timeWidget.getPlotItem().titleLabel.text
         self.timeWidget.getPlotItem().titleLabel.setText(title,color=col)
@@ -978,6 +994,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 self.hotVar['pickSet'].val=self.remUnknownPickTypes(self.hotVar['pickSet'].val)
                 self.hotVar['pickSet'].update()
                 break
+            
+    # Update the image
+    def updateImage(self):
+        self.imageWidget.loadImage(self.hotVar['image'].val)
     
     # Update the strolling list with all in-use timed actions
     def updateStrollingList(self):
@@ -1043,6 +1063,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Create empty variables
         self.staWidgets=[]
         self.qTimers={}
+        self.traceSplitSizes=None
         
     # Save all settings from current run
     def saveSettings(self):

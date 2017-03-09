@@ -50,6 +50,8 @@ def initHotVar():
     'staMeta':HotVar(tag='staMeta',val=np.empty((0,4)),dataType=type(np.array([0.0])),returnable=False),
     'curMapSta':HotVar(tag='curMapSta',val='',dataType=str,returnable=False),
     'mainPath':HotVar(tag='mainPath',val='',dataType=str,returnable=False),
+    'image':HotVar(tag='image',val={'data':np.zeros((1,1)),'sps':1,'t0':0},dataType=dict,
+                   funcName='updateImage'),
     }
     return hotVar
 
