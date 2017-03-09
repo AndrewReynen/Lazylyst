@@ -143,6 +143,11 @@ def defaultActions():
                          trigger=QtGui.QKeySequence('B'),
                          inputs=['staSort'],
                          returns=['staSort']),
+                              
+    'ImageSpectVert':Action(tag='ImageSpectVert',name='spectrogramVert',path='Plugins.Image',
+                            trigger=QtGui.QKeySequence('Ctrl+F'),
+                            inputs=['pltSt','curTraceSta'],
+                            returns=['image']),
                                                                     
     }
     return act

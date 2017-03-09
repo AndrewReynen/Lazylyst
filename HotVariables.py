@@ -50,8 +50,8 @@ def initHotVar():
     'staMeta':HotVar(tag='staMeta',val=np.empty((0,4)),dataType=type(np.array([0.0])),returnable=False),
     'curMapSta':HotVar(tag='curMapSta',val='',dataType=str,returnable=False),
     'mainPath':HotVar(tag='mainPath',val='',dataType=str,returnable=False),
-    'image':HotVar(tag='image',val={'data':np.zeros((1,1)),'sps':1,'t0':0},dataType=dict,
-                   funcName='updateImage'),
+    'image':HotVar(tag='image',val={'data':np.zeros((1,1)),'tDelta':1,'t0':0},dataType=dict,
+                   funcName='updateImage',checkName='checkImage'),
     }
     return hotVar
 
@@ -295,5 +295,66 @@ def checkStaFile(main,staFileName):
         staMeta[:,1:].astype(float)
     except:
         print('The station file contains [StationCode,X,Y,Z], X, Y and Z must all be numbers')
+        return False
+    return True
+
+# Ensure that the image contains proper key words, and are in correct format
+def checkImage(main,image):
+    # Let user know if they gave useless keys
+    acceptKeys=['data','t0','y0','tDelta','yDelta','label','cmapPos','cmapRGBA']
+    givenKeys=image.keys()
+    for key in givenKeys:
+        if key not in acceptKeys:
+            print('Image dict contained key '+key+' which is not used, accepted keys: '+str(acceptKeys))
+    # Check to see that the forced key words are present
+    keyFail=False
+    for key in ['data','t0','tDelta']:
+        if key not in givenKeys:
+            print('Image key '+key+' was not contained in image dictionary')
+            keyFail=True
+    if keyFail:
+        return False
+    npArrType=type(np.array([0.0]))
+    # Check to see that all arguments are of the proper type and dimensions
+    for key,dtypes in [['data',[npArrType]],['t0',[float,np.float_]],['y0',[float,np.float_]],
+                      ['tDelta',[float,np.float_]],['yDelta',[float,np.float_]],['label',[str,np.string_,np.str_,unicode]],
+                      ['cmapPos',[npArrType]],['cmapRGBA',[npArrType]]]:
+        if key in givenKeys:
+            if type(image[key]) not in dtypes:
+                print('Image key '+key+' has the expected '+str(dtypes[0])+' but was '+str(type(image[key])))
+                keyFail=True
+    if keyFail:
+        return False
+    # Check that the delta values are positive values
+    for key in ['tDelta','yDelta']:
+        if key in givenKeys:
+            if image[key]<=0:
+                keyFail=True
+    if keyFail:
+        print('Image delta values must be positive numbers')
+        return False
+    # Check the dimensions and contents of the numpy arrays
+    if len(image['data'].shape)!=2 or 0 in image['data'].shape:
+        print('Image data was not 2-dimensional, or had 0 length in at least one axis')
+        keyFail=True
+    if 'cmapPos' in givenKeys:
+        if len(image['cmapPos'].shape)!=1 or image['data'].shape[0]<2:
+            print('Image cmapPos was not 1-dimensional, or had length less than 2')
+            keyFail=True
+    if 'cmapRGBA' in givenKeys:
+        if len(image['cmapRGBA'].shape)!=2 or image['data'].shape[0]<2:
+            print('Image cmapRGBA was not 2-dimensional, or had length less than 2')
+            keyFail=True
+        elif image['cmapRGBA'].shape[1]!=4:
+            print('Image cmapRGBA rows should contain length-4 arrays of the RGBA values')
+            keyFail=True
+        elif np.min(image['cmapRGBA'])<0 or np.max(image['cmapRGBA'])>255:
+            print('Image cmapRGBA values should all be within the bounds [0,255]')
+            keyFail=True
+    if 'cmapRGBA' in givenKeys and 'cmapPos' in givenKeys:
+        if image['cmapPos'].shape[0]!=image['cmapRGBA'].shape[0]:
+            print('cmapPos and cmapRGBA must contain the same number of rows')
+            keyFail=True
+    if keyFail:
         return False
     return True

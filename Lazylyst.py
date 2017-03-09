@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.1.2
+# Version 0.2.0
 # Copyright Andrew.M.G.Reynen
 import sys
 import logging
@@ -711,10 +711,15 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         for aWidget in self.staWidgets:
             aWidget.setBackground(self.traceBgColors[aWidget.sta])
     
-    # Change the color of time time axis
+    # Change the color of time background
     def updateTimeBackground(self,init=False):
         col=QtGui.QColor(self.pref['defaultColorTimeBg'].val)
         self.timeWidget.setBackground(col)
+        
+    # Change the color of image background
+    def updateImageBackground(self,init=False):
+        col=QtGui.QColor(self.pref['defaultColorImageBg'].val)
+        self.imageWidget.setBackground(col)
     
     # Change the color of the archive axis
     def updateArchiveBackground(self,init=False):

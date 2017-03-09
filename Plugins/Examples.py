@@ -107,11 +107,11 @@ def randomEves(staMeta):
 
 # Test for the image hot variable
 def randImage(timeRange):
-    sps=0.2
-    xLen=int((timeRange[1]-timeRange[0])*sps)
+    tDelta=0.2
+    xLen=int((timeRange[1]-timeRange[0])/tDelta)
     data=np.random.rand(xLen,10)
     if 0 in data.shape:
         return '$pass'
-    return {'data':data,'t0':timeRange[0],'sps':sps}
+    return {'data':data,'t0':timeRange[0],'tDelta':tDelta}
         
     

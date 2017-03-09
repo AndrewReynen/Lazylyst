@@ -231,6 +231,10 @@ class ArchiveListWidget(QtGui.QListWidget):
         super(ArchiveListWidget, self).leaveEvent(ev)
         self.clearFocus()
         
+#    # Allow the enter key to do the same as double clicking
+#    def keyPressEvent(self,ev):
+#        print ev.key()
+        
 # Custom axis labels for the time widget        
 class TimeAxisItem(pg.AxisItem):
     def __init__(self, *args, **kwargs):
@@ -669,7 +673,6 @@ class MapWidget(pg.GraphicsLayoutWidget):
                 
 # Widget to hold raster information for plotting
 class ImageWidget(pg.PlotWidget): 
-
     def __init__(self, parent=None):
         super(ImageWidget, self).__init__(parent)        
         self.pltItem=self.getPlotItem()
@@ -682,6 +685,7 @@ class ImageWidget(pg.PlotWidget):
         self.pltItem.hideAxis('bottom')
         self.pltItem.hideButtons()
         self.pltItem.getAxis('left').setWidth(70)
+        self.pltItem.getAxis('left').setZValue(1)
         # Give some x-limits (do not go prior/after to 1970/2200)
         self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
         # No y-axis panning or zooming allowed
@@ -690,28 +694,51 @@ class ImageWidget(pg.PlotWidget):
         self.imageItem=pg.ImageItem()
         self.addItem(self.imageItem)
         self.prevPosX,self.prevScaleX=0,1
+        self.prevPosY,self.prevScaleY=0,1
         
     # Update the image on this widget
     def loadImage(self,imgDict):
+        # Load in the defaults if some optional keys are not present
+        imgDict=self.loadDefaultKeys(imgDict)
+        # Set the image data
         self.imageItem.setImage(imgDict['data'])
         # Set position and scale of image...
-        diff=imgDict['t0']-self.prevPosX
-        self.imageItem.scale(self.prevScaleX/imgDict['sps'],1)
-        self.imageItem.translate(diff*imgDict['sps'], 0)
-        self.prevPosX+=diff
-        self.prevScaleX=imgDict['sps']
+        diffX=imgDict['t0']-self.prevPosX
+        diffY=imgDict['y0']-self.prevPosY
+        self.imageItem.scale(imgDict['tDelta']/self.prevScaleX,imgDict['yDelta']/self.prevScaleY)
+        self.imageItem.translate(diffX/imgDict['tDelta'], diffY/imgDict['yDelta'])
+        self.prevPosX+=diffX
+        self.prevPosY+=diffY
+        self.prevScaleX,self.prevScaleY=imgDict['tDelta'],imgDict['yDelta']
         # Set the coloring
-        lut=self.getLUT() 
+        lut=self.getLUT(imgDict['data'],imgDict['cmapPos'],imgDict['cmapRGBA']) 
         self.imageItem.setLookupTable(lut)
         # Set Y-limit to bound the image
-        self.setYRange(0,imgDict['data'].shape[1],padding=0.0)
+        self.setYRange(imgDict['y0'],imgDict['data'].shape[1]*imgDict['yDelta'],padding=0.0)
+        # Apply the label
+        self.pltItem.setLabel(axis='left',text=imgDict['label'])
+    
+    # Give default values to keys which are not present in the image dictionary
+    def loadDefaultKeys(self,imgDict):
+        for key,val in [['y0',0],['yDelta',1],['label',''],
+                        ['cmapPos',np.array([np.min(imgDict['data']),np.max(imgDict['data'])])],
+                        ['cmapRGBA',np.array([[0,0,0,255],[255,255,255,255]])]
+                        ]:
+            if key not in imgDict.keys():
+                # In the case where the colors are given, but the positions are not, give evenly spaced positions
+                if key=='cmapPos' and 'cmapRGBA' in imgDict.keys():
+                    imgDict[key]=np.linspace(np.min(imgDict['data']),np.max(imgDict['data']),len(imgDict['cmapRGBA']))
+                else:
+                    imgDict[key]=val
+        # In the case where the positions are given, but not the colors - just use first and last position
+        if len(imgDict['cmapPos'])!=len(imgDict['cmapRGBA']):
+            imgDict['cmapPos']=np.array([imgDict['cmapPos'][0],imgDict['cmapPos'][-1]])
+        return imgDict
     
     # Get the look-up-table (color map) 
-    def getLUT(self):
-        pos = np.array([0.0, 0.5, 1.0])
-        color = np.array([[0,0,0,255], [255,128,0,255], [255,255,0,255]], dtype=np.ubyte)
-        aMap = pg.ColorMap(pos, color)
-        lut = aMap.getLookupTable(0.0, 1.0, 256)
+    def getLUT(self,data,pos,col):
+        aMap = pg.ColorMap(np.array(pos), np.array(col,dtype=np.ubyte))
+        lut = aMap.getLookupTable(np.min(data),np.max(data),256)
         return lut
         
 
