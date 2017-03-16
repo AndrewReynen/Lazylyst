@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.2.0
+# Version 0.2.1
 # Copyright Andrew.M.G.Reynen
 import sys
 import logging
@@ -480,7 +480,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.hotVar['timeRange'].val=self.timeWidget.getTimeRange()
         
     # Add a pick to the double-clicked station (single-pick addition)
-    def addClickPick(self):
+    def addClickPick(self,useHoverPos=False):
         if self.hotVar['curPickFile'].val=='':
             return
         # Return if no pick mode selected
@@ -490,14 +490,22 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Figure out which widget was picked on
         aList=[aWidget for aWidget in self.staWidgets if aWidget.hasFocus()]
         if len(aList)!=1:
-            print('Picking is out of focus, skipped')
+            print('No trace widget is in focus, skipped')
             return
         widget=aList[0]
         curMode=self.hotVar['pickMode'].val
         # Append this pick to the pick set, and plotted lines
+        if not useHoverPos:
+            aPos=widget.clickPos
+        else:
+            aPos=widget.hoverPos
+        # If the position was not set, skip
+        if aPos==None:
+            print('Trace widget in focus, but position not set (bug!)')
+            return
         self.hotVar['pickSet'].val=np.vstack((self.hotVar['pickSet'].val,
-                                              [widget.sta,curMode,widget.clickPos]))
-        widget.addPick(widget.clickPos,curMode,self.getPickPen(curMode))
+                                              [widget.sta,curMode,aPos]))
+        widget.addPick(aPos,curMode,self.getPickPen(curMode))
         # Remove picks from the plot and pickSet, where there are too many
         self.remExcessPicks(checkStas=[widget.sta],checkTypes=[curMode])
 

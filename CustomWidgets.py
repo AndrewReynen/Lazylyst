@@ -336,7 +336,7 @@ class TraceCurve(pg.PlotCurveItem):
 class TraceWidget(pg.PlotWidget):
     doubleClickSignal=QtCore.pyqtSignal()  
     
-    def __init__(self, parent=None,sta='',clickPos=None):
+    def __init__(self, parent=None,sta='',clickPos=None,hoverPos=None):
         super(TraceWidget, self).__init__(parent)
         self.pltItem=self.getPlotItem()
         self.pltItem.setMenuEnabled(enableMenu=False)
@@ -357,6 +357,14 @@ class TraceWidget(pg.PlotWidget):
         # Allow the widget to hold memory of pick lines, and traces
         self.pickLines=[]
         self.traceCurves=[]
+        # Set the hover position, upon hovering
+        self.scene().sigMouseMoved.connect(self.onHover)
+        self.hoverPos=hoverPos
+        
+    # Update the mouse position
+    def onHover(self,pixPoint):
+        mousePoint=self.pltItem.vb.mapSceneToView(pixPoint)
+        self.hoverPos=Decimal(mousePoint.x())
     
     # Add a trace to the widget
     def addTrace(self,x,y,cha,pen,dep):
@@ -406,6 +414,7 @@ class TraceWidget(pg.PlotWidget):
     def leaveEvent(self,ev):
         super(TraceWidget, self).leaveEvent(ev)
         self.clearFocus()
+        self.hoverPos=None
     
 # Widget which return key presses, however double click replace backspace
 class MixListWidget(QtGui.QListWidget):       
