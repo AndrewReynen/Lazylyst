@@ -710,7 +710,7 @@ class ImageWidget(pg.PlotWidget):
         # Load in the defaults if some optional keys are not present
         imgDict=self.loadDefaultKeys(imgDict)
         # Set the image data
-        self.imageItem.setImage(imgDict['data'])
+        self.imageItem.setImage(imgDict['data'].T)
         # Set position and scale of image...
         diffX=imgDict['t0']-self.prevPosX
         diffY=imgDict['y0']-self.prevPosY
@@ -723,7 +723,7 @@ class ImageWidget(pg.PlotWidget):
         lut=self.getLUT(imgDict['data'],imgDict['cmapPos'],imgDict['cmapRGBA']) 
         self.imageItem.setLookupTable(lut)
         # Set Y-limit to bound the image
-        self.setYRange(imgDict['y0'],imgDict['data'].shape[1]*imgDict['yDelta'],padding=0.0)
+        self.setYRange(imgDict['y0'],imgDict['data'].shape[0]*imgDict['yDelta'],padding=0.0)
         # Apply the label
         self.pltItem.setLabel(axis='left',text=imgDict['label'])
     

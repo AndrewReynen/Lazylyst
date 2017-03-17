@@ -29,7 +29,6 @@ def spectrogramVert(stream,curTraceSta,**kwargs):
     f, t, psd=signal.spectrogram(trace.data, sps,
                                  nperseg=int(sps*kwargs['winLen']),
                                  noverlap=int(sps*(kwargs['winLen']-kwargs['interLen'])))
-    psd=psd.T
     # Ensure the spectrogram is large enough to mean something
     if len(t)<2 or len(f)<2:
         return '$pass'

@@ -316,9 +316,9 @@ def checkImage(main,image):
         return False
     npArrType=type(np.array([0.0]))
     # Check to see that all arguments are of the proper type and dimensions
-    for key,dtypes in [['data',[npArrType]],['t0',[float,np.float_]],['y0',[float,np.float_]],
-                      ['tDelta',[float,np.float_]],['yDelta',[float,np.float_]],['label',[str,np.string_,np.str_,unicode]],
-                      ['cmapPos',[npArrType]],['cmapRGBA',[npArrType]]]:
+    for key,dtypes in [['data',[npArrType]],['t0',[float,np.float_,int,np.int_]],['y0',[float,np.float_,int,np.int_]],
+                      ['tDelta',[float,np.float_,int,np.int_]],['yDelta',[float,np.float_,int,np.int_]],
+                      ['label',[str,np.string_,np.str_,unicode]],['cmapPos',[npArrType]],['cmapRGBA',[npArrType]]]:
         if key in givenKeys:
             if type(image[key]) not in dtypes:
                 print('Image key '+key+' has the expected '+str(dtypes[0])+' but was '+str(type(image[key])))
