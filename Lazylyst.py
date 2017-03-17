@@ -201,6 +201,12 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # ...if just one return, convert to list to treat the same as multiple
         elif len(action.returns)==1:
             returnVals=[returnVals]
+        # ... if expecting multiple returns, ensure the length of the return value array can be taken
+        else:
+            try:
+                len(returnVals)
+            except:
+                returnVals=[returnVals]
         # Go through each of the returns in order, and update...
         # ...check first to see the number of returns are correct
         # ...and that the previous/new types match
