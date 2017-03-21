@@ -1,3 +1,4 @@
+# Copyright Andrew.M.G.Reynen
 from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt
 import pyqtgraph as pg
@@ -415,6 +416,10 @@ class TraceWidget(pg.PlotWidget):
         super(TraceWidget, self).leaveEvent(ev)
         self.clearFocus()
         self.hoverPos=None
+        
+    # Return the ymin,ymax of the plot
+    def getRangeY(self):
+        return self.getPlotItem().vb.viewRange()[1]
     
 # Widget which return key presses, however double click replace backspace
 class MixListWidget(QtGui.QListWidget):       

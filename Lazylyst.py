@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.2.2
+# Version 0.2.3
 # Copyright Andrew.M.G.Reynen
 import sys
 import logging
@@ -152,9 +152,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
 
     # Run the specified action
     def runActiveAction(self,action):
-        # Set the current station, and current timeRange to be sent to actions
+        # Set the current station, and current trace ranges to be sent to actions
         self.setCurTraceSta()
-        self.setTimeRange()
+        self.setTraceRanges()
         # First check to see if there are any (passive) actions which relate
         actQueue=self.collectActQueue(action)   
         for oAct in actQueue:
@@ -443,6 +443,12 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         t0,t1=self.hotVar['timeRange'].val
         self.timeWidget.setXRange(t0,t1,padding=0.0)
         
+    # Update the y-range for all staWidgets upon user request
+    def updateTraceRangesY(self):
+        yRanges=self.hotVar['yTraceRanges'].val
+        for i,widget in enumerate(self.staWidgets):
+            widget.setYRange(yRanges[i,0],yRanges[i,1],padding=0.0)
+        
     # Built in function to tab to the next or previous page number
     def tabCurPage(self,nextPage=False,prevPage=False,pageNum=0):
         maxPageNum=(len(self.hotVar['staSort'].val)-1)/self.pref['staPerPage'].val
@@ -481,9 +487,11 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 return
         self.hotVar['curTraceSta'].val=''
     
-    # Set the timeRange variable to the current time range of the time widget
-    def setTimeRange(self):
+    # Set the timeRange variable to the current time range of the time widget...
+    # ...as well as all of the current y-limits on the staWidgets
+    def setTraceRanges(self):
         self.hotVar['timeRange'].val=self.timeWidget.getTimeRange()
+        self.hotVar['yTraceRanges'].val=np.array([widget.getRangeY() for widget in self.staWidgets],dtype=float)
         
     # Add a pick to the double-clicked station (single-pick addition)
     def addClickPick(self,useHoverPos=False):

@@ -1,3 +1,4 @@
+# Copyright Andrew.M.G.Reynen
 from obspy import Stream as emptyStream
 from CustomFunctions import getTimeFromFileName
 from copy import deepcopy
@@ -18,6 +19,8 @@ def initHotVar():
                      funcName='updateCurPage'),
     'timeRange':HotVar(tag='timeRange',val=[0,1],dataType=list,
                        funcName='updateTimeRange',checkName='checkTimeRange'),
+    'yTraceRanges':HotVar(tag='yTraceRanges',val=np.empty((0,2)),dataType=type(np.array([0.0])),
+                       funcName='updateTraceRangesY',checkName='checkTraceRangesY'),
     'sourceTag':HotVar(tag='sourceTag',val='',dataType=str,
                        funcName='updateSource',checkName='checkSourceTag'),
     'pickDir':HotVar(tag='pickDir',val='',dataType=str,
@@ -141,6 +144,22 @@ def checkTimeRange(main,timeRange):
         return False
     elif timeRange[0]>=timeRange[1]:
         print('For timeRange, the second (right) limit must be greater than the first limit')
+        return False
+    return True
+
+# Ensure that limits are in proper order, can be floats, and have as many entries as there are staWidgets
+def checkTraceRangesY(main,yRanges):
+    try:
+        yRanges=np.array(yRanges,dtype=float)
+    except:
+        print('yTraceRanges values must be numbers')
+        return False
+    if len(yRanges.shape)!=2 or len(yRanges)!=len(main.staWidgets):
+        print('yTraceRanges must be two dimensional, and must have length=staPerPage('+
+              str(main.pref['staPerPage'].val)+')')
+        return False
+    elif np.sum(np.diff(yRanges,axis=1)<=0)!=0:
+        print('For yTraceRanges, limits for all trace widgets must increase ie. [low,high]')
         return False
     return True
 

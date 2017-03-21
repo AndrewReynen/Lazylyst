@@ -1,3 +1,4 @@
+# Copyright Andrew.M.G.Reynen
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
 from ActionSetup import Ui_actionDialog

@@ -1,3 +1,4 @@
+# Copyright Andrew.M.G.Reynen
 from PyQt4 import QtGui
 from PyQt4.QtCore import Qt
 from Configuration import Ui_ConfDialog

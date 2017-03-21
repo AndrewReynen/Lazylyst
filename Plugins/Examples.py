@@ -88,6 +88,14 @@ def panPercent(*args,**kwargs):
     timeRange[0]+=kwargs['percent']/100.0*delta
     timeRange[1]+=kwargs['percent']/100.0*delta
     return timeRange
+    
+# Zoom in/out by a certain percent, centered over current position
+def zoomTraceY(yTraceRanges,percent=100):
+    avg=np.mean(yTraceRanges,axis=1)
+    halfWidth=(np.diff(yTraceRanges,axis=1)/2.0)[:,0]
+    yTraceRanges[:,0]=avg-halfWidth*percent/100.0
+    yTraceRanges[:,1]=avg+halfWidth*percent/100.0
+    return yTraceRanges
         
 # Return some random set of current and previous events
 def randomEves(staMeta):

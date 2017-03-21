@@ -1,3 +1,4 @@
+# Copyright Andrew.M.G.Reynen
 import numpy as np
 from obspy import read, UTCDateTime
 from obspy import Stream as EmptyStream
