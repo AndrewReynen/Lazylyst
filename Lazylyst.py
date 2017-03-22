@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.2.3
+# Version 0.2.4
 # Copyright Andrew.M.G.Reynen
 import sys
 import logging
@@ -14,7 +14,7 @@ from MainWindow import Ui_MainWindow
 from CustomWidgets import TraceWidget, keyPressToString
 from CustomFunctions import getTimeFromFileName
 from HotVariables import initHotVar
-from Preferences import defaultPreferences, Pref, DateDialog
+from Preferences import defaultPreferences, DateDialog
 from Actions import defaultActions, defaultPassiveOrder
 from Archive import getArchiveAvail, extractDataFromArchive
 from ConfigurationDialog import ConfDialog
@@ -42,8 +42,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
      
     # Go through all preferences, and call their update functions
     def applyPreferences(self):
-        # The pick color preferences are generated here if not already present...
-        # ...so iterate through static version of prefs
         curPrefs=[aPref for key, aPref in iteritems(self.pref)]
         for aPref in curPrefs:
             aPref.update(self,init=True)
@@ -551,7 +549,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         
     # Function to handle updates to the hot variable pickSet (assumes all picks have changed)
     # ... adding and remove picks on the current page (does not remove excess)
-    def updatePagePicks(self):
+    def updatePagePicks(self,init=False):
+        # If starting up, no picks are present so skip
+        if init:
+            return
         # Find out which of these values are unique (to remove duplicate picks)
         curList=[str(a[0])+str(a[1])+str(a[2]) for a in self.hotVar['pickSet'].val]
         unqCur,unqCurIdx=np.unique(curList,return_index=True)
@@ -571,8 +572,13 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     
     # Return the wanted pick types pen, in RGB
     def getPickPen(self,aType):
-        col=QtGui.QColor(self.pref['pickColor_'+aType].val)
-        return (col.red(), col.green(), col.blue())
+        # If this phases color is not present, apply the default
+        if aType in self.pref['pickPen'].val.keys():
+            col,width,depth=self.pref['pickPen'].val[aType]
+        else:
+            col,width,depth=self.pref['pickPen'].val['default']
+        col=QtGui.QColor(col)
+        return (col.red(), col.green(), col.blue()),width,depth
     
     # Match all streams channels to its appropriate pen
     def getStreamPens(self):
@@ -588,7 +594,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             elif key in acceptKeys:
                 useKeys.append(key)
             else:
-                print('customPen tag '+key+ 'is not currently defined in preference customPen, applying default')
+                print('customPen tag '+key+ ' is not currently defined in preference customPen, applying default')
         # Loop through each unique channel and add its pen to penRef
         for cha in unqChas:
             colorInt,width=None,None
@@ -981,46 +987,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                                                              np.array([self.hotVar['curPickFile'].val])))
                 self.hotVar['pickFiles'].update()
         self.updateEvent()
-    
-    # As the number of pick types can change in the settings...
-    # ...show less/more pick type color preferences
-    def updatePickColorPrefs(self,init=False):
-        curPickTypes=[key for key in self.pref['pickTypesMaxCountPerSta'].val]
-        curPickColors=[key for key in self.pref.keys() if
-                       ('pickColor_' in str(key) and self.pref[key].dialog=='ColorDialog')]
-        # Add the pick color preferences
-        for aType in curPickTypes:
-            # Do not overwrite if already present
-            tag='pickColor_'+aType
-            if tag in curPickColors:
-                continue
-            # Otherwise add the color
-            self.pref[tag]=Pref(tag=tag,val=4294967295,dataType=int,
-                            dialog='ColorDialog',func=self.updatePage)
-            # If Lazylyst is starting, still have to load in the previous pick colors (if set already)
-            if init:
-                prefVals=self.setPref.value('prefVals',{})
-                if tag in [key for key in prefVals.keys()]:
-                    self.pref[tag].val=prefVals[tag]
-                # Give some default colors, to the default pick types
-                elif tag =='pickColor_P':
-                    self.pref[tag].val=65280
-                elif tag =='pickColor_S':
-                    self.pref[tag].val=16776960
-        # Remove any entries which may have been taken away from curPickTypes
-        for tag in curPickColors:
-            if tag.split('_')[1] not in curPickTypes:
-                self.pref.pop(tag)
-        # Update the configuration dialogs preference list
-        if not init:
-            self.dialog.confPrefList.clear()
-            self.dialog.confPrefList.addItems([key for key in self.pref.keys()])
-        # If the user deleted a pick type with them already present on screen, remove them
-        for aType in np.unique(self.hotVar['pickSet'].val[:,1]):
-            if aType not in curPickTypes:
-                self.hotVar['pickSet'].val=self.remUnknownPickTypes(self.hotVar['pickSet'].val)
-                self.hotVar['pickSet'].update()
-                break
             
     # Update the image
     def updateImage(self):
@@ -1076,14 +1042,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # ...link all actions to their appropriate functions
         for key,action in iteritems(self.act):
             action.linkToFunction(self)
-        # Preferences (start)
+        # Preferences
         self.pref=defaultPreferences(self)
         prefVals=self.setPref.value('prefVals',{})
-        # Preferences (finish)
         for aKey in prefVals.keys():
-            # Skip any preferences which are generated a bit later
-            if 'pickColor_' in aKey:
-                continue
             self.pref[aKey].val=prefVals[aKey]
         # Saved sources
         self.saveSource=self.setSource.value('savedSources',{})

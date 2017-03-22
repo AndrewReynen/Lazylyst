@@ -23,7 +23,7 @@ def defaultPreferences(main):
                         func=main.updateEveSort,condition={'isOneOf':['id','time']},
                         tip='How the archive list widget is sorted, also sorts hot variable pickFiles and pickTimes'),
     'pickTypesMaxCountPerSta':Pref(tag='pickTypesMaxCountPerSta',val={'P':1,'S':1},dataType=dict,
-                                   func=main.updatePickColorPrefs,condition={'bound':[1,999]},
+                                   func=main.updatePagePicks,condition={'bound':[1,999]},
                                    tip='Max number of picks of a given phase type allowed on any individual trace widget'),
     'defaultColorText':Pref(tag='defaultColorText',val=14474460,dataType=int,
                             dialog='ColorDialog',func=main.updateTextColor,
@@ -71,10 +71,15 @@ def defaultPreferences(main):
                                           'noTraceData':[8224125,1.0,0.0],
                                           'goodMap':[65280,1.0,0.0],
                                           'poorMap':[16711680,1.0,0.0],
-                                          'highlight':[255,1.0,6.0],
-                                          'lowlight':[13158600,0.3,3.0],},dataType=dict,
+                                          'highlight':[255,1.0,2.0],
+                                          'lowlight':[13158600,0.3,1.0],},dataType=dict,
                     dialog='CustomPenDialog',func=main.updateCustomPen,
                     tip='Defines the pen values: tag, color, width, and depth (in/out position) referenced by various hot variables'),
+    'pickPen':Pref(tag='pickPen',val={'default':[16777215,1.0,4.0],
+                                      'P':[65280,1.0,5.0],
+                                      'S':[16776960,1.0,5.0],},dataType=dict,
+                    dialog='CustomPenDialog',func=main.updatePagePicks,
+                    tip='Defines the pen values: tag, color, width, and depth (in/out position) for the pick lines'),
     }
     return pref
 

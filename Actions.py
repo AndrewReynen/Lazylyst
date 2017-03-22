@@ -309,7 +309,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # ...preferences are only allowed as inputs
         for key, pref in iteritems(self.pref):
             # ...no need to add colors here (just adds clutter)
-            if 'color' in key.lower():
+            if 'color' in key.lower() or key in ['customPen','pickPen']:
                 continue
             self.actAvailInputList.addItem(key)
         # Fill in the selected triggers (passive),inputs and returns

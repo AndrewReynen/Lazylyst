@@ -317,10 +317,11 @@ class TimeWidget(pg.PlotWidget):
 class PickLine(pg.InfiniteLine):
     def __init__(self, aTime,aType,pen,parent=None):
         super(PickLine, self).__init__(parent)
-        self.setZValue(10) # Allow picks to be over trace data
+        col,width,depth=pen
         self.pickType=aType
         self.setValue(aTime)
-        self.setPen(pen,width=1)
+        self.setZValue(depth)
+        self.setPen(col,width=width)
 
 # Plot curve item, but now with reference to the channel
 class TraceCurve(pg.PlotCurveItem):
