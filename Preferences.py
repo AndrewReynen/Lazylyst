@@ -124,7 +124,7 @@ class Pref(object):
                     val,ok=None,False
             # For the custom colors and widths, with their associated tags for use as with hot variables
             elif self.dialog=='CustomPenDialog':
-                CustomPenDialog(self.val).exec_()
+                CustomPenDialog(self.val,self.tag).exec_()
                 # The updates to the preference is done within the dialog (and the checks are done there)
                 val,ok=self.val,True
             else:
@@ -205,10 +205,10 @@ class LineEditDialog(QtGui.QDialog):
 
 # Dialog window for editing the custom colors and widths
 class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
-    def __init__(self,tpDict,parent=None):
+    def __init__(self,tpDict,tag,parent=None):
         QtGui.QDialog.__init__(self,parent)
         self.setupUi(self)
-        self.setWindowTitle('Custom Pen')
+        self.setWindowTitle(tag)
         self.tpDict=tpDict
         self.keyOrder=sorted(self.tpDict.keys()) # Used to reference back before the last user change
         # Fill in the current customPen information (before setting functionality, as functionality has a "onChanged" signal)
