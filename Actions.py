@@ -310,12 +310,18 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # Fill in the selected triggers (passive),inputs and returns
         if self.action.passive:
             self.actSelectTriggerList.addItems(self.action.trigger)
-        self.actSelectInputList.addItems(self.action.inputs)
-        self.actSelectReturnList.addItems(self.action.returns)
+        self.addTipItems(self.actSelectInputList,self.action.inputs,useKey=True)
+        self.addTipItems(self.actSelectReturnList,self.action.returns,useKey=True)
     
     # Add hot variable or preference to a designated list widget
-    def addTipItems(self,listWidget,tipObjects):
+    def addTipItems(self,listWidget,tipObjects,useKey=False):
         for tipObject in tipObjects:
+            # If the key was passed, instead of the object - get the object
+            if useKey:
+                if tipObject in self.pref.keys():
+                    tipObject=self.pref[tipObject]
+                else:
+                    tipObject=self.hotVar[tipObject]
             item=QtGui.QListWidgetItem()
             item.setText(tipObject.tag)
             item.setToolTip(tipObject.tip)
@@ -361,17 +367,13 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
             fromList=self.actAvailTriggerList
             toList=self.actSelectTriggerList
         # Add to the selected list, if the item is not already there
-        text=fromList.currentItem().text()
-        if text not in [toList.item(i).text() for i in range(toList.count())]:
+        aKey=fromList.currentItem().text()
+        if aKey not in [toList.item(i).text() for i in range(toList.count())]:
             # If this was from the return/input, add the tag to the item
             if listTag in ['return','input']:
-                if text in self.pref.keys():
-                    tipObj=self.pref[text]
-                else:
-                    tipObj=self.hotVar[text]
-                self.addTipItems(toList,[tipObj])
+                self.addTipItems(toList,[aKey],useKey=True)
             else:
-                toList.addItem(text)
+                toList.addItem(aKey)
     
     # Removes the current item from a selected list of hot variables and/or preferences
     def removeSelectVar(self,listTag):

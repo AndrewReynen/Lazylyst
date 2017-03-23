@@ -11,10 +11,10 @@ import numpy as np
 def initHotVar():
     hotVar={
     'stream':HotVar(tag='stream',val=emptyStream(),dataType=type(emptyStream()),returnable=False,
-                    tip='Holds raw trace data from archive for current event'),
+                    tip='Raw trace data from archive for current event'),
     'pltSt':HotVar(tag='pltSt',val=emptyStream(),dataType=type(emptyStream()),
                    funcName='updateTraces',checkName='checkPltSt',
-                    tip='Holds plotted trace data for current event'),
+                    tip='Plotted trace data for current event'),
     'staSort':HotVar(tag='staSort',val=[],dataType=type(np.array([''])),
                      funcName='updatePage',checkName='checkStaSort',
                      tip='Station codes, order defines trace data widget ordering'),
