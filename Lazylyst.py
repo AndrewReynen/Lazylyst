@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.2.4
+# Version 0.2.5
 # Copyright Andrew.M.G.Reynen
 import sys
 import logging
@@ -378,8 +378,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.hotVar['pickSet'].val=np.empty((0,3))
         # Go back to the first page
         self.hotVar['curPage'].val=0
-        # Set the title of the event
-        self.timeWidget.getPlotItem().setLabels(title=self.hotVar['curPickFile'].val)
         # Load the picks from given pick file, if it has been initialized...
         if self.hotVar['curPickFile'].val!='':
             self.loadPickFile()
@@ -419,6 +417,12 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     
     # Update the data and picks on the current page
     def updatePage(self,init=False):
+        # Update the title on the time widget
+        title=self.hotVar['curPickFile'].val
+        if title!='' and len(self.hotVar['staSort'].val)!=0:
+            title+=(' Page '+str(self.hotVar['curPage'].val+1)+' of '+
+                    str(int(np.ceil(len(self.hotVar['staSort'].val)/float(self.pref['staPerPage'].val)))))
+        self.timeWidget.getPlotItem().setLabels(title=title)
         # Update the trace curves
         self.updateTraces()
         # Update the picks
@@ -450,12 +454,16 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     # Built in function to tab to the next or previous page number
     def tabCurPage(self,nextPage=False,prevPage=False,pageNum=0):
         maxPageNum=(len(self.hotVar['staSort'].val)-1)/self.pref['staPerPage'].val
+        curNum=self.hotVar['curPage'].val
         # If the next or previous page, ensure still in bounds
         if nextPage and self.hotVar['curPage'].val+1<=maxPageNum:
             self.hotVar['curPage'].val+=1
         elif prevPage and self.hotVar['curPage'].val-1>=0:
             self.hotVar['curPage'].val-=1
         else:
+            return
+        # If the page number didnt change, do nothing
+        if curNum==self.hotVar['curPage'].val:
             return
         # If got to the end, the page number must have changed, update the page
         self.updatePage()
@@ -1017,6 +1025,13 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             self.archiveSpan.span.setRegion((newBound,curBounds[1]))
         else:
             self.archiveSpan.span.setRegion((curBounds[0],newBound))
+    
+    # Update the cursor to be used within Lazylyst
+    def updateCursor(self,init=False):
+        if self.pref['cursorStyle'].val=='arrow':
+            self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        elif self.pref['cursorStyle'].val=='cross':
+            self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
     
     # Load setting from previous run, and initialize base variables
     def loadSettings(self):

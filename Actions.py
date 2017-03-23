@@ -302,21 +302,24 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         self.togglePassiveActive(init=True)
         # Fill in the available inputs and returns...
         # ...hot variables can go into inputs and outputs
-        for key, hotVar in iteritems(self.hotVar):
-            self.actAvailInputList.addItem(key)
-            if hotVar.returnable:
-                self.actAvailReturnList.addItem(key)
-        # ...preferences are only allowed as inputs
-        for key, pref in iteritems(self.pref):
-            # ...no need to add colors here (just adds clutter)
-            if 'color' in key.lower() or key in ['customPen','pickPen']:
-                continue
-            self.actAvailInputList.addItem(key)
+        self.addTipItems(self.actAvailInputList,[hotVar for key,hotVar in iteritems(self.hotVar)])
+        self.addTipItems(self.actAvailReturnList,[hotVar for key,hotVar in iteritems(self.hotVar) if hotVar.returnable])
+        # ...preferences are only allowed as inputs (no need to add colors here, just adds clutter)
+        self.addTipItems(self.actAvailInputList,[pref for key,pref in iteritems(self.pref) if not 
+                                                 ('color' in key.lower() or key in ['customPen','pickPen','cursorStyle'])])
         # Fill in the selected triggers (passive),inputs and returns
         if self.action.passive:
             self.actSelectTriggerList.addItems(self.action.trigger)
         self.actSelectInputList.addItems(self.action.inputs)
         self.actSelectReturnList.addItems(self.action.returns)
+    
+    # Add hot variable or preference to a designated list widget
+    def addTipItems(self,listWidget,tipObjects):
+        for tipObject in tipObjects:
+            item=QtGui.QListWidgetItem()
+            item.setText(tipObject.tag)
+            item.setToolTip(tipObject.tip)
+            listWidget.addItem(item)
     
     # Lock the dialog so that values cannot be updated, for some built-in actions
     def lockDialog(self):
@@ -360,7 +363,15 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # Add to the selected list, if the item is not already there
         text=fromList.currentItem().text()
         if text not in [toList.item(i).text() for i in range(toList.count())]:
-            toList.addItem(text)
+            # If this was from the return/input, add the tag to the item
+            if listTag in ['return','input']:
+                if text in self.pref.keys():
+                    tipObj=self.pref[text]
+                else:
+                    tipObj=self.hotVar[text]
+                self.addTipItems(toList,[tipObj])
+            else:
+                toList.addItem(text)
     
     # Removes the current item from a selected list of hot variables and/or preferences
     def removeSelectVar(self,listTag):

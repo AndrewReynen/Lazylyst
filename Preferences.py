@@ -3,6 +3,7 @@ from PyQt4 import QtGui,QtCore
 from PyQt4.QtCore import Qt
 from CustomFunctions import dict2Text, text2Dict
 from CustomPen import Ui_customPenDialog
+from ComboDialog import Ui_comboBoxDialog
 from copy import deepcopy
 from future.utils import iteritems
 
@@ -17,11 +18,14 @@ def defaultPreferences(main):
     'evePostTime':Pref(tag='evePostTime',val=60,dataType=float,
                       tip='Time in seconds after to the selected pick file names time to grab data'),
     'eveIdGenStyle':Pref(tag='eveIdGenStyle',val='next',dataType=str,
-                         condition={'isOneOf':['fill','next']},
+                         dialog='ComboBoxDialog',condition={'isOneOf':['fill','next']},
                          tip='Style used to generate a new empty pick files ID (when double clicking the archive event widget)'),
     'eveSortStyle':Pref(tag='eveSortStyle',val='time',dataType=str,
-                        func=main.updateEveSort,condition={'isOneOf':['id','time']},
+                        dialog='ComboBoxDialog',func=main.updateEveSort,condition={'isOneOf':['id','time']},
                         tip='How the archive list widget is sorted, also sorts hot variable pickFiles and pickTimes'),
+    'cursorStyle':Pref(tag='cursorStyle',val='arrow',dataType=str,
+                        dialog='ComboBoxDialog',func=main.updateCursor,condition={'isOneOf':['arrow','cross']},
+                        tip='Change the cursor icon'),
     'pickTypesMaxCountPerSta':Pref(tag='pickTypesMaxCountPerSta',val={'P':1,'S':1},dataType=dict,
                                    func=main.updatePagePicks,condition={'bound':[1,999]},
                                    tip='Max number of picks of a given phase type allowed on any individual trace widget'),
@@ -105,7 +109,8 @@ class Pref(object):
     def update(self,hostWidget,init=False):
         # If this is the original initalization, don't ask for new value
         if not init:
-            # Use the correct dialog
+            # Use the correct dialog...
+            # ...text entry dialog
             if self.dialog=='LineEditDialog':
                 if self.dataType==dict:
                     initText=dict2Text(self.val)
@@ -114,7 +119,10 @@ class Pref(object):
                 val,ok=LineEditDialog.returnValue(tag=self.tag,initText=initText,
                                                   condition=self.condition,
                                                   dataType=self.dataType)
-            # For singular valued colors
+            # ...selecting from a list
+            elif self.dialog=='ComboBoxDialog':
+                val,ok=ComboBoxDialog.returnValue(self.val,self.condition['isOneOf'],self.tag)                    
+            # ...singular valued colors
             elif self.dialog=='ColorDialog':
                 colorDialog=QtGui.QColorDialog()
                 val=colorDialog.getColor(QtGui.QColor(self.val),hostWidget)
@@ -122,7 +130,7 @@ class Pref(object):
                     val,ok=val.rgba(),True
                 else:
                     val,ok=None,False
-            # For the custom colors and widths, with their associated tags for use as with hot variables
+            # ...custom colors and widths, with their associated tags for use as with hot variables
             elif self.dialog=='CustomPenDialog':
                 CustomPenDialog(self.val,self.tag).exec_()
                 # The updates to the preference is done within the dialog (and the checks are done there)
@@ -190,9 +198,6 @@ class LineEditDialog(QtGui.QDialog):
         for aVal in vals:
             if 'bound' in keys:
                 if aVal<self.cond['bound'][0] or aVal>self.cond['bound'][1]:
-                    return None
-            if 'isOneOf' in keys:
-                if aVal not in self.cond['isOneOf']:
                     return None
         return val
 
@@ -387,3 +392,23 @@ class DateDialog(QtGui.QDialog):
         dateTime.setTimeSpec(Qt.UTC)
         newBound = dateTime.toTime_t()
         return newBound, result == QtGui.QDialog.Accepted
+        
+# Dialog window for selecting one of a few options
+class ComboBoxDialog(QtGui.QDialog, Ui_comboBoxDialog):
+    def __init__(self,parent,curVal,acceptVals,tag):
+        QtGui.QDialog.__init__(self,parent)
+        self.setupUi(self)
+        self.setWindowTitle(tag)
+        # Fill in the combo dialog box
+        self.comboBox.addItems(acceptVals)
+        # Set the current text to be the current preference value
+        index = self.comboBox.findText(curVal)
+        if index >= 0:
+            self.comboBox.setCurrentIndex(index)
+        
+    # Static method to create the dialog and return the selected value
+    @staticmethod
+    def returnValue(curVal,acceptVals,tag,parent=None):
+        dialog = ComboBoxDialog(parent,curVal,acceptVals,tag)
+        result = dialog.exec_()
+        return dialog.comboBox.currentText(), result==QtGui.QDialog.Accepted

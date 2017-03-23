@@ -301,6 +301,8 @@ class TimeWidget(pg.PlotWidget):
         self.getPlotItem().vb.setMouseEnabled(y=False,x=False)
         # Turn off all interaction
         self.setEnabled(False)
+        # Give a blank title (gets rid of the y-axis)
+        self.getPlotItem().setLabels(title='')
     
     # Null any built in hover actions
     def enterEvent(self,event):

@@ -45,16 +45,20 @@ def delPickSet():
 # Set the current pick file
 def setCurPickFile(curPickFile,pickFiles,nextFile=False,prevFile=False):
     maxFileIdx=len(pickFiles)-1
+    prevPickFile=curPickFile
     # Return nothing if no pick files to choose from...
     # ...or if the current pick file is not set
     if maxFileIdx==-1 or curPickFile=='':
-        return ''
+        return '$pass'
     curIdx=np.where(pickFiles==curPickFile)[0][0]
     # If the next or previous page, ensure still in bounds
     if nextFile and curIdx+1<=maxFileIdx:
         curPickFile=pickFiles[curIdx+1]
     elif prevFile and curIdx-1>=0:
         curPickFile=pickFiles[curIdx-1]
+    # Do not update if nothing has changed
+    if prevPickFile==curPickFile:
+        return '$pass'
     return str(curPickFile)
     
 # Remove the current pick file

@@ -37,7 +37,6 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
             item.setText(key)
             item.setToolTip(self.pref[key].tip)
             self.confPrefList.addItem(item)
-#        self.confPrefList.addItems([key for key in self.pref.keys()])
         
     # Function to handle calls to the active and passive lists
     ## May want to split this up... getting pretty rediculous ##
