@@ -386,13 +386,12 @@ def stackDetectAlgorithm(originInfo,rings,baseX,baseY,baseZ,base,timeDelta,
 # Locate any number of events in the given window, using a stacking method
 # ...tDelta is the origin time precision
 # ...tIdxSpread infers how many extra time indicies before/after pick to spread the probability
-# ...pWeight and sWeight adjust their phases absolute weights by this factor
 # ...eveProbMinSum is the minimum summed event probability to declare as an event
 # ...maxVertDist is the maximum vertical distance (km) to be used for stacking
 # ...maxEveCount, if this number of events is reached - the association will stop
 # ...nullBuffer, how many extra indicies to null out trios on either side of diagonals/straight
 def stackLocate(pickSet,staMeta,sourceTag,tDelta=0.5,tIdxSpread=1,
-                pWeight=0.5,sWeight=0.5,eveProbMinSum=1.5,maxVertDist=10,
+                eveProbMinSum=3.0,maxVertDist=10,
                 maxEveCount=999999,nullBuffer=0):
     print('Initiating stack locate')
     # Get the basic velocity info
@@ -410,7 +409,7 @@ def stackLocate(pickSet,staMeta,sourceTag,tDelta=0.5,tIdxSpread=1,
     if len(pickSet)>=4:
         pickSet=pickSet[np.where((pickSet[:,1]=='P')|(pickSet[:,1]=='S'))]
     # If there are not enough picks to surpass the minimum event summed probability, return
-    if len(pickSet)*np.max([pWeight,sWeight])<eveProbMinSum:
+    if len(pickSet)<eveProbMinSum:
         print('Not enough picks to pass minimum event summed probability')
         return np.empty((0,5))
     QtGui.qApp.processEvents()
