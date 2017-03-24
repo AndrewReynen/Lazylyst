@@ -165,7 +165,8 @@ class Action(object):
                  path='Add path to function',optionals={},
                  passive=False,beforeTrigger=False,timer=False,
                  trigger='Add Trigger',inputs=[],returns=[],
-                 timerInterval=60,func=None,locked=False):
+                 timerInterval=60,func=None,locked=False,
+                 sleeping=False):
         self.tag=tag # User visible name for the action
         self.name=name # Function name
         self.path=path # Function path (uses "." instead of "\", path is relative main script location)
@@ -179,6 +180,7 @@ class Action(object):
         self.returns=returns # Hot variables to be returned for update
         self.func=func # Function which is called upon trigger
         self.locked=locked # If the action is allowed to be altered (other than the trigger)
+        self.sleeping=sleeping # If the action is responding to triggers or not
         # convert the trigger to a key sequence, if the trigger was a key
         if type(trigger)==type(Qt.Key_1):
             self.trigger=QtGui.QKeySequence(self.trigger)
@@ -272,7 +274,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # ...optionals line edit
         self.actOptionalsLineEdit.setText(dict2Text(self.action.optionals))
         # ...trigger line edit entry
-        if self.action.passive:
+        if self.action.passive or self.action.trigger=='Set Trigger':
             self.actTriggerLineEdit.setText('Set Trigger')
         elif self.action.trigger=='DoubleClick':
             self.actTriggerLineEdit.setText(self.action.trigger)

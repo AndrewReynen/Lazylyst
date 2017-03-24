@@ -443,6 +443,9 @@ class MixListWidget(QtGui.QListWidget):
     # Swapping a double click with the backspace button...
     # ...wanted to transmit double click as a key
     def mouseDoubleClickEvent(self,ev):
+        # Only allow left-double clicks
+        if ev.button()!=1:
+            return
         self.key=Qt.Key_Backspace
         self.keyPressedSignal.emit()    
 
@@ -453,6 +456,9 @@ class MixListWidget(QtGui.QListWidget):
 
     # If ever the list if left by the mouse, emit (used to trigger ordering of passive functions)
     def leaveEvent(self,ev):
+        # Deselect all items upon leaving the widget
+        for i in range(self.count()):
+            self.setItemSelected(self.item(i), False)
         self.leaveSignal.emit()
         
     # Return the lists entries in the order which it appears

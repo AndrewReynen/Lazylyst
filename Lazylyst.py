@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.2.5
+# Version 0.3.0
 # Copyright Andrew.M.G.Reynen
 import sys
 import logging
@@ -131,6 +131,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     
     # Create and activate the queue of actions following the initiation of an active action
     def processAction(self,action):
+        # If the action is sleeping, do nothing
+        if action.sleeping:
+            print('Action '+action.tag+' is sleeping')
+            return
         # If this action is timed...
         if action.timer:
             # ... see if already being run, and stop if so
@@ -175,8 +179,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
 
     # Function to handle the execution of an action already queued
     def executeAction(self,action):
-        # If the actions function wasn't initialized, skip
-        if action.func==None:
+        # If the actions function wasn't initialized, or is sleeping, skip
+        if action.func==None or action.sleeping:
             return
         # Collect the required inputs
         inputs=[]
