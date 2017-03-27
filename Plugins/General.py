@@ -3,15 +3,10 @@ import numpy as np
 # Function to change picking mode to the wanted mode...
 # ... Return the original mode if the wanted mode is not defined  
 def setPickMode(*args,**kwargs):
-    curMode=args[0]
-    availPickModes=sorted([str(key) for key in args[1].keys()])
-    if 'P' in availPickModes and kwargs['wantMode']=='P':
-        return 'P'
-    elif 'S' in availPickModes and kwargs['wantMode']=='S':
-        return 'S'
-    else:
-        print('Could not change to wanted mode as it is not in "pickTypesMaxCountPerSta"')
-        return curMode
+    availPickModes=sorted([str(key) for key in args[0].keys()])
+    if kwargs['wantMode'] not in availPickModes:
+        print('Update pickTypesMaxCountPerSta to be able to place '+str(kwargs['wantMode'])+' picks manually')
+    return kwargs['wantMode']
 
 # Swap between highlightint the vertical (P-picking mode) or horizontals (S-picking mode)
 def setTracePenAssign(curMode,curAssign):

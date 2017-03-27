@@ -232,10 +232,6 @@ class ArchiveListWidget(QtGui.QListWidget):
         super(ArchiveListWidget, self).leaveEvent(ev)
         self.clearFocus()
         
-#    # Allow the enter key to do the same as double clicking
-#    def keyPressEvent(self,ev):
-#        print ev.key()
-        
 # Custom axis labels for the time widget        
 class TimeAxisItem(pg.AxisItem):
     def __init__(self, *args, **kwargs):
@@ -340,7 +336,7 @@ class TraceCurve(pg.PlotCurveItem):
 class TraceWidget(pg.PlotWidget):
     doubleClickSignal=QtCore.pyqtSignal()  
     
-    def __init__(self, parent=None,sta='',clickPos=None,hoverPos=None):
+    def __init__(self, parent=None,sta='',hoverPos=None):
         super(TraceWidget, self).__init__(parent)
         self.pltItem=self.getPlotItem()
         self.pltItem.setMenuEnabled(enableMenu=False)
@@ -357,7 +353,6 @@ class TraceWidget(pg.PlotWidget):
         self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
         # Assign this widget a station
         self.sta=sta
-        self.clickPos=clickPos
         # Allow the widget to hold memory of pick lines, and traces
         self.pickLines=[]
         self.traceCurves=[]
@@ -368,7 +363,7 @@ class TraceWidget(pg.PlotWidget):
     # Update the mouse position
     def onHover(self,pixPoint):
         mousePoint=self.pltItem.vb.mapSceneToView(pixPoint)
-        self.hoverPos=Decimal(mousePoint.x())
+        self.hoverPos=Decimal(mousePoint.x()),Decimal(mousePoint.y())
     
     # Add a trace to the widget
     def addTrace(self,x,y,cha,pen,dep):
@@ -384,14 +379,14 @@ class TraceWidget(pg.PlotWidget):
         self.pickLines.append(aLine)
         
     # Remove a specific number of picks from the pick lines (with a given pick type)
-    def removePicks(self,aType,num):
+    def removePicks(self,aType,delTimes):
         # Count forwards to select picks for deletion
         delIdxs=[]
         for i,aLine in enumerate(self.pickLines):
-            # Stop when enough picks have been marked
-            if len(delIdxs)==num:
+            # If picks overlap, do not delete more than necessary
+            if len(delIdxs)==len(delTimes):
                 break
-            if aLine.pickType==aType:
+            if aLine.pickType==aType and aLine.value() in delTimes:
                 delIdxs.append(i)
         # Loop backwards and pop these picks off the widget
         for idx in delIdxs[::-1]:
@@ -401,13 +396,9 @@ class TraceWidget(pg.PlotWidget):
     # Emit signal for picking
     def mouseDoubleClickEvent(self, ev):
         super(TraceWidget, self).mouseDoubleClickEvent(ev)
-        if self.sta==None:
-            return
-        # Figure out the position of the click, and update value
-        self.clickPos=Decimal(self.pltItem.vb.mapSceneToView(ev.pos()).x())
-        
-        # Return signal
-        self.doubleClickSignal.emit()
+        # If this widget is assigned a station, return signal
+        if self.sta!=None:
+            self.doubleClickSignal.emit()
     
     # Ensure that key presses are sent to the widget which the mouse is hovering over
     def enterEvent(self,ev):

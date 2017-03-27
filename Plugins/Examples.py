@@ -121,5 +121,8 @@ def randImage(timeRange):
     if 0 in data.shape:
         return '$pass'
     return {'data':data,'t0':timeRange[0],'tDelta':tDelta}
+    
+def printMe(arg):
+    print arg
         
     

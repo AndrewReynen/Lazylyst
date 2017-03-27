@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.3.0
+# Version 0.3.1
 # Copyright Andrew.M.G.Reynen
 import sys
 import logging
@@ -64,10 +64,16 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Link the image axis to the time axis
         self.imageWidget.setXLink('timeAxis')
         # Allow stdout to be sent to the Trace Log
+        XStream.stdout().setTextCursor.connect(self.setTextCursor)
+        XStream.stderr().setTextCursor.connect(self.setTextCursor)
         XStream.stdout().messageWritten.connect(self.textOutBrowser.insertPlainText)
         XStream.stderr().messageWritten.connect(self.textOutBrowser.insertPlainText)
         self.textOutBrowser.textChanged.connect(self.scrollTextOut)
         
+    # Move the text browser cursor to the bottom
+    def setTextCursor(self):
+        self.textOutBrowser.moveCursor(QtGui.QTextCursor.End)
+    
     # Scroll the trace log to the bottom if an error occurs
     def scrollTextOut(self):
         scrollBar=self.textOutBrowser.verticalScrollBar()
@@ -155,7 +161,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     # Run the specified action
     def runActiveAction(self,action):
         # Set the current station, and current trace ranges to be sent to actions
-        self.setCurTraceSta()
+        self.setCurTraceStaAndPos()
         self.setTraceRanges()
         # First check to see if there are any (passive) actions which relate
         actQueue=self.collectActQueue(action)   
@@ -335,7 +341,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,self.hotVar['curPickFile'].val,
                                          self.pref['archiveColorEve'].val,self.pref['archiveColorSelect'].val)
     
-    # Load a specific pick file from the pick directory (inter-event pick loading)
+    # Load a specific pick file from the pick directory (inter-event pick loading)...
+    # ...hot variable pickSet is reset just prior to calling this (with no picks)
     def loadPickFile(self):
         path=self.hotVar['pickDir'].val+'/'+self.hotVar['curPickFile'].val
         # Check that the path exists
@@ -349,7 +356,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Put into proper dimensions if only one pick was present
         if len(pickSet.shape)==1:
             pickSet=pickSet.reshape((1,3))
-        pickSet=self.remUnknownPickTypes(pickSet)
+        # Check to see that this file was not tampered with
+        if not self.hotVar['pickSet'].check(self,pickSet):
+            print('Pick file at '+path+' was not in correct format')
+            return
         # Update the pickset
         self.hotVar['pickSet'].val=pickSet
         
@@ -360,17 +370,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             return
         np.savetxt(self.hotVar['pickDir'].val+'/'+self.hotVar['curPickFile'].val,
                    self.hotVar['pickSet'].val,fmt='%s',delimiter=',')
-    
-    # Remove any lines which have pick types that are not currently defined
-    def remUnknownPickTypes(self,pickSet):
-        knownTypes=[key for key in self.pref['pickTypesMaxCountPerSta'].val]
-        seenTypes=np.unique(pickSet[:,1])
-        for aType in seenTypes:
-            if aType not in knownTypes:
-                print('Pick type: '+aType+' is not currently defined in preference pickTypesMaxCountPerSta'+
-                       ' and has been removed from the hot variable pickSet')
-                pickSet=pickSet[np.where(pickSet[:,1]!=aType)]
-        return pickSet
         
     # Set the current pick file, called from double click an event in the archive list
     def setCurPickFileOnClick(self):
@@ -490,10 +489,11 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             self.archiveSpan.setXRange(t1,t2) # Padding is already included here
         
     # Set which station is currently being hovered over
-    def setCurTraceSta(self):
+    def setCurTraceStaAndPos(self):
         for widget in self.staWidgets:
             if widget.hasFocus():
                 self.hotVar['curTraceSta'].val=widget.sta
+                self.hotVar['curTracePos'].val=widget.hoverPos
                 return
         self.hotVar['curTraceSta'].val=''
     
@@ -504,12 +504,16 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.hotVar['yTraceRanges'].val=np.array([widget.getRangeY() for widget in self.staWidgets],dtype=float)
         
     # Add a pick to the double-clicked station (single-pick addition)
-    def addClickPick(self,useHoverPos=False):
+    def addClickPick(self):
         if self.hotVar['curPickFile'].val=='':
             return
         # Return if no pick mode selected
         if self.hotVar['pickMode'].val=='':
             print('No pick mode selected')
+            return
+        # Return if the selected pick mode is not in the accepted types
+        if self.hotVar['pickMode'].val not in self.pref['pickTypesMaxCountPerSta'].val.keys():
+            print('Pick mode '+self.hotVar['pickMode'].val+' is not defined in preference pickTypesMaxCountPerSta')
             return
         # Figure out which widget was picked on
         aList=[aWidget for aWidget in self.staWidgets if aWidget.hasFocus()]
@@ -519,28 +523,25 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         widget=aList[0]
         curMode=self.hotVar['pickMode'].val
         # Append this pick to the pick set, and plotted lines
-        if not useHoverPos:
-            aPos=widget.clickPos
-        else:
-            aPos=widget.hoverPos
+        aPosX=widget.hoverPos[0]
         # If the position was not set, skip
-        if aPos==None:
+        if aPosX==None:
             print('Trace widget in focus, but position not set (bug!)')
             return
         self.hotVar['pickSet'].val=np.vstack((self.hotVar['pickSet'].val,
-                                              [widget.sta,curMode,aPos]))
-        widget.addPick(aPos,curMode,self.getPickPen(curMode))
+                                              [widget.sta,curMode,aPosX]))
+        widget.addPick(aPosX,curMode,self.getPickPen(curMode))
         # Remove picks from the plot and pickSet, where there are too many
         self.remExcessPicks(checkStas=[widget.sta],checkTypes=[curMode])
 
-    # Remove older picks, which occurs when a given pick type has more than "X"...
+    # Remove excess picks, which occurs when a given pick type has more than "X"...
     # ...number of picks on a given station (see pref['pickTypesMaxCountPerSta'])
     def remExcessPicks(self,checkStas=None,checkTypes=None):
         # If sta or types is present, check only to delete those pickTypes on given stations
         if checkStas==None:
             checkStas=self.hotVar['staSort'].val
         if checkTypes==None:
-            checkTypes=[key for key in self.pref['pickTypesMaxCountPerSta']]
+            checkTypes=self.pref['pickTypesMaxCountPerSta'].val.keys()
         delIdxs=[]
         visStas=[widget.sta for widget in self.staWidgets]
         # Gather all indicies to be removed from pickSet and pltLines
@@ -551,10 +552,24 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 pickCountMax=self.pref['pickTypesMaxCountPerSta'].val[pickType]
                 # If there are more picks than allowed, add to delete indices
                 if len(potIdxs)>pickCountMax:
-                    delIdxs+=list(np.sort(potIdxs)[:-pickCountMax])
+                    # Oldest: picks at the top of the pickSet are removed first
+                    if self.pref['remExcessPicksStyle'].val=='oldest':
+                        delIdxs+=list(np.sort(potIdxs)[:-pickCountMax])
+                    # Closest/furthest: picks are removed relative the current hovered position
+                    else:
+                        # Not considering removing the most recent pick
+                        numToDel=len(potIdxs)-pickCountMax
+                        potIdxs=potIdxs[:-1]
+                        sortDistArgs=np.argsort(np.abs(self.hotVar['pickSet'].val[potIdxs,2].astype(np.float64)
+                                      -np.float64(self.hotVar['curTracePos'].val[0])))
+                        if self.pref['remExcessPicksStyle'].val=='closest':
+                            delIdxs=potIdxs[sortDistArgs[:numToDel]]
+                        else:
+                            delIdxs=potIdxs[sortDistArgs[::-1][:numToDel]]
+                    delTimes=self.hotVar['pickSet'].val[delIdxs,2]
                     # Delete the excess lines from the widget (if currently shown)
                     if sta in visStas:
-                        self.staWidgets[visStas.index(sta)].removePicks(pickType,len(potIdxs)-pickCountMax)
+                        self.staWidgets[visStas.index(sta)].removePicks(pickType,delTimes)
         # Remove the picks from the hot variable pickSet
         keepIdxs=np.array([i for i in np.arange(len(self.hotVar['pickSet'].val)) if i not in delIdxs])
         self.hotVar['pickSet'].val=self.hotVar['pickSet'].val[keepIdxs]
@@ -1075,7 +1090,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         
     # Save all settings from current run
     def saveSettings(self):
-        # UI size
+        # UI size and widget visibility
         self.setGen.setValue('size', self.size())
         # Actions, cannot save functions (will be linked again upon loading)
         for key in self.act.keys():
@@ -1112,13 +1127,15 @@ class QtHandler(logging.Handler):
 class XStream(QtCore.QObject):
     _stdout = None
     _stderr = None
-    messageWritten = QtCore.pyqtSignal(str)
+    setTextCursor=QtCore.pyqtSignal()
+    messageWritten=QtCore.pyqtSignal(str)
     def flush( self ):
         pass
     def fileno( self ):
         return -1
     def write( self, msg ):
         if ( not self.signalsBlocked() ):
+            self.setTextCursor.emit()
             self.messageWritten.emit(str(msg))
     @staticmethod
     def stdout():

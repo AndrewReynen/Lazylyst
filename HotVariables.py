@@ -70,6 +70,8 @@ def initHotVar():
                            tip='Earliest and latest timestamp contained in the archive files'),   
     'curTraceSta':HotVar(tag='curTraceSta',val='',dataType=str,returnable=False,
                          tip='Station code of the currently hovered over trace data widget'),
+    'curTracePos':HotVar(tag='curTracePos',val=[0,0],dataType=list,returnable=False,
+                         tip='Mouse position [X,Y] of the currently hovered over trace data widget'),
     'staFile':HotVar(tag='staFile',val='',dataType=str,
                      funcName='updateStaMeta',checkName='checkStaFile',
                      tip='Station file path'),

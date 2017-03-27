@@ -63,11 +63,11 @@ def defaultActions():
 
     'PickModeP':Action(tag='PickModeP',name='setPickMode',
                       path='Plugins.General',optionals={'wantMode':'P'},
-                      trigger=QtGui.QKeySequence('1'),inputs=['pickMode','pickTypesMaxCountPerSta'],returns=['pickMode']),
+                      trigger=QtGui.QKeySequence('1'),inputs=['pickTypesMaxCountPerSta'],returns=['pickMode']),
 
     'PickModeS':Action(tag='PickModeS',name='setPickMode',
                       path='Plugins.General',optionals={'wantMode':'S'},
-                      trigger=QtGui.QKeySequence('2'),inputs=['pickMode','pickTypesMaxCountPerSta'],returns=['pickMode']),
+                      trigger=QtGui.QKeySequence('2'),inputs=['pickTypesMaxCountPerSta'],returns=['pickMode']),
 
     'ToggleTracePen':Action(tag='ToggleTracePen',name='setTracePenAssign',
                             path='Plugins.General',passive=True,
@@ -348,7 +348,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # If the key-bind is already in use, do not allow update
         for tag,action in iteritems(self.actDict):
             # Only active actions have key-binds (do not need to check passive)
-            if action.passive or action.trigger=='DoubleClick':
+            if action.passive or action.trigger in ['DoubleClick','Set Trigger']:
                 continue
             if action.trigger.toString()==keyBindText and action.tag!=self.action.tag:
                 print(action.tag+' already uses key-bind '+keyBindText)

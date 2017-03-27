@@ -41,7 +41,7 @@ def text2Dict(text):
                     aDict[key]=int(val)
             # If none of the above, leave as a string
             except:
-                continue
+                aDict[key]=str(val)
     return aDict
     
 # Return the UTCDateTime from the forced file naming convention
