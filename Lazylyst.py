@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.3.1
+# Version 0.3.2
 # Copyright Andrew.M.G.Reynen
 import sys
 import logging
@@ -17,11 +17,12 @@ from HotVariables import initHotVar
 from Preferences import defaultPreferences, DateDialog
 from Actions import defaultActions, defaultPassiveOrder
 from Archive import getArchiveAvail, extractDataFromArchive
+from StationMeta import staXml2Loc, readInventory, projStaLoc
 from ConfigurationDialog import ConfDialog
 from SaveSource import CsDialog
 from fnmatch import fnmatch
 from future.utils import iteritems
-from pyqtgraph import mkPen,mkBrush
+from pyqtgraph import mkPen, mkBrush
 
 # Main window class
 class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
@@ -646,10 +647,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def getStaColors(self,assignType):
         # Only set the pen reference for stations which are present
         if assignType=='mapSta':
-            if self.hotVar['staMeta'].val.shape[0]==0:
+            if self.hotVar['staLoc'].val.shape[0]==0:
                 unqStas=[]
             else:
-                unqStas=np.unique(self.hotVar['staMeta'].val[:,0])
+                unqStas=np.unique(self.hotVar['staLoc'].val[:,0])
             defaultColInt=self.pref['defaultColorMapSta'].val
             assignKey='mapStaPenAssign'
         else:
@@ -818,10 +819,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     
     # Update the color of all of the station spots, with user specified colors
     def updateMapStations(self,init=False):
-        # Assign the station colors for the stations in staMeta
+        # Assign the station colors for the stations in staLoc
         self.mapStaColors=self.getStaColors('mapSta')
         # Add the spots to the map
-        self.mapWidget.loadStaMeta(self.hotVar['staMeta'].val,self.mapStaColors,init)
+        self.mapWidget.loadStaLoc(self.hotVar['staLoc'].val,self.mapStaColors,init)
     
     # Update the current event spots on the map widget
     def updateMapCurEve(self):
@@ -913,18 +914,23 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     # Update the map with the new station metadata
     def updateStaMeta(self):
         # Load in the new station metadata
-        self.hotVar['staMeta'].val=np.genfromtxt(self.hotVar['staFile'].val,delimiter=',',dtype=str)
-        # If the file was empty or just one line, try and convert to appropriate shape
-        if 0 in self.hotVar['staMeta'].val.shape:
-            self.hotVar['staMeta'].val=np.empty((0,4))
-        elif len(self.hotVar['staMeta'].val.shape)==1:
-            self.hotVar['staMeta'].val=np.array([self.hotVar['staMeta'].val])
-        self.updateMapStations(init=True)
+        self.hotVar['staXml'].val=readInventory(self.hotVar['staFile'].val)
+        self.updateStaLoc()
         # Reset any additional map related visuals
         defaultHot=initHotVar()
         for key in ['mapCurEve','mapPrevEve']:
             self.hotVar[key].val=defaultHot[key].val
             self.hotVar[key].update()
+    
+    # Update staLoc along with the map widget
+    def updateStaLoc(self,init=False):
+        staLoc=staXml2Loc(self.hotVar['staXml'].val)
+        # Project if desired
+        if self.pref['staProjStyle'].val=='None' or init:
+            self.hotVar['staLoc'].val=staLoc
+        else:
+            self.hotVar['staLoc'].val=projStaLoc(staLoc,self.pref['staProjStyle'].val)
+        self.updateMapStations(init=True)
         
     # Update the selected (double clicked) station on the map view
     def updateMapSelectSta(self):

@@ -1,5 +1,6 @@
 # Copyright Andrew.M.G.Reynen
-from obspy import Stream as emptyStream
+from obspy import Stream, read_inventory
+from obspy.core.inventory import Inventory
 from CustomFunctions import getTimeFromFileName
 from copy import deepcopy
 from future.utils import iteritems
@@ -10,9 +11,9 @@ import numpy as np
 # Default Hot Variables
 def initHotVar():
     hotVar={
-    'stream':HotVar(tag='stream',val=emptyStream(),dataType=type(emptyStream()),returnable=False,
+    'stream':HotVar(tag='stream',val=Stream(),dataType=type(Stream()),returnable=False,
                     tip='Raw trace data from archive for current event'),
-    'pltSt':HotVar(tag='pltSt',val=emptyStream(),dataType=type(emptyStream()),
+    'pltSt':HotVar(tag='pltSt',val=Stream(),dataType=type(Stream()),
                    funcName='updateTraces',checkName='checkPltSt',
                     tip='Plotted trace data for current event'),
     'staSort':HotVar(tag='staSort',val=[],dataType=type(np.array([''])),
@@ -75,7 +76,10 @@ def initHotVar():
     'staFile':HotVar(tag='staFile',val='',dataType=str,
                      funcName='updateStaMeta',checkName='checkStaFile',
                      tip='Station file path'),
-    'staMeta':HotVar(tag='staMeta',val=np.empty((0,4)),dataType=type(np.array([0.0])),returnable=False,
+    'staLoc':HotVar(tag='staLoc',val=np.empty((0,4)),dataType=type(np.array([0.0])),returnable=False,
+                     tip='Station locations'),
+    'staXml':HotVar(tag='staXml',val=Inventory(networks=[],source='Lazylyst'),
+                    dataType=type(Inventory(networks=[],source='Lazylyst')),returnable=False,
                      tip='Station metadata'),
     'curMapSta':HotVar(tag='curMapSta',val='',dataType=str,returnable=False,
                        tip='Last double clicked station on the map sta widget'),
@@ -320,30 +324,16 @@ def checkArchDir(main,archDir):
     return True
     
 # Ensure that the station file exists and is in the proper format
-def checkStaFile(main,staFileName):
+def checkStaFile(main,staFile):
     # First see if the file exists
-    if not os.path.isfile(staFileName):
+    if not os.path.isfile(staFile):
         print('Station file does not exist')
         return False
+    # Ensure the to-read file is of proper format
     try:
-        staMeta=np.genfromtxt(staFileName,delimiter=',',dtype=str)
+        read_inventory(staFile,format='stationxml')
     except:
-        print('Station file was not in csv format')
-        return False
-    # If the file was empty or just one line, try and convert to appropriate shape
-    if 0 in staMeta.shape:
-        staMeta=np.empty((0,4))
-    elif len(staMeta.shape)==1:
-        staMeta=np.array([staMeta])
-    # Check the array dimensions
-    if staMeta.shape[1]!=4:
-        print('Station file must have 4 columns')
-        return False
-    # Check that the positions are numbers
-    try:
-        staMeta[:,1:].astype(float)
-    except:
-        print('The station file contains [StationCode,X,Y,Z], X, Y and Z must all be numbers')
+        print('Station file was not in xml format')
         return False
     return True
 

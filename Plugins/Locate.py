@@ -25,15 +25,15 @@ def simpleLocatorFunc(data,x0,y0,z0,t0):
     return t0+((((data[:,0]-x0)**2+(data[:,1]-y0)**2+(data[:,2]-z0)**2)**0.5)+data[:,3]*data[:,4])/data[:,3]
 
 # Gather the information to be sent to the location minimization function
-def getPickData(pickSet,staMeta,vdInfo):
+def getPickData(pickSet,staLoc,vdInfo):
     # Form array to be able to send to the 0 dimensional travel time function
     data,stas=[],[] #[xi,yi,zi,vi,ti],[]
     for aPick in pickSet:
         # Ensure that this pick has station metadata present
-        idx=np.where(staMeta[:,0]==aPick[0])[0]
+        idx=np.where(staLoc[:,0]==aPick[0])[0]
         if len(idx)<1:
             continue
-        aStaX,aStaY,aStaZ=staMeta[idx[0],1:4].astype(float)
+        aStaX,aStaY,aStaZ=staLoc[idx[0],1:4].astype(float)
         # Assign appropriate velocity values        
         if aPick[1]=='P':
             aVel=vdInfo['Vp']
@@ -50,7 +50,7 @@ def getPickData(pickSet,staMeta,vdInfo):
 
 # Locate event using a straight ray path, and non-linear least squares curve fitting
 # Also assign residual coloring to the stations
-def simpleLocator(pickSet,staMeta,mapCurEve,staSort,sourceTag):
+def simpleLocator(pickSet,staLoc,mapCurEve,staSort,sourceTag):
     vdInfo=getVelDelay(sourceTag)
     # If there was no vpInfo defined, pass these updates
     if vdInfo=='$pass':
@@ -59,13 +59,13 @@ def simpleLocator(pickSet,staMeta,mapCurEve,staSort,sourceTag):
     if len(pickSet)>=4:
         pickSet=pickSet[np.where((pickSet[:,1]=='P')|(pickSet[:,1]=='S'))]
     # Set up the pen assignment arrays
-    traceBgPenAssign={'noStaData':[sta for sta in staSort if sta not in staMeta[:,0]]}
+    traceBgPenAssign={'noStaData':[sta for sta in staSort if sta not in staLoc[:,0]]}
     if len(staSort)==0:
-        mapStaPenAssign={'noTraceData':[row[0] for row in staMeta]}
+        mapStaPenAssign={'noTraceData':[row[0] for row in staLoc]}
     else:
-        mapStaPenAssign={'noTraceData':[row[0] for row in staMeta if row[0] not in staSort]}
+        mapStaPenAssign={'noTraceData':[row[0] for row in staLoc if row[0] not in staSort]}
     mapStaPenAssign['goodMap']=list(np.unique(pickSet[:,0]))
-    data,stas=getPickData(pickSet,staMeta,vdInfo)    
+    data,stas=getPickData(pickSet,staLoc,vdInfo)    
     # If there are too few picks, do not try to locate
     if len(data)<4:
         return np.empty((0,5)),traceBgPenAssign,mapStaPenAssign
@@ -106,11 +106,11 @@ def calcHypDist_viaDelayPS(vdInfo,delayPS):
     return hyp 
 
 # For each pick give it a pIdx, dIdx, and probability (many trios are formed for each pick)
-def getOriginInfo(vdInfo,pickSet,staMeta,probSpread,tDelta,maxSampShift):
+def getOriginInfo(vdInfo,pickSet,staLoc,probSpread,tDelta,maxSampShift):
     maxSampShift+=1 # makes it easier for array generation, starts from zero
     # Make a dictionary of the station locations
     staLocDict={}
-    for entry in staMeta:
+    for entry in staLoc:
         staLocDict[entry[0]]=entry[1:].astype(float)
     # Sort by pick type (so the P-picks are processed first)
     pickSet=pickSet[np.argsort(pickSet[:,1])]
@@ -344,8 +344,8 @@ def stackDetectAlgorithm(originInfo,rings,baseX,baseY,baseZ,base,timeDelta,
             for aSta in [sta for sta in segmentStas if sta not in peakStas]:
                 # Find out what the pIdx would have been
                 refIdx,refOrig,refpIdx=refInfo[aSta] # Get the reference origin time and pIdx (dIdx=0)
-                staLoc=originInfo['loc'][refIdx]     # Calculate the P and S travel times
-                aDist=np.sum((aEveLoc-staLoc)**2)**0.5
+                staXYZ=originInfo['loc'][refIdx]     # Calculate the P and S travel times
+                aDist=np.sum((aEveLoc-staXYZ)**2)**0.5
                 tp,ts=calcPSarrivalTimes(vdInfo,aDist)
                 psDelayIdx=int(np.round((ts-tp)/timeDelta))
                 pIdx=int(np.round((aEveTime+tp-refOrig)/timeDelta))+refpIdx # Get P-index relative to reference
@@ -390,7 +390,7 @@ def stackDetectAlgorithm(originInfo,rings,baseX,baseY,baseZ,base,timeDelta,
 # ...maxVertDist is the maximum vertical distance (km) to be used for stacking
 # ...maxEveCount, if this number of events is reached - the association will stop
 # ...nullBuffer, how many extra indicies to null out trios on either side of diagonals/straight
-def stackLocate(pickSet,staMeta,sourceTag,tDelta=0.5,tIdxSpread=1,
+def stackLocate(pickSet,staLoc,sourceTag,tDelta=0.5,tIdxSpread=1,
                 eveProbMinSum=3.0,maxVertDist=10,
                 maxEveCount=999999,nullBuffer=0):
     print('Initiating stack locate')
@@ -402,7 +402,7 @@ def stackLocate(pickSet,staMeta,sourceTag,tDelta=0.5,tIdxSpread=1,
     keepArgs=np.ones(len(pickSet)).astype(bool)
     # Remove any picks no station metadata
     for i,entry in enumerate(pickSet):
-        if entry[0] not in staMeta[:,0]:
+        if entry[0] not in staLoc[:,0]:
             keepArgs[i]=False
     pickSet=pickSet[keepArgs]
     # Use only P and S picks
@@ -413,9 +413,9 @@ def stackLocate(pickSet,staMeta,sourceTag,tDelta=0.5,tIdxSpread=1,
         print('Not enough picks to pass minimum event summed probability')
         return np.empty((0,5))
     QtGui.qApp.processEvents()
-    # Create the ROI from the staMeta
-    mins=np.min(staMeta[:,1:].astype(float),axis=0).reshape(1,3)
-    maxs=np.max(staMeta[:,1:].astype(float),axis=0).reshape(1,3)
+    # Create the ROI from the staLoc
+    mins=np.min(staLoc[:,1:].astype(float),axis=0).reshape(1,3)
+    maxs=np.max(staLoc[:,1:].astype(float),axis=0).reshape(1,3)
     roi=np.vstack((mins,maxs)).T.flatten()
     roi[4]-=0.1*maxVertDist
     roi[5]+=maxVertDist
@@ -428,7 +428,7 @@ def stackLocate(pickSet,staMeta,sourceTag,tDelta=0.5,tIdxSpread=1,
     probSpread=signal.gaussian(1+2*tIdxSpread, std=1.0)
     probSpread/=np.sum(probSpread)
     # Get all of the pIdx,dIdx,prob trios
-    originInfo=getOriginInfo(vdInfo,pickSet,staMeta,probSpread,tDelta,maxSampShift)
+    originInfo=getOriginInfo(vdInfo,pickSet,staLoc,probSpread,tDelta,maxSampShift)
     # Create the stacking arrays
     ringLay,ringBounds,baseX,baseY,baseZ,baseProb,distErr=getStackRings(roi,vdInfo,maxHypDist,
                                                                         maxVertDist,PSdelay,tDelta)                                            

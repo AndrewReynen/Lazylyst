@@ -1,3 +1,5 @@
+from obspy.core.inventory import Inventory, Network, Station, Site
+from obspy import UTCDateTime
 import numpy as np
 
 # Go to the next pick type (in alphabetical order)
@@ -98,14 +100,14 @@ def zoomTraceY(yTraceRanges,percent=100):
     return yTraceRanges
         
 # Return some random set of current and previous events
-def randomEves(staMeta):
+def randomEves(staLoc):
     # Do nothing if no stations have been added
-    if len(staMeta)==0:
+    if len(staLoc)==0:
         return '$pass','$pass'
-    staMeta=staMeta[:,1:].astype(float)
+    staLoc=staLoc[:,1:].astype(float)
     # Make a random distribution of events bounded by the station limits
-    xmin,xmax=np.min(staMeta[:,0]),np.max(staMeta[:,0])
-    ymin,ymax=np.min(staMeta[:,1]),np.max(staMeta[:,1])
+    xmin,xmax=np.min(staLoc[:,0]),np.max(staLoc[:,0])
+    ymin,ymax=np.min(staLoc[:,1]),np.max(staLoc[:,1])
     xArr=np.random.rand(100)*(xmax-xmin)+xmin
     yArr=np.random.rand(100)*(ymax-ymin)+ymin
     zArr=np.ones(100)
@@ -121,8 +123,29 @@ def randImage(timeRange):
     if 0 in data.shape:
         return '$pass'
     return {'data':data,'t0':timeRange[0],'tDelta':tDelta}
-    
+
+# Example Conversion of a station csv file to a station xml file
+# Not for direct use with Lazylyst
+def staCsv2Xml(staCsvPath,staXmlPath,source='Lazylyst'):
+    # Load the csv file
+    info=np.genfromtxt(staCsvPath,delimiter=',',dtype=str)
+    # For each network... 
+    networks=[]
+    unqNets=np.unique(info[:,5])
+    for net in unqNets:
+        netInfo=info[np.where(info[:,5]==net)]
+        # ...gather its stations
+        stations=[]
+        for entry in netInfo:
+            stations.append(Station(entry[0],entry[1],entry[2],entry[3],
+                                    site=Site(''),creation_date=UTCDateTime(1970, 1, 1)))
+        networks.append(Network(net,stations=stations))
+    # Generate the inventory object, and save it as a station XML
+    inv=Inventory(networks=networks,source=source)
+    inv.write(staXmlPath,format='stationxml',validate=True)
+
+# To print out a specific variable (Testing)
 def printMe(arg):
-    print arg
+    print(arg)
         
     

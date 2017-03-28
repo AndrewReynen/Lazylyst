@@ -30,7 +30,7 @@ def staSortPickTime(staSort,pickSet,pickMode):
     return staSort[np.argsort(pos)]
 
 # Return the station based on the residual (largest first)
-def staSortDist(staSort,staMeta,mapCurEve):
+def staSortDist(staSort,staLoc,mapCurEve):
     # Secondary sorting is alphabetical
     staSort=np.sort(staSort)
     # If no event has been located, return alphabetical
@@ -40,9 +40,9 @@ def staSortDist(staSort,staMeta,mapCurEve):
     # Loop through each station, getting its distance from the current event   
     pos=[]
     for i,sta in enumerate(staSort):
-        if sta in staMeta[:,0]:
-            staLoc=staMeta[np.where(staMeta[:,0]==sta)[0][0],1:].astype(float)      
-            dist=np.sum((staLoc-eveLoc)**2)**0.5
+        if sta in staLoc[:,0]:
+            staXYZ=staLoc[np.where(staLoc[:,0]==sta)[0][0],1:].astype(float)      
+            dist=np.sum((staXYZ-eveLoc)**2)**0.5
             pos.append(dist)
         else:
             pos.append(-1*(i+1))
@@ -52,7 +52,7 @@ def staSortDist(staSort,staMeta,mapCurEve):
     return staSort[np.argsort(pos)]
    
 # Return the station based on the residual (largest first)
-def staSortResidual(staSort,staMeta,sourceTag,pickSet,mapCurEve):
+def staSortResidual(staSort,staLoc,sourceTag,pickSet,mapCurEve):
     # Secondary sorting is alphabetical
     staSort=np.sort(staSort)
     # Get the velocity and delay info
@@ -60,7 +60,7 @@ def staSortResidual(staSort,staMeta,sourceTag,pickSet,mapCurEve):
     # If there was no vpInfo defined, or no event has been located, return alphabetical
     if vdInfo=='$pass' or len(mapCurEve)==0:
         return staSort
-    data,stas=getPickData(pickSet,staMeta,vdInfo)
+    data,stas=getPickData(pickSet,staLoc,vdInfo)
     # If there was none of the wanted pick types, return alphabetical
     if len(data)==0:
         return staSort

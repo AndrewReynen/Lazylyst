@@ -388,6 +388,9 @@ class TraceWidget(pg.PlotWidget):
                 break
             if aLine.pickType==aType and aLine.value() in delTimes:
                 delIdxs.append(i)
+        # Check to make sure all were deleted
+        if len(delIdxs)!=len(delTimes):
+            print('Missed deleting some plotted pick lines')
         # Loop backwards and pop these picks off the widget
         for idx in delIdxs[::-1]:
             aLine=self.pickLines.pop(idx)
@@ -606,7 +609,7 @@ class MapWidget(pg.GraphicsLayoutWidget):
         return str(self.stas[np.where(self.staItem.points()==selPoint)[0][0]])
         
     # Load the new station meta data
-    def loadStaMeta(self,staMeta,colorAssign,init):
+    def loadStaLoc(self,staLoc,colorAssign,init):
         # Enable the autoscaling temporarily
         self.map.vb.enableAutoRange()
         # Hide the hovered station label
@@ -618,10 +621,10 @@ class MapWidget(pg.GraphicsLayoutWidget):
         if init:
             self.selectSta=None
         # Generate the station items
-        if len(staMeta)==0:
+        if len(staLoc)==0:
             self.stas=[]
         else:
-            self.stas=staMeta[:,0]
+            self.stas=staLoc[:,0]
         # Get the brush values to be assigned
         brushArr=[]
         for sta in self.stas:
@@ -629,8 +632,8 @@ class MapWidget(pg.GraphicsLayoutWidget):
             brushArr.append(pg.mkBrush(color.red(),color.green(),color.blue(),200))
         staScatter = CustScatter(size=8,symbol='t1',pen=pg.mkPen(None))
         # Add in the points
-        if len(staMeta)!=0:
-            staScatter.addPoints(x=staMeta[:,1], y=staMeta[:,2], brush=brushArr)
+        if len(staLoc)!=0:
+            staScatter.addPoints(x=staLoc[:,1], y=staLoc[:,2], brush=brushArr)
         # Give some clicking ability to the stations
         staScatter.dblClicked.connect(self.staClicked)
         self.scene().sigMouseMoved.connect(self.onHover)
