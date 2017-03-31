@@ -1,7 +1,7 @@
 from obspy.core.inventory import (Inventory, Network, Station, Channel, Site, 
                                   Response, InstrumentSensitivity, Frequency,
                                   PolesZerosResponseStage,CoefficientsTypeResponseStage)
-from obspy.core.util.obspy_types import FloatWithUncertaintiesAndUnit,CustomFloat
+from obspy.core.util.obspy_types import FloatWithUncertaintiesAndUnit
 from obspy.io.xseed import Parser
 from obspy import UTCDateTime
 import numpy as np
@@ -35,6 +35,12 @@ def genArrWithUncertainty(vals,errs):
     outArr=[FloatWithUncertaintiesAndUnit(val,lower_uncertainty=err,upper_uncertainty=err) 
             for val,err in zip(vals,errs)]
     return outArr
+
+# Ensure that the array is 1D (could be 0D)
+def setArrDim(arr):
+    if len(arr.shape)==0:
+        arr=np.array([arr],dtype=type(arr))
+    return arr
 
 # Collect a station object from a dataless seed station block
 def getStation(stationBlock,units,transFuncs):
@@ -88,12 +94,12 @@ def getStation(stationBlock,units,transFuncs):
                 poles=np.array([],dtype=float)
             else:
                 poles=np.array(entry.real_pole,dtype=float)+np.array(entry.imaginary_pole,dtype=float)*1j
-            # Form the paz response dictionary
+            # Form the paz response dictionary (also ensure arrays are 1D)
             pazDict={'pz_transfer_function_type':transFuncs[entry.transfer_function_types],
                      'normalization_factor':entry.A0_normalization_factor,
                      'normalization_frequency':entry.normalization_frequency,
-                     'zeros':zeros,
-                     'poles':poles}
+                     'zeros':setArrDim(zeros),
+                     'poles':setArrDim(poles)}
         # ...coeff stage
         elif entry.name=='Response Coefficients':
             # Get units
@@ -104,20 +110,20 @@ def getStation(stationBlock,units,transFuncs):
             # Collect the coefficients
             lastType='coef'
             if entry.number_of_denominators==0:
-                denom=[]
-                denomErr=[]
+                denom=np.array([],dtype=float)
+                denomErr=np.array([],dtype=float)
             else:
-                denom=entry.denominator_coefficient
-                denomErr=entry.denominator_error
+                denom=np.array(entry.denominator_coefficient,dtype=float)
+                denomErr=np.array(entry.denominator_error,dtype=float)
             if entry.number_of_numerators==0:
-                numer=[]
-                numerErr=[]
+                numer=np.array([],dtype=float)
+                numerErr=np.array([],dtype=float)
             else:
-                numer=entry.numerator_coefficient
-                numerErr=entry.numerator_error
-            # Convert these arrays into lists of numbers which have uncertainty
-            denomArr=genArrWithUncertainty(denom,denomErr)
-            numerArr=genArrWithUncertainty(numer,numerErr)
+                numer=np.array(entry.numerator_coefficient,dtype=float)
+                numerErr=np.array(entry.numerator_error,dtype=float)
+            # Convert these arrays into lists of numbers which have uncertainty (also ensure arrays are 1D)
+            denomArr=genArrWithUncertainty(setArrDim(denom),setArrDim(denomErr))
+            numerArr=genArrWithUncertainty(setArrDim(numer),setArrDim(numerErr))
             # Form the coeefficient response dictionary
             coefDict={'cf_transfer_function_type':transFuncs[entry.response_type],
                       'numerator':numerArr,
@@ -146,12 +152,13 @@ def getStation(stationBlock,units,transFuncs):
                     stages.append(CoefficientsTypeResponseStage(**coefDict))
             # If on the last stage, send off the collected stage info
             else:
-                instrSens=InstrumentSensitivity(entry.sensitivity_gain,entry.frequency,
-                                                stages[0].input_units,stages[-1].output_units)
-                # Finalize the channel dictionary, and append this channel to the station dictionary
-                chaResp=Response(response_stages=stages,
-                                 instrument_sensitivity=instrSens)
-                chaDict['response']=chaResp
+                if len(stages)>0:
+                    instrSens=InstrumentSensitivity(entry.sensitivity_gain,entry.frequency,
+                                                    stages[0].input_units,stages[-1].output_units)
+                    # Finalize the channel dictionary, and append this channel to the station dictionary
+                    chaResp=Response(response_stages=stages,
+                                     instrument_sensitivity=instrSens)
+                    chaDict['response']=chaResp
                 staDict['channels'].append(Channel(**chaDict))
     # Return the stations to the list of stations (also track the network code)
     return Station(**staDict),staNetCode
@@ -197,12 +204,21 @@ def dataless2stationXml(datalessFileName,xmlFileName):
     inv.write(xmlFileName,format='stationxml',validate=True)
     
 
-#dataless2stationXml('NX.dataless','NX_Full.xml')    
+#dataless2stationXml('CN.dataless','CN_Full.xml')
+#from obspy import read_inventory,read,Stream
+#st=read('006004_20150907.002057.500000.mseed')
+#inv=read_inventory('NX_Full.xml')
+#pre_filt = (0.5, 0.6, 30.0, 35.0)
+#st.remove_response(inventory=inv,output='VEL', pre_filt=pre_filt)
 
-#    #print inv
-#    cha=inv[0][0][0]
-#    resp=cha.response
-#    resp.plot(0.001)
+#sp=Parser('NX.dataless')
+#st.simulate(seedresp={'filename': sp, 'units': "VEL"}, pre_filt=pre_filt)
+
+
+#st0+=st1[:3]
+#st0+=st2[:3]
+#st0.plot()
+
     
     
 # For plotting the response
