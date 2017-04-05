@@ -125,5 +125,14 @@ def randImage(timeRange):
 # To print out a specific variable (Testing)
 def printMe(arg):
     print(arg)
+    
+# To test passing of the custom dictionary variable
+def testCustDict(custDict):
+    if 'test123' not in custDict.keys():
+        custDict['test123']=0
+    else:
+        custDict['test123']=(custDict['test123']+1)%5
+    print(custDict)
+    return custDict
         
     

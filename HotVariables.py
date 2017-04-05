@@ -7,6 +7,9 @@ from future.utils import iteritems
 import importlib
 import os
 import numpy as np
+import sys
+if sys.version_info.major == 3:
+    unicode = str
 
 # Default Hot Variables
 def initHotVar():
@@ -88,6 +91,8 @@ def initHotVar():
     'image':HotVar(tag='image',val={'data':np.zeros((1,1)),'tDelta':1,'t0':0},dataType=dict,
                    funcName='updateImage',checkName='checkImage',
                    tip='Currently plotted image on the image widget'),
+    'customDict':HotVar(tag='customDict',val={},dataType=dict,
+                        tip='Dictionary to hold arbitrary variables'),
     }
     return hotVar
 

@@ -229,5 +229,5 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         popKeys=[actKey for actKey in self.act.keys() if (self.act[actKey].trigger=='Set Trigger' and 
                                                           not self.act[actKey].passive)]
         for key in popKeys:
-            print 'Action '+key+' was removed, as its trigger value was not set'
+            print('Action '+key+' was removed, as its trigger value was not set')
             self.act.pop(key)
