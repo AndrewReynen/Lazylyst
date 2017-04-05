@@ -1,0 +1,279 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<FDSNStationXML schemaVersion="1.0" xmlns="http://www.fdsn.org/xml/station/1">
+  <Source>Lazylyst</Source>
+  <Module>ObsPy 1.0.2</Module>
+  <ModuleURI>https://www.obspy.org</ModuleURI>
+  <Created>2017-03-28T15:57:14+00:00</Created>
+  <Network code="NX">
+    <Station code="STN01">
+      <Latitude unit="DEGREES">35.8328</Latitude>
+      <Longitude unit="DEGREES">-97.655</Longitude>
+      <Elevation unit="METERS">316.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN02">
+      <Latitude unit="DEGREES">35.9506</Latitude>
+      <Longitude unit="DEGREES">-97.5066</Longitude>
+      <Elevation unit="METERS">342.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN03">
+      <Latitude unit="DEGREES">35.9261</Latitude>
+      <Longitude unit="DEGREES">-97.1856</Longitude>
+      <Elevation unit="METERS">276.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN04">
+      <Latitude unit="DEGREES">35.9088</Latitude>
+      <Longitude unit="DEGREES">-96.9224</Longitude>
+      <Elevation unit="METERS">290.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN05">
+      <Latitude unit="DEGREES">35.847</Latitude>
+      <Longitude unit="DEGREES">-96.6446</Longitude>
+      <Elevation unit="METERS">285.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN06">
+      <Latitude unit="DEGREES">36.0365</Latitude>
+      <Longitude unit="DEGREES">-96.4759</Longitude>
+      <Elevation unit="METERS">257.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN07">
+      <Latitude unit="DEGREES">36.0831</Latitude>
+      <Longitude unit="DEGREES">-97.7969</Longitude>
+      <Elevation unit="METERS">345.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN08">
+      <Latitude unit="DEGREES">36.1794</Latitude>
+      <Longitude unit="DEGREES">-97.4919</Longitude>
+      <Elevation unit="METERS">359.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN09">
+      <Latitude unit="DEGREES">36.1758</Latitude>
+      <Longitude unit="DEGREES">-97.2673</Longitude>
+      <Elevation unit="METERS">310.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN10">
+      <Latitude unit="DEGREES">36.1463</Latitude>
+      <Longitude unit="DEGREES">-96.9374</Longitude>
+      <Elevation unit="METERS">287.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN11">
+      <Latitude unit="DEGREES">36.1593</Latitude>
+      <Longitude unit="DEGREES">-96.7316</Longitude>
+      <Elevation unit="METERS">252.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN12">
+      <Latitude unit="DEGREES">36.2589</Latitude>
+      <Longitude unit="DEGREES">-96.4915</Longitude>
+      <Elevation unit="METERS">260.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN13">
+      <Latitude unit="DEGREES">36.3074</Latitude>
+      <Longitude unit="DEGREES">-97.8208</Longitude>
+      <Elevation unit="METERS">343.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN14">
+      <Latitude unit="DEGREES">36.4698</Latitude>
+      <Longitude unit="DEGREES">-97.6259</Longitude>
+      <Elevation unit="METERS">329.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN15">
+      <Latitude unit="DEGREES">36.3495</Latitude>
+      <Longitude unit="DEGREES">-97.3746</Longitude>
+      <Elevation unit="METERS">316.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN16">
+      <Latitude unit="DEGREES">36.3487</Latitude>
+      <Longitude unit="DEGREES">-97.1269</Longitude>
+      <Elevation unit="METERS">294.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN17">
+      <Latitude unit="DEGREES">36.4004</Latitude>
+      <Longitude unit="DEGREES">-96.9078</Longitude>
+      <Elevation unit="METERS">299.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN18">
+      <Latitude unit="DEGREES">36.4181</Latitude>
+      <Longitude unit="DEGREES">-96.6474</Longitude>
+      <Elevation unit="METERS">255.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN19">
+      <Latitude unit="DEGREES">36.68328</Latitude>
+      <Longitude unit="DEGREES">-97.90254</Longitude>
+      <Elevation unit="METERS">337.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN20">
+      <Latitude unit="DEGREES">36.5215</Latitude>
+      <Longitude unit="DEGREES">-97.74324</Longitude>
+      <Elevation unit="METERS">339.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN21">
+      <Latitude unit="DEGREES">36.75232</Latitude>
+      <Longitude unit="DEGREES">-97.5612</Longitude>
+      <Elevation unit="METERS">333.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN22">
+      <Latitude unit="DEGREES">36.56544</Latitude>
+      <Longitude unit="DEGREES">-97.41133</Longitude>
+      <Elevation unit="METERS">312.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN23">
+      <Latitude unit="DEGREES">36.65494</Latitude>
+      <Longitude unit="DEGREES">-97.19713</Longitude>
+      <Elevation unit="METERS">296.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN24">
+      <Latitude unit="DEGREES">36.91959</Latitude>
+      <Longitude unit="DEGREES">-97.85398</Longitude>
+      <Elevation unit="METERS">344.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN26">
+      <Latitude unit="DEGREES">36.92598</Latitude>
+      <Longitude unit="DEGREES">-97.20805</Longitude>
+      <Elevation unit="METERS">353.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN31">
+      <Latitude unit="DEGREES">35.7579</Latitude>
+      <Longitude unit="DEGREES">-97.4433</Longitude>
+      <Elevation unit="METERS">329.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN32">
+      <Latitude unit="DEGREES">35.68077</Latitude>
+      <Longitude unit="DEGREES">-97.15523</Longitude>
+      <Elevation unit="METERS">292.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN33">
+      <Latitude unit="DEGREES">35.657</Latitude>
+      <Longitude unit="DEGREES">-96.7213</Longitude>
+      <Elevation unit="METERS">272.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN34">
+      <Latitude unit="DEGREES">35.4419</Latitude>
+      <Longitude unit="DEGREES">-97.1104</Longitude>
+      <Elevation unit="METERS">339.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="STN35">
+      <Latitude unit="DEGREES">35.4418</Latitude>
+      <Longitude unit="DEGREES">-96.7904</Longitude>
+      <Elevation unit="METERS">320.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+  </Network>
+</FDSNStationXML>

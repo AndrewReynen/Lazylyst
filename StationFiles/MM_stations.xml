@@ -1,0 +1,101 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<FDSNStationXML schemaVersion="1.0" xmlns="http://www.fdsn.org/xml/station/1">
+  <Source>Lazylyst</Source>
+  <Module>ObsPy 1.0.2</Module>
+  <ModuleURI>https://www.obspy.org</ModuleURI>
+  <Created>2017-03-28T16:04:26+00:00</Created>
+  <Network code="NC">
+    <Station code="MINS">
+      <Latitude unit="DEGREES">37.65377</Latitude>
+      <Longitude unit="DEGREES">-119.060928</Longitude>
+      <Elevation unit="METERS">2796.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="MDY">
+      <Latitude unit="DEGREES">37.658039</Latitude>
+      <Longitude unit="DEGREES">-119.012154</Longitude>
+      <Elevation unit="METERS">2789.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="MCY">
+      <Latitude unit="DEGREES">37.642929</Latitude>
+      <Longitude unit="DEGREES">-119.029137</Longitude>
+      <Elevation unit="METERS">2943.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="MLI">
+      <Latitude unit="DEGREES">37.636761</Latitude>
+      <Longitude unit="DEGREES">-119.017906</Longitude>
+      <Elevation unit="METERS">3075.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="MMS">
+      <Latitude unit="DEGREES">37.630375</Latitude>
+      <Longitude unit="DEGREES">-119.031746</Longitude>
+      <Elevation unit="METERS">3324.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="MDPB">
+      <Latitude unit="DEGREES">37.632267</Latitude>
+      <Longitude unit="DEGREES">-119.079353</Longitude>
+      <Elevation unit="METERS">2360.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="MRD">
+      <Latitude unit="DEGREES">37.598011</Latitude>
+      <Longitude unit="DEGREES">-119.058083</Longitude>
+      <Elevation unit="METERS">2672.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="MMP">
+      <Latitude unit="DEGREES">37.609707</Latitude>
+      <Longitude unit="DEGREES">-119.028702</Longitude>
+      <Elevation unit="METERS">2818.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+    <Station code="MQ1P">
+      <Latitude unit="DEGREES">37.612782</Latitude>
+      <Longitude unit="DEGREES">-119.021309</Longitude>
+      <Elevation unit="METERS">2740.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+  </Network>
+  <Network code="NN">
+    <Station code="OMMB">
+      <Latitude unit="DEGREES">37.6131</Latitude>
+      <Longitude unit="DEGREES">-119.0005</Longitude>
+      <Elevation unit="METERS">2768.0</Elevation>
+      <Site>
+        <Name></Name>
+      </Site>
+      <CreationDate>1970-01-01T00:00:00+00:00</CreationDate>
+    </Station>
+  </Network>
+</FDSNStationXML>

@@ -75,7 +75,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def setTextCursor(self):
         self.textOutBrowser.moveCursor(QtGui.QTextCursor.End)
     
-    # Scroll the trace log to the bottom if an error occurs
+    # Scroll the trace log to the bottom
     def scrollTextOut(self):
         scrollBar=self.textOutBrowser.verticalScrollBar()
         scrollBar.setValue(scrollBar.maximum())

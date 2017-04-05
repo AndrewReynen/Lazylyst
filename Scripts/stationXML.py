@@ -204,41 +204,7 @@ def dataless2stationXml(datalessFileName,xmlFileName):
     inv.write(xmlFileName,format='stationxml',validate=True)
     
 
-#dataless2stationXml('CN.dataless','CN_Full.xml')
-#from obspy import read_inventory,read,Stream
-#st=read('006004_20150907.002057.500000.mseed')
-#inv=read_inventory('NX_Full.xml')
-#pre_filt = (0.5, 0.6, 30.0, 35.0)
-#st.remove_response(inventory=inv,output='VEL', pre_filt=pre_filt)
-
-#sp=Parser('NX.dataless')
-#st.simulate(seedresp={'filename': sp, 'units': "VEL"}, pre_filt=pre_filt)
-
-
-#st0+=st1[:3]
-#st0+=st2[:3]
-#st0.plot()
-
-    
-    
-# For plotting the response
-#from obspy.signal.invsim import paz_to_freq_resp
-#poles = [-4.440 + 4.440j, -4.440 - 4.440j, -1.083 + 0.0j]
-#zeros = [0.0 + 0.0j, 0.0 + 0.0j, 0.0 + 0.0j]
-#scale_fac = 0.4
-#h, f = paz_to_freq_resp(poles, zeros, scale_fac, 0.005, 16384, freq=True)
-#plt.loglog(f, abs(h))
-#plt.xlabel('Frequency [Hz]')
-#plt.ylabel('Amplitude')
-#phase = np.unwrap(np.arctan2(-h.imag, h.real))
-#plt.semilogx(f, phase)
-
-
-#inv=read_inventory()
-#cha=inv[0][0][0]
-#resp=cha.response
-#resp.plot(0.001)
-#quit()
+#dataless2stationXml('NX.dataless','NX_Full2.xml')
 
 
 

@@ -1,4 +1,5 @@
 import numpy as np
+from obspy import UTCDateTime
 
 # Function to change picking mode to the wanted mode...
 # ... Return the original mode if the wanted mode is not defined  
@@ -86,4 +87,11 @@ def goToNextPickFile(curPickFile,pickFiles):
         if idx==len(pickFiles):
             idx=0
     return pickFiles[idx]
+    
+# Write out stream given current bounds as a MSEED file
+# Gives name to file same as the pick file (different extension)
+def writeMSEED(stream,timeRange,mainPath,curPickFile):
+    outName=curPickFile.replace('.'+curPickFile.split('.')[-1],'.mseed')
+    stream.trim(UTCDateTime(timeRange[0]),UTCDateTime(timeRange[1]))
+    stream.write(mainPath+'/'+outName,format='MSEED')
     

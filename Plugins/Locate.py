@@ -2,6 +2,7 @@ from PyQt4 import QtGui
 import numpy as np
 import scipy.optimize as optimize
 from scipy import signal
+from scipy.spatial.distance import cdist
 import warnings
 warnings.simplefilter("ignore", optimize.OptimizeWarning)
 
@@ -383,6 +384,17 @@ def stackDetectAlgorithm(originInfo,rings,baseX,baseY,baseZ,base,timeDelta,
     eveDetections={'t':np.array(outTimes),'loc':np.array(outLocs),'prob':np.array(outProbs),'originArgs':outArgs}
     return eveDetections
     
+# Create the ROI from the staLoc...
+# ...uses min,max locations of stations for X,Y
+# ...uses a given distance for the vertical spread
+def defaultROI(staLoc,maxVertDist):
+    mins=np.min(staLoc[:,1:].astype(float),axis=0).reshape(1,3)
+    maxs=np.max(staLoc[:,1:].astype(float),axis=0).reshape(1,3)
+    roi=np.vstack((mins,maxs)).T.flatten()
+    roi[4]-=0.1*maxVertDist
+    roi[5]+=maxVertDist
+    return roi
+
 # Locate any number of events in the given window, using a stacking method
 # ...tDelta is the origin time precision
 # ...tIdxSpread infers how many extra time indicies before/after pick to spread the probability
@@ -414,11 +426,7 @@ def stackLocate(pickSet,staLoc,sourceTag,tDelta=0.5,tIdxSpread=1,
         return np.empty((0,5))
     QtGui.qApp.processEvents()
     # Create the ROI from the staLoc
-    mins=np.min(staLoc[:,1:].astype(float),axis=0).reshape(1,3)
-    maxs=np.max(staLoc[:,1:].astype(float),axis=0).reshape(1,3)
-    roi=np.vstack((mins,maxs)).T.flatten()
-    roi[4]-=0.1*maxVertDist
-    roi[5]+=maxVertDist
+    roi=defaultROI(staLoc,maxVertDist)
     maxHypDist=((roi[0]-roi[1])**2+(roi[2]-roi[3])**2)**0.5
     # Calculate the max duration a P and S arrival can differ (over the desired distance range)
     PSdelay=np.diff(calcPSarrivalTimes(vdInfo,maxHypDist))[0]
@@ -445,5 +453,151 @@ def stackLocate(pickSet,staLoc,sourceTag,tDelta=0.5,tIdxSpread=1,
         mapCurEve.append([i,x,y,z,eveDetections['t'][i]])   
     print(str(numDetect)+' event(s) associated')            
     return np.array(mapCurEve)
-    
-    
+
+# Return the max origin time error when stacking picks, in units of "tRes"
+def getGridError_NumTres(roi,tRes,numXyTres,tResSplit,Vs,
+                                    useOneDepth=False,testDepth=None):    
+    numTresErr=1 # Set by the user gives (velocity model error + pick error)
+    numTresErr+=numXyTres # Addition due to the initial XY grid spacing (set to be one tRes)
+    numTresErr+=0.5/tResSplit # From digitizing origin times into bins of finite length
+    if useOneDepth:
+        maxEpi=((roi[0]-roi[1])**2+(roi[2]-roi[3])**2)**0.5
+        d0,d1,d2=0,testDepth,roi[5]
+        maxDistErr=np.max(np.abs([(d1**2+maxEpi**2)**0.5-(d0**2+maxEpi**2)**0.5,
+                                  (d1**2+maxEpi**2)**0.5-(d2**2+maxEpi**2)**0.5]))
+        numTresErr+=maxDistErr/(Vs*tRes) # From the max travel time distance differences between depths
+    return numTresErr
+
+# Reference each pick to a station index
+def getPickStaIdxs(pickSet,staNames):
+    pickStas,pickIdx=np.unique(pickSet[:,0],return_inverse=True)
+    pickStaIdxs=np.ones(len(pickIdx),dtype=int)*-1
+    for pos in np.unique(pickIdx):
+        sta=pickStas[pos]
+        if sta in staNames:
+            posArgs=np.where(pickIdx==pos)[0]
+            pickStaIdxs[posArgs]=np.where(staNames==sta)[0][0]
+    # Remove any picks which did not have station metadata
+    remArgs=np.where(pickStaIdxs!=-1)[0]
+    pickStaIdxs=pickStaIdxs[remArgs]
+    pickSet=pickSet[remArgs]
+    return pickSet,pickStaIdxs
+
+# Associate any number of picks based off pick alignment to reference solutions
+# ...histogram resolution is given by tRes/tResSplit
+# ...picks will be assigned a location if they have a residual<tRes
+def alignLocate(staLoc,pickSet,sourceTag,minNumPicks=5,
+                maxVertDist=10,tRes=1.0,
+                tResSplit=5,testDepth=5.0):
+    # Sanity checks before beginning
+    if maxVertDist<=0 or tRes<=0:
+        print('maxVertDist and tRes must be positive numbers')
+        return np.empty((0,5))
+    elif type(tResSplit)!=int:
+        print('tResSplit must be an integer')
+        return np.empty((0,5))
+    # Grab simple velocity model
+    vdInfo=getVelDelay(sourceTag)
+    if vdInfo=='$pass':
+        print('No simple velocity information supplied (see getVelDelay in Locate.py)')
+        return np.empty((0,5))
+    # Collect the station information
+    staLocs=staLoc[:,1:].astype(float)
+    staNames=staLoc[:,0]
+    # Remove any picks which are neither P or S
+    pickSet=pickSet[np.where((pickSet[:,1]=='P')|(pickSet[:,1]=='S'))]
+    # Remove any picks without metadata
+    pickSet=getPickStaIdxs(pickSet,staNames)[0]
+    # Create the default ROI from the staLoc
+    mainRoi=defaultROI(staLoc,maxVertDist)
+    if testDepth>mainRoi[5] or testDepth<mainRoi[4]:
+        print('testDepth must be within '+str(mainRoi[4])+' and '+str(mainRoi[5])+' which is determined by'+
+              'the uppermost station elevation and maxVertDist (roughly)')
+        return np.empty((0,5))
+    # Make a holder for the returned event locations
+    eveLocs,search=[],True
+    while search:
+        # Do a low resolution sweep to find a maximum position
+        maxLoc,maxTime,gridSpace,coarsePickArgs=iterAlignLocate(vdInfo,staLocs,staNames,mainRoi,pickSet,
+                                                                   tRes,tResSplit,1,useOneDepth=True,testDepth=testDepth)
+        if len(coarsePickArgs)<minNumPicks:
+            search=False
+            break
+        # Given this rough origin, do a search about it
+        buff=0.5/tResSplit
+        roi=[maxLoc[0]-gridSpace*(0.5+buff),maxLoc[0]+gridSpace*(0.5+buff),
+             maxLoc[1]-gridSpace*(0.5+buff),maxLoc[1]+gridSpace*(0.5+buff),
+             mainRoi[4],mainRoi[5]]
+        maxLoc,maxTime,gridSpace,finePickArgs=iterAlignLocate(vdInfo,staLocs,staNames,roi,pickSet[coarsePickArgs],
+                                                                   tRes,tResSplit,buff,useOneDepth=False)
+        # Remove any picks were were included in this iterations pickSet
+        pickSet=np.array([entry for i,entry in enumerate(pickSet) if i not in coarsePickArgs[finePickArgs]])
+        # Append this iterations event if the number of stacked picks >= minNumPicks
+        ## May want to allow searching again, as number of picks could drop...##
+        ## ...a lot from coarse->fine (allowing another position to show)##
+        if len(finePickArgs)<minNumPicks:
+            search=False
+        else:
+            eveLocs.append([len(eveLocs)]+list(maxLoc)+[maxTime])
+    eveLocs=np.array(eveLocs,dtype=str)
+    if len(eveLocs)==0:
+        eveLocs=np.empty((0,5))
+    return eveLocs
+
+# Run a iteration of align locate with a specified grid and resolution
+def iterAlignLocate(vdInfo,staLocs,staNames,roi,pickSet,
+                    tRes,tResSplit,numXyTres,
+                    useOneDepth=False,testDepth=None):
+    # First test grid spacing (taken from distance of center of a grid cell to a corner)
+    errXY=2*(((vdInfo['Vs']*tRes*numXyTres)**2)/2.0)**0.5
+    # Make a grid space to test locations
+    xi=np.arange(roi[0],roi[1],errXY)
+    yi=np.arange(roi[2],roi[3],errXY)
+    if useOneDepth:
+        zi=np.array([testDepth])
+    else:
+        zi=np.arange(roi[4],roi[5],errXY)
+    xGrid,yGrid,zGrid=np.meshgrid(xi,yi,zi)
+    gridLocs=np.array([xGrid.flatten(),yGrid.flatten(),zGrid.flatten()]).T
+    # Reference each pick to a station index
+    pickSet,pickStaIdxs=getPickStaIdxs(pickSet,staNames)
+    pickTimes=pickSet[:,2].astype(float)
+    # Increase the index for S-picks (easier referencing later)
+    pickStaIdxs[np.where(pickSet[:,1]=='S')]+=len(staNames)
+    # Calculate the distance for all locations and stations
+    dists=cdist(gridLocs,staLocs)
+    # Convert distance to travel times for P and S (P/S is left/right side of array)
+    tt=np.hstack((calcPSarrivalTimes(vdInfo,dists)))
+    # Align the times based of their delay (so they all represent origin times "origPicks")
+    origPicks=pickTimes-tt[:,pickStaIdxs]
+    # numTresErr is the factor times tRes which accounts for all potential error in the aligned times (from the true time)
+    numTresErr=getGridError_NumTres(roi,tRes,numXyTres,tResSplit,vdInfo['Vs'],
+                                    useOneDepth=useOneDepth,testDepth=testDepth)
+    # Create an array of histograms for each event (row)
+    bins=np.arange(np.min(pickTimes)-np.max(tt)-(numTresErr+1)*tRes,np.max(pickTimes),float(tRes)/tResSplit)
+    counts=np.apply_along_axis(lambda a: np.histogram(a, bins=bins)[0], 1, origPicks)
+    # Stack the bins cumulatively, use 2x (both ways from origin) numTresErr for the index
+    cumSumLen=int(np.ceil(2*numTresErr*tResSplit))
+    counts=np.cumsum(counts,axis=1)
+    counts=counts[:,cumSumLen:]-counts[:,:-cumSumLen]
+    # Assign origin times to each of the bins
+    origTimes=bins[cumSumLen:]-tRes+float(tRes)/tResSplit
+    # Collect the max position, and see which picks filled this grid cell...
+    maxArg=np.unravel_index(np.argmax(counts.flatten()),counts.shape)
+    # ...get the origin location and time
+    maxLoc,maxOrigTime=gridLocs[maxArg[0]],origTimes[maxArg[1]]
+    # ...calculate the travel times for these picks
+    maxDists=cdist([maxLoc],staLocs)
+    maxTT=np.hstack((calcPSarrivalTimes(vdInfo,maxDists)))
+    maxOrigPicks=(pickTimes-maxTT[0,pickStaIdxs])
+    maxResiduals=np.abs(maxOrigPicks-maxOrigTime)
+    # ...take only the picks which have an abs(residual) < numTresErr*tRes...
+    # ...max 1 per station and phase type "staTypes"
+    posPickArgs,seenStaTypes=[],[]
+    for arg in np.argsort(maxResiduals):
+        staType=pickSet[arg,0]+'-----'+pickSet[arg,1]
+        if maxResiduals[arg]<float(tRes)*numTresErr and staType not in seenStaTypes:
+            posPickArgs.append(arg)
+            seenStaTypes.append(staType)
+#    print(np.mean(maxOrigPicks-maxOrigTime),float(tRes)*numTresErr)
+    return maxLoc,maxOrigTime,errXY,np.array(posPickArgs,dtype=int)
