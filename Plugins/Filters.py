@@ -40,5 +40,13 @@ def sepChas(stream):
             stream[arg].data-=(aMin-offset)
             offset+=aMax-aMin
     return stream
+
+# Remove the instrument response
+def invertResponse(stream,staXml):
+    try:
+        stream.remove_response(inventory=staXml, output='VEL')
+    except:
+        print('Could not remove instrument response')
+    return stream
         
     

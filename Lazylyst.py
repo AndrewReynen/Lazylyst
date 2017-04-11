@@ -191,23 +191,30 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             return
         # Collect the required inputs
         inputs=[]
-        hotVarKeys=[aKey for aKey in self.hotVar.keys()]
+        hotVarKeys=self.hotVar.keys()
         for key in action.inputs:
-            if key=='stream':
-                inputs.append(self.hotVar[key].val.copy())
-            elif key in hotVarKeys:
+            if key in hotVarKeys:
                 inputs.append(self.hotVar[key].getVal())
             else:
                 inputs.append(self.pref[key].getVal())
         # Call the function with args and kwargs
+#        if action.threaded:
+#            thread=ActionThread(action,inputs)
+#            self.connect(thread, QtCore.SIGNAL('finished()'),
+#                         lambda: self.updateReturns(thread.action,thread.returns))
+#            thread.start()
+#        else:
         returnVals=action.func(*inputs,**action.optionals)
-        # Update all return (hot variable) values...
-        # ... if no returns, but got something, let user know
+        self.updateReturns(action,returnVals)
+        
+    # Update all return (hot variable) values from an action which just finished executing
+    def updateReturns(self,action,returnVals):
+        # If no returns, but got something, let user know...
         if len(action.returns)==0:
             if str(returnVals)!=str(None):
                 print('Action '+action.tag+' expected no returns, but received some')
             return
-        # ...if just one return, convert to list to treat the same as multiple
+        # ...if just one return, convert to list to treat it the same as multiple returns
         elif len(action.returns)==1:
             returnVals=[returnVals]
         # ... if expecting multiple returns, ensure the length of the return value array can be taken
@@ -1125,6 +1132,19 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.saveSettings()
         ev.accept()
         
+# Custom thread class to execute an action
+class ActionThread(QtCore.QThread):
+    def __init__(self,action,inputs):
+        QtCore.QThread.__init__(self)
+        self.action=action
+        self.inputs=inputs
+    
+    # This function is called used the start() function...
+    # ...emits the signal 'finished()' when completed
+    def run(self):
+        self.returns=self.action.func(*self.inputs,**self.action.optionals)
+        self.exit()
+
 # Class for logging
 class QtHandler(logging.Handler):
     def __init__(self):

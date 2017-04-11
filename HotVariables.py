@@ -118,7 +118,14 @@ class HotVar(object):
         if self.dataType in [list,type(np.array([0.0]))]:
             if len(self.val)==0:
                 return initHotVar()[self.tag].val
-        return deepcopy(self.val)
+        # The station xml file can take a while to copy...
+        ## Figure out way to pass it without worrying about user edits?? ##
+        if self.tag=='staXml':
+            return self.val
+        elif self.tag=='stream':
+            return self.val.copy()
+        else:
+            return deepcopy(self.val)
         
     # Call the specified function to update the hot variable value
     def update(self):
