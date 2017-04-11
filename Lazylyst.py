@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.3.3
+# Version 0.3.4
 # Copyright Andrew.M.G.Reynen
 import sys
 import logging
@@ -266,8 +266,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # All other data types
         elif wantType==returnType:
             return True
-        return False
-            
+        return False        
             
     # Remove a timed action from the queue
     def stopTimedAction(self,action):
@@ -337,7 +336,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         newFile=open(self.hotVar['pickDir'].val+'/'+newPickFile,'w')
         newFile.close()
         # Add to GUI list, and internal list
-        self.hotVar['pickFiles'].val=np.sort(os.listdir(self.hotVar['pickDir'].val))
+        self.hotVar['pickFiles'].val=self.getPickFiles()
         self.updateEveSort()
         self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,self.hotVar['curPickFile'].val,
                                          self.pref['archiveColorEve'].val,self.pref['archiveColorSelect'].val)
@@ -938,17 +937,25 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         
     # Load the pick file list for display, given completly new pick directory
     def updatePickDir(self):
-        # Clear the old list
-        self.archiveList.clear()
-        self.hotVar['pickFiles'].val=np.empty((0),dtype=str)
         # Reset the current pick file
         self.hotVar['curPickFile'].val=''
         self.hotVar['curPickFile'].update()
+        # Clear the old list
+        self.archiveList.clear()
+        self.hotVar['pickFiles'].val=self.getPickFiles()
+        # Sort the pick files
+        self.updateEveSort()
+        # Update the archive span widget
+        self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,self.hotVar['curPickFile'].val,
+                                         self.pref['archiveColorEve'].val,self.pref['archiveColorSelect'].val)
+                                         
+    # Read the correctly formatted pick files from the pick directory
+    def getPickFiles(self):
+        pickFiles=[]
         # Only accept files with proper naming convention
         for aFile in sorted(os.listdir(self.hotVar['pickDir'].val)):
-            aFile=str(aFile)
             splitFile=aFile.split('_')
-            # Make sure has the proper extension '.picks'
+            # Make sure the file has the proper extension '.picks'
             if len(splitFile)!=2 or aFile.split('.')[-1]!='picks':
                 continue
             try:
@@ -956,12 +963,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 getTimeFromFileName(aFile).timestamp
             except:
                 continue
-            self.hotVar['pickFiles'].val=np.concatenate((self.hotVar['pickFiles'].val,np.array([aFile])))
-        # Sort the pick files
-        self.updateEveSort()
-        # Update the archive span widget
-        self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,self.hotVar['curPickFile'].val,
-                                         self.pref['archiveColorEve'].val,self.pref['archiveColorSelect'].val)
+            pickFiles.append(aFile)
+        return np.array(pickFiles,dtype=str)
     
     # With the same pick directory, force an update on the pick files...
     # ...this allows for addition of empty pick files and deletion of pick files
@@ -972,7 +975,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,self.hotVar['curPickFile'].val,
                                          self.pref['archiveColorEve'].val,self.pref['archiveColorSelect'].val)
         # See which files were present prior to the update
-        prevFiles=sorted(os.listdir(self.hotVar['pickDir'].val))
+        prevFiles=self.getPickFiles()
         # Delete events which are no longer present
         for aFile in prevFiles:
             path=self.hotVar['pickDir'].val+'/'+aFile
