@@ -558,7 +558,7 @@ class QueueThread(QtCore.QThread):
             self.returns=self.actQueue[self.curIdx].func(*self.inputs,**self.actQueue[self.curIdx].optionals)
             self.sendReturns.emit()
             # Wait for the return values on the GUI to be updated
-            while self.returns!=None:
+            while self.returns is not None:
                 self.msleep(50)
         self.exit()
         

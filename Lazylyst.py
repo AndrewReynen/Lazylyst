@@ -235,7 +235,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def updateReturns(self,action,returnVals,triggerTag):
         # If no returns, but got something, let user know...
         if len(action.returns)==0:
-            if str(returnVals)!=str(None):
+            if returnVals is not None:
                 print('Action '+action.tag+' expected no returns, but received some')
             return
         # ...if just one return, convert to list to treat it the same as multiple returns
