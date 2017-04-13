@@ -1,5 +1,5 @@
 # Copyright Andrew.M.G.Reynen
-from PyQt4 import QtGui
+from PyQt4 import QtGui, QtCore
 from PyQt4.QtCore import Qt
 from ActionSetup import Ui_actionDialog
 from CustomFunctions import dict2Text, text2Dict
@@ -166,7 +166,7 @@ class Action(object):
                  passive=False,beforeTrigger=False,timer=False,
                  trigger='Add Trigger',inputs=[],returns=[],
                  timerInterval=60,func=None,locked=False,
-                 sleeping=False):
+                 sleeping=False,threaded=False):
         self.tag=tag # User visible name for the action
         self.name=name # Function name
         self.path=path # Function path (uses "." instead of "\", path is relative main script location)
@@ -181,6 +181,7 @@ class Action(object):
         self.func=func # Function which is called upon trigger
         self.locked=locked # If the action is allowed to be altered (other than the trigger)
         self.sleeping=sleeping # If the action is responding to triggers or not
+        self.threaded=threaded # If the action is to be run on a seperate thread ("in background")
         # convert the trigger to a key sequence, if the trigger was a key
         if type(trigger)==type(Qt.Key_1):
             self.trigger=QtGui.QKeySequence(self.trigger)
@@ -224,6 +225,16 @@ class Action(object):
         # Assign the function to the action
         self.func=func
         return
+    
+    # Assign the default attributes which were are added in newer versions...
+    # ...if not already present
+    def fillMissingAttrib(self):
+        defAct=Action()
+        for attrib in ['sleeping','threaded']:
+            try:
+                getattr(self,attrib)
+            except:
+                setattr(self,attrib,getattr(defAct,attrib))
         
 # Action setup dialog
 class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
@@ -298,6 +309,11 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
             self.activeTimerCheck.setChecked(True)
         else:
             self.activeTimerCheck.setChecked(False)
+        # Set the state of the activeThreaded check box
+        if self.action.threaded:
+            self.activeThreadedCheck.setChecked(True)
+        else:
+            self.activeThreadedCheck.setChecked(False)
         # Set the timer interval value
         self.actIntervalLineEdit.setText(str(self.action.timerInterval))
         # Toggle the appropriate radio button
@@ -337,7 +353,8 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
                        self.actAvailInputList,self.actAvailReturnList,
                        self.actSelectInputList,self.actSelectReturnList,
                        self.actPassiveRadio,self.actActiveRadio,
-                       self.passiveBeforeCheck,self.activeTimerCheck]:
+                       self.passiveBeforeCheck,self.activeTimerCheck,
+                       self.activeThreadedCheck]:
             widget.setEnabled(False)
     
     # Update the key bind to what the user pressed
@@ -398,6 +415,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
             self.actTriggerLineEdit.setReadOnly(active)
         self.actIntervalLineEdit.setEnabled(active)
         self.activeTimerCheck.setEnabled(active)
+        self.activeThreadedCheck.setEnabled(active)
         self.passiveBeforeCheck.setEnabled(not active)
         self.actAvailTriggerList.setEnabled(not active)
         self.actSelectTriggerList.setEnabled(not active)
@@ -491,6 +509,11 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
             self.action.timerInterval=float(self.actIntervalLineEdit.text())
         else:
             self.action.timer=False
+        # If the action should initiate a seperate thread when triggered
+        if self.activeThreadedCheck.isChecked():
+            self.action.threaded=True
+        else:
+            self.action.threaded=False
         # Collect the tags of the inputs and returns associated with the action
         self.action.inputs=self.actSelectInputList.visualListOrder()
         self.action.returns=self.actSelectReturnList.visualListOrder()
@@ -501,7 +524,43 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
             print('Failed to link '+self.action.tag+' to '+self.action.name+' at '+self.action.path)
         return self.action
         
+# Custom thread class to execute a queue of actions
+class QueueThread(QtCore.QThread):
+    setNextInputs=QtCore.pyqtSignal()    
+    sendReturns=QtCore.pyqtSignal()
+    
+    def __init__(self,tag,actQueue):
+        QtCore.QThread.__init__(self)
+        self.tag=tag # The tag of the active action which created this queue
+        self.actQueue=actQueue # The queue of all actions relating to the active action
+        self.inputs=None # The inputs of the action currently being processed
+        self.returns=None # The returns of the last action processed
+        self.curIdx=None # Which index within the action queue is being processed
+    
+    def setInputs(self,inputs):
+        self.inputs=inputs
         
+    def resetInputsAndReturns(self):
+        self.returns=None
+        self.inputs=None
+    
+    # This function is called using the start() function
+    def run(self):
+        # Go through each of the queued action and execute it
+        for i in range(len(self.actQueue)):
+            # Ask to collect the required inputs
+            self.curIdx=i
+            self.setNextInputs.emit()
+            # Wait to collect the inputs before processing the action
+            while self.inputs==None:
+                self.msleep(50)
+            # Run the actions function and send back the return values
+            self.returns=self.actQueue[self.curIdx].func(*self.inputs,**self.actQueue[self.curIdx].optionals)
+            self.sendReturns.emit()
+            # Wait for the return values on the GUI to be updated
+            while self.returns!=None:
+                self.msleep(50)
+        self.exit()
         
         
 

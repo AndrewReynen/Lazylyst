@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.3.4
+# Version 0.4.0
 # Copyright Andrew.M.G.Reynen
 import sys
 import logging
@@ -15,7 +15,7 @@ from CustomWidgets import TraceWidget, keyPressToString
 from CustomFunctions import getTimeFromFileName
 from HotVariables import initHotVar
 from Preferences import defaultPreferences, DateDialog
-from Actions import defaultActions, defaultPassiveOrder
+from Actions import defaultActions, defaultPassiveOrder, QueueThread
 from Archive import getArchiveAvail, extractDataFromArchive
 from StationMeta import staXml2Loc, readInventory, projStaLoc
 from ConfigurationDialog import ConfDialog
@@ -165,9 +165,41 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.setCurTraceStaAndPos()
         self.setTraceRanges()
         # First check to see if there are any (passive) actions which relate
-        actQueue=self.collectActQueue(action)   
-        for oAct in actQueue:
-            self.executeAction(oAct)
+        actQueue=self.collectActQueue(action)  
+        # If the trigerring action is threaded, send the queue to a thread 
+        if action.threaded: 
+            # First check to see if the thread is already running, skip if it is
+            if action.tag in self.qThreads.keys():
+                print('A thread is already running which was initiated by '+action.tag)
+            else:
+                thread=QueueThread(action.tag,actQueue)
+                # Mark this thread, given the active actions tag
+                self.qThreads[action.tag]=thread
+                self.updateSchemingList()
+                # Connect to the threads signals for when to send inputs, and collect returns
+                self.connect(thread, QtCore.SIGNAL('setNextInputs()'),
+                             lambda: self.setThreadInputs(thread))
+                self.connect(thread, QtCore.SIGNAL('sendReturns()'),
+                             lambda: self.updateReturns(thread.actQueue[thread.curIdx],thread.returns,thread.tag))
+                self.connect(thread, QtCore.SIGNAL('finished()'),
+                             lambda: self.updateThreadDict(thread.tag))
+                thread.start()
+        else:
+            for oAct in actQueue:
+                # Collect the required inputs
+                inputs=self.collectActInputs(oAct.tag)
+                # Call the function with args and kwargs
+                returnVals=oAct.func(*inputs,**oAct.optionals)
+                self.updateReturns(oAct,returnVals,action.tag)
+    
+    # Update the threads inputs to be its next to process actions inputs
+    def setThreadInputs(self,thread):
+        thread.setInputs(self.collectActInputs(thread.actQueue[thread.curIdx].tag))
+    
+    # When the thread has finished, remove the triggers tag from the thread dictionary
+    def updateThreadDict(self,threadTag):
+        self.qThreads.pop(threadTag)
+        self.updateSchemingList()
                 
     # Get the appropriate order of passive functions before and after their triggered active action
     def collectActQueue(self,action):
@@ -178,37 +210,29 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         for actTag in self.actPassiveOrder:
             if action.tag not in self.act[actTag].trigger:
                 continue
+            # If the actions function wasn't initialized, or is sleeping, skip
+            if action.func==None or action.sleeping:
+                return
             if self.act[actTag].beforeTrigger:
                 beforeActive.append(self.act[actTag])
             else:
                 afterActive.append(self.act[actTag])
         return beforeActive+[action]+afterActive
-
-    # Function to handle the execution of an action already queued
-    def executeAction(self,action):
-        # If the actions function wasn't initialized, or is sleeping, skip
-        if action.func==None or action.sleeping:
-            return
+    
+    # Collect all of the inputs to be sent to a specific action
+    def collectActInputs(self,actionTag):
         # Collect the required inputs
         inputs=[]
         hotVarKeys=self.hotVar.keys()
-        for key in action.inputs:
+        for key in self.act[actionTag].inputs:
             if key in hotVarKeys:
                 inputs.append(self.hotVar[key].getVal())
             else:
                 inputs.append(self.pref[key].getVal())
-        # Call the function with args and kwargs
-#        if action.threaded:
-#            thread=ActionThread(action,inputs)
-#            self.connect(thread, QtCore.SIGNAL('finished()'),
-#                         lambda: self.updateReturns(thread.action,thread.returns))
-#            thread.start()
-#        else:
-        returnVals=action.func(*inputs,**action.optionals)
-        self.updateReturns(action,returnVals)
+        return inputs
         
     # Update all return (hot variable) values from an action which just finished executing
-    def updateReturns(self,action,returnVals):
+    def updateReturns(self,action,returnVals,triggerTag):
         # If no returns, but got something, let user know...
         if len(action.returns)==0:
             if str(returnVals)!=str(None):
@@ -263,6 +287,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         else:
             print('For action '+action.tag+' got '+str(len(returnVals))+
                    ' return values, expected '+str(len(action.returns)))
+        # If this was an action which was threaded, reset the return value of the thread...
+        # ...so that the thread knows when to continue processing its queues other actions
+        if triggerTag in self.qThreads.keys():
+            self.qThreads[triggerTag].resetInputsAndReturns()
     
     # As some variable types are quite similar, allow some to be treated the same...
     # ... for now just str and np.string_
@@ -1039,10 +1067,19 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     def updateStrollingList(self):
         strollers=self.qTimers.keys()
         # Update the label (header)
-        self.strollingLabel.setText('Strolling Actions ('+str(len(strollers))+')')
+        self.strollingLabel.setText('Strolling ('+str(len(strollers))+')')
         # Reset the list
         self.strollComboBox.clear()
         self.strollComboBox.addItems(strollers)
+        
+    # Update the scheming list with all threads currently working
+    def updateSchemingList(self):
+        schemers=self.qThreads.keys()
+        # Update the label (header)
+        self.schemingLabel.setText('Scheming ('+str(len(schemers))+')')
+        # Reset the list
+        self.schemeComboBox.clear()
+        self.schemeComboBox.addItems(schemers)
     
     # Set a span bound to user specified value
     def setSpanBoundViaDialog(self,whichBound):
@@ -1089,9 +1126,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.actPassiveOrder=self.setAct.value('actPassiveOrder', defaultPassiveOrder(self.act))
         if self.actPassiveOrder==None:
             self.actPassiveOrder=[]
-        # ...link all actions to their appropriate functions
+        # ...link all actions to their appropriate functions and assign any missing attributes
         for key,action in iteritems(self.act):
             action.linkToFunction(self)
+            action.fillMissingAttrib()
         # Preferences
         self.pref=defaultPreferences(self)
         prefVals=self.setPref.value('prefVals',{})
@@ -1102,6 +1140,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Create empty variables
         self.staWidgets=[]
         self.qTimers={}
+        self.qThreads={}
         self.traceSplitSizes=None
         
     # Save all settings from current run
@@ -1131,19 +1170,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.processAction(self.act['CloseLazylyst'])
         self.saveSettings()
         ev.accept()
-        
-# Custom thread class to execute an action
-class ActionThread(QtCore.QThread):
-    def __init__(self,action,inputs):
-        QtCore.QThread.__init__(self)
-        self.action=action
-        self.inputs=inputs
-    
-    # This function is called used the start() function...
-    # ...emits the signal 'finished()' when completed
-    def run(self):
-        self.returns=self.action.func(*self.inputs,**self.action.optionals)
-        self.exit()
 
 # Class for logging
 class QtHandler(logging.Handler):

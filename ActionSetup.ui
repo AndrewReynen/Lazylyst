@@ -15,11 +15,132 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <layout class="QGridLayout" name="actShortInputLayout" rowstretch="0,0,0,0,0,0" columnstretch="0,1,7,1,1" columnminimumwidth="0,0,0,0,0">
+    <layout class="QGridLayout" name="actShortInputLayout" rowstretch="0,0,0,0,0,0,0" columnstretch="0,1,7,1,1" columnminimumwidth="0,0,0,0,0">
      <property name="spacing">
       <number>1</number>
      </property>
-     <item row="3" column="1">
+     <item row="6" column="1">
+      <widget class="QLabel" name="actOptionalsLabel">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>16777215</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Optionals</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="4">
+      <widget class="KeyBindLineEdit" name="actTriggerLineEdit"/>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLabel" name="actTagLabel">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="baseSize">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Tag </string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QLabel" name="actNameLabel">
+       <property name="font">
+        <font>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Name</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="3">
+      <widget class="QRadioButton" name="actPassiveRadio">
+       <property name="text">
+        <string>Passive</string>
+       </property>
+       <property name="checked">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="2">
+      <widget class="QLineEdit" name="actOptionalsLineEdit"/>
+     </item>
+     <item row="4" column="3">
+      <widget class="QLabel" name="actIntervalLabel">
+       <property name="font">
+        <font>
+         <weight>50</weight>
+         <bold>false</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Interval (s)</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="3">
+      <widget class="QRadioButton" name="actActiveRadio">
+       <property name="text">
+        <string>Active</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QLineEdit" name="actNameLineEdit"/>
+     </item>
+     <item row="6" column="4">
+      <widget class="QCheckBox" name="passiveBeforeCheck">
+       <property name="text">
+        <string>Before Trigger</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="1">
       <widget class="QLabel" name="actPathLabel">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -50,122 +171,10 @@
      <item row="0" column="2">
       <widget class="HoverLineEdit" name="actTagLineEdit"/>
      </item>
-     <item row="3" column="2">
+     <item row="4" column="2">
       <widget class="QLineEdit" name="actPathLineEdit"/>
      </item>
-     <item row="1" column="2">
-      <widget class="QLineEdit" name="actNameLineEdit"/>
-     </item>
-     <item row="1" column="1">
-      <widget class="QLabel" name="actNameLabel">
-       <property name="font">
-        <font>
-         <weight>50</weight>
-         <bold>false</bold>
-        </font>
-       </property>
-       <property name="text">
-        <string>Name</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="3">
-      <widget class="QRadioButton" name="actActiveRadio">
-       <property name="text">
-        <string>Active</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="1">
-      <widget class="QLabel" name="actTagLabel">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="baseSize">
-        <size>
-         <width>0</width>
-         <height>0</height>
-        </size>
-       </property>
-       <property name="font">
-        <font>
-         <weight>50</weight>
-         <bold>false</bold>
-        </font>
-       </property>
-       <property name="text">
-        <string>Tag </string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="2">
-      <widget class="QLineEdit" name="actOptionalsLineEdit"/>
-     </item>
-     <item row="5" column="1">
-      <widget class="QLabel" name="actOptionalsLabel">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>16777215</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="font">
-        <font>
-         <weight>50</weight>
-         <bold>false</bold>
-        </font>
-       </property>
-       <property name="text">
-        <string>Optionals</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="4">
-      <widget class="QCheckBox" name="activeTimerCheck">
-       <property name="text">
-        <string>Uses Timer</string>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="3">
-      <widget class="QRadioButton" name="actPassiveRadio">
-       <property name="text">
-        <string>Passive</string>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item row="5" column="4">
-      <widget class="QCheckBox" name="passiveBeforeCheck">
-       <property name="text">
-        <string>Before Trigger</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="4">
-      <widget class="KeyBindLineEdit" name="actTriggerLineEdit"/>
-     </item>
-     <item row="1" column="3">
+     <item row="2" column="3">
       <widget class="QLabel" name="actTriggerLabel">
        <property name="font">
         <font>
@@ -181,24 +190,26 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="3">
-      <widget class="QLabel" name="actIntervalLabel">
-       <property name="font">
-        <font>
-         <weight>50</weight>
-         <bold>false</bold>
-        </font>
-       </property>
-       <property name="text">
-        <string>Interval (s)</string>
-       </property>
-       <property name="alignment">
-        <set>Qt::AlignCenter</set>
-       </property>
-      </widget>
-     </item>
-     <item row="3" column="4">
+     <item row="4" column="4">
       <widget class="QLineEdit" name="actIntervalLineEdit"/>
+     </item>
+     <item row="0" column="4">
+      <layout class="QHBoxLayout" name="actActiveCheckLayout">
+       <item>
+        <widget class="QCheckBox" name="activeTimerCheck">
+         <property name="text">
+          <string>Timer</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="activeThreadedCheck">
+         <property name="text">
+          <string>Thread</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
      </item>
     </layout>
    </item>
@@ -392,7 +403,6 @@
   <tabstop>actPathLineEdit</tabstop>
   <tabstop>actOptionalsLineEdit</tabstop>
   <tabstop>actActiveRadio</tabstop>
-  <tabstop>activeTimerCheck</tabstop>
   <tabstop>actTriggerLineEdit</tabstop>
   <tabstop>actIntervalLineEdit</tabstop>
   <tabstop>actPassiveRadio</tabstop>

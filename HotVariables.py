@@ -166,7 +166,7 @@ def checkPltSt(main,pltSt):
     oStas=np.unique([tr.stats.station for tr in main.hotVar['stream'].val])
     nStas=np.unique([tr.stats.station for tr in pltSt])
     if not np.array_equal(np.sort(oStas),np.sort(nStas)):
-        print('The return pltSt does not have all and only the station present in stream')
+        print('The return pltSt does not have all and only the stations present in stream')
         return False
     return True
     
