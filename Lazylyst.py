@@ -211,8 +211,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             if action.tag not in self.act[actTag].trigger:
                 continue
             # If the actions function wasn't initialized, or is sleeping, skip
-            if action.func==None or action.sleeping:
-                return
+            if self.act[actTag].func==None or self.act[actTag].sleeping:
+                continue
             if self.act[actTag].beforeTrigger:
                 beforeActive.append(self.act[actTag])
             else:
