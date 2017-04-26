@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.4.0
+# Version 0.4.1
 # Copyright Andrew.M.G.Reynen
 import sys
 import logging
@@ -35,6 +35,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.applyPreferences()
         self.setFunctionality()
         self.introduction()
+        self.processAction(self.act['OpenLazylyst'])
     
     # Update UI for the few commands not captured in Qt Designer
     def tweakUi(self):
@@ -211,8 +212,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             if action.tag not in self.act[actTag].trigger:
                 continue
             # If the actions function wasn't initialized, or is sleeping, skip
-            if self.act[actTag].func==None or self.act[actTag].sleeping:
-                continue
+            if action.func==None or action.sleeping:
+                return
             if self.act[actTag].beforeTrigger:
                 beforeActive.append(self.act[actTag])
             else:
@@ -1123,6 +1124,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.resize(self.setGen.value('size', QtCore.QSize(1300, 700)))
         # Actions...
         self.act=self.setAct.value('actions', defaultActions())
+        # ...get any locked actions which may be in new version
+        for key,action in iteritems(defaultActions()):
+            if action.locked and action.tag not in self.act.keys():
+                self.act[action.tag]=action
         self.actPassiveOrder=self.setAct.value('actPassiveOrder', defaultPassiveOrder(self.act))
         if self.actPassiveOrder==None:
             self.actPassiveOrder=[]

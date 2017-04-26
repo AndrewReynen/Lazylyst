@@ -134,5 +134,9 @@ def testCustDict(custDict):
         custDict['test123']=(custDict['test123']+1)%5
     print(custDict)
     return custDict
+
+# Example to return a source (testing this as a passive action on OpenLazylyst)
+def goToSource(wantSourceTag='Test'):
+    return wantSourceTag
         
     

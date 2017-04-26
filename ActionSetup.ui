@@ -39,6 +39,9 @@
          <bold>false</bold>
         </font>
        </property>
+       <property name="toolTip">
+        <string>Optionals to send to function</string>
+       </property>
        <property name="text">
         <string>Optionals</string>
        </property>
@@ -70,6 +73,9 @@
          <bold>false</bold>
         </font>
        </property>
+       <property name="toolTip">
+        <string>Human readable name of action</string>
+       </property>
        <property name="text">
         <string>Tag </string>
        </property>
@@ -86,6 +92,9 @@
          <bold>false</bold>
         </font>
        </property>
+       <property name="toolTip">
+        <string>Function name of action</string>
+       </property>
        <property name="text">
         <string>Name</string>
        </property>
@@ -96,6 +105,9 @@
      </item>
      <item row="6" column="3">
       <widget class="QRadioButton" name="actPassiveRadio">
+       <property name="toolTip">
+        <string>Action is triggered by an active action</string>
+       </property>
        <property name="text">
         <string>Passive</string>
        </property>
@@ -115,6 +127,9 @@
          <bold>false</bold>
         </font>
        </property>
+       <property name="toolTip">
+        <string>Time in seconds between calling action</string>
+       </property>
        <property name="text">
         <string>Interval (s)</string>
        </property>
@@ -125,6 +140,9 @@
      </item>
      <item row="0" column="3">
       <widget class="QRadioButton" name="actActiveRadio">
+       <property name="toolTip">
+        <string>Action is called using a keybind or click</string>
+       </property>
        <property name="text">
         <string>Active</string>
        </property>
@@ -135,6 +153,9 @@
      </item>
      <item row="6" column="4">
       <widget class="QCheckBox" name="passiveBeforeCheck">
+       <property name="toolTip">
+        <string>Action is to applied prior its triggering active action</string>
+       </property>
        <property name="text">
         <string>Before Trigger</string>
        </property>
@@ -160,6 +181,9 @@
          <bold>false</bold>
         </font>
        </property>
+       <property name="toolTip">
+        <string>Path relative Lazylyst where function is held</string>
+       </property>
        <property name="text">
         <string>Path</string>
        </property>
@@ -182,6 +206,9 @@
          <bold>false</bold>
         </font>
        </property>
+       <property name="toolTip">
+        <string>Keybind to activate action</string>
+       </property>
        <property name="text">
         <string>Trigger</string>
        </property>
@@ -197,6 +224,9 @@
       <layout class="QHBoxLayout" name="actActiveCheckLayout">
        <item>
         <widget class="QCheckBox" name="activeTimerCheck">
+         <property name="toolTip">
+          <string>Repeat action every interval</string>
+         </property>
          <property name="text">
           <string>Timer</string>
          </property>
@@ -204,6 +234,9 @@
        </item>
        <item>
         <widget class="QCheckBox" name="activeThreadedCheck">
+         <property name="toolTip">
+          <string>Run action in background</string>
+         </property>
          <property name="text">
           <string>Thread</string>
          </property>
@@ -247,6 +280,9 @@
          <bold>false</bold>
         </font>
        </property>
+       <property name="toolTip">
+        <string>Variable(s) to send to function</string>
+       </property>
        <property name="text">
         <string>Inputs</string>
        </property>
@@ -262,6 +298,9 @@
          <weight>50</weight>
          <bold>false</bold>
         </font>
+       </property>
+       <property name="toolTip">
+        <string>Variable(s) to be returned by function </string>
        </property>
        <property name="text">
         <string>Returns</string>
@@ -334,6 +373,9 @@
          <weight>50</weight>
          <bold>false</bold>
         </font>
+       </property>
+       <property name="toolTip">
+        <string>Active actions which trigger a passive action</string>
        </property>
        <property name="text">
         <string>Passive Triggers</string>

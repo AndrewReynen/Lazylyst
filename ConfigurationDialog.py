@@ -204,7 +204,11 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         while self.menuAction.tag+'('+str(i)+')' in seenKeys:
             i+=1
         # Assign the unique tag, and give a meaningless trigger (if an active action)
-        newAction=deepcopy(self.menuAction)
+        try:
+            newAction=deepcopy(self.menuAction)
+        except:
+            print('Failed to copy action '+str(self.menuAction.tag))
+            return
         newAction.tag=self.menuAction.tag+'('+str(i)+')'
         if not newAction.passive:
             print('Update '+newAction.tag+' trigger value, will be deleted upon configuration closure otherwise')

@@ -22,6 +22,9 @@ def defaultActions():
     'CloseLazylyst':Action(tag='CloseLazylyst',name='passAction',
                            path='$main',trigger='DoubleClick',locked=True),
                            
+    'OpenLazylyst':Action(tag='OpenLazylyst',name='passAction',
+                           path='$main',trigger='DoubleClick',locked=True),
+                           
     'ToggleDockArchive':Action(tag='ToggleDockArchive',name='toggleWidget',optionals={'whichWidget':'archive'},
                            path='$main',trigger=QtGui.QKeySequence('F1'),locked=True),
                            
@@ -116,7 +119,7 @@ def defaultActions():
     'SimpleLocate':Action(tag='SimpleLocate',name='simpleLocator',path='Plugins.Locate',
                           passive=True,
                           trigger=['PickAdd','PickDelete','PickSetDelete','PickFileCurDelete',
-                                   'PickFileNext','PickFilePrev','PickFileSetToClick'],
+                                   'PickFileNext','PickFilePrev','PickFileSetToClick','ChangeSource'],
                           inputs=['pickSet','staLoc','mapCurEve','staSort','sourceTag'],
                           returns=['mapCurEve','traceBgPenAssign','mapStaPenAssign']),
 
@@ -354,7 +357,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
                        self.actSelectInputList,self.actSelectReturnList,
                        self.actPassiveRadio,self.actActiveRadio,
                        self.passiveBeforeCheck,self.activeTimerCheck,
-                       self.activeThreadedCheck]:
+                       self.activeThreadedCheck,self.actTagLineEdit]:
             widget.setEnabled(False)
     
     # Update the key bind to what the user pressed
