@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.4.1
+# Version 0.4.2
 # Copyright Andrew.M.G.Reynen
 import sys
 import logging
@@ -374,8 +374,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Add to GUI list, and internal list
         self.hotVar['pickFiles'].val=self.getPickFiles()
         self.updateEveSort()
-        self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,self.hotVar['curPickFile'].val,
-                                         self.pref['archiveColorEve'].val,self.pref['archiveColorSelect'].val)
+        self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,self.hotVar['curPickFile'].val)
+        self.updateArchivePrevEvePen()
+        self.updateArchiveCurEvePen()
     
     # Load a specific pick file from the pick directory (inter-event pick loading)...
     # ...hot variable pickSet is reset just prior to calling this (with no picks)
@@ -452,7 +453,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Add data, and picks to the station widgets
         self.updatePage()
         # Update the highlighted event on the archive visual
-        self.archiveEvent.updateEveLineSelect(self.hotVar['curPickFile'].val,self.pref['archiveColorSelect'].val)
+        self.archiveEvent.updateEveLineSelect(self.hotVar['curPickFile'].val)
+        self.updateArchiveCurEvePen()
     
     # Update the data and picks on the current page
     def updatePage(self,init=False):
@@ -686,11 +688,11 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 unqStas=[]
             else:
                 unqStas=np.unique(self.hotVar['staLoc'].val[:,0])
-            defaultColInt=self.pref['defaultColorMapSta'].val
+            defaultColInt=self.pref['basePen'].val['mapStaDefault'][0]
             assignKey='mapStaPenAssign'
         else:
             unqStas=np.unique([tr.stats.station for tr in self.hotVar['stream'].val])
-            defaultColInt=self.pref['defaultColorTraceBg'].val
+            defaultColInt=self.pref['basePen'].val['traceBackground'][0]
             assignKey='traceBgPenAssign'
         # Give empty staWidgets the default color
         colorRef={'':QtGui.QColor(defaultColInt)}
@@ -759,23 +761,6 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         for widget in self.staWidgets:                        
             widget.setBackground(self.traceBgColors[widget.sta])
     
-    # Update the text label colors
-    def updateTextColor(self,init=False):
-        col=QtGui.QColor(self.pref['defaultColorText'].val)
-        pen=mkPen(col)
-        # Change all axis colors (axis line and ticks)
-        for widget in self.staWidgets+[self.timeWidget,self.archiveEvent,
-                                       self.archiveSpan,self.imageWidget]:
-            widget.getPlotItem().getAxis('bottom').setPen(pen)
-            widget.getPlotItem().getAxis('left').setPen(pen)
-        self.mapWidget.setPen(pen)
-        # Change the hovered station and time label colors
-        self.mapWidget.hoverStaItem.setColor(col)
-        self.archiveEvent.hoverTimeItem.setColor(col)
-        # Change pick file title color
-        title=self.timeWidget.getPlotItem().titleLabel.text
-        self.timeWidget.getPlotItem().titleLabel.setText(title,color=col)
-    
     # Update all custom pens
     def updateCustomPen(self,init=False):
         self.updateTracePen()
@@ -796,92 +781,125 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 else:
                     curve.setVisible(True)
     
+    # Update the default widget colors
+    def updateBaseColors(self,init=False):
+        for key,func in [['widgetText',self.updateTextColor],
+                         ['traceBackground',self.updateTraceBackground],
+                         ['timeBackground',self.updateTimeBackground],
+                         ['imageBackground',self.updateImageBackground],
+                         ['mapBackground',self.updateMapBackground],
+                         ['mapStaDefault',self.updateMapStations],
+                         ['mapCurEve',self.updateMapCurEvePen],
+                         ['mapPrevEve',self.updateMapPrevEvePen],
+                         ['archiveBackground',self.updateArchiveBackground],
+                         ['archiveAvailability',self.updateArchiveAvailColor],
+                         ['archiveSpanSelect',self.updateArchiveSpanColor],
+                         ['archiveCurEve',self.updateArchiveCurEvePen],
+                         ['archivePrevEve',self.updateArchivePrevEvePen]
+                         ]:
+            # If initializing Lazylyst or the value was edited, update GUI colors
+            if init or self.pref['basePen'].val[key][3]:
+                # Update the color
+                func()
+                # Reset the was-changed indicator
+                self.pref['basePen'].val[key][3]=False
+    
+    # Update the text label colors
+    def updateTextColor(self,init=False):
+        col=QtGui.QColor(self.pref['basePen'].val['widgetText'][0])
+        pen=mkPen(col)
+        # Change all axis colors (axis line and ticks)
+        for widget in self.staWidgets+[self.timeWidget,self.archiveEvent,
+                                       self.archiveSpan,self.imageWidget]:
+            widget.getPlotItem().getAxis('bottom').setPen(pen)
+            widget.getPlotItem().getAxis('left').setPen(pen)
+        self.mapWidget.setPen(pen)
+        # Change the hovered station and time label colors
+        self.mapWidget.hoverStaItem.setColor(col)
+        self.archiveEvent.hoverTimeItem.setColor(col)
+        # Change pick file title color
+        title=self.timeWidget.getPlotItem().titleLabel.text
+        self.timeWidget.getPlotItem().titleLabel.setText(title,color=col)  
+        
     # Change the color of the trace background
     def updateTraceBackground(self,init=False):
         self.traceBgColors=self.getStaColors('traceBg')
         for aWidget in self.staWidgets:
-            aWidget.setBackground(self.traceBgColors[aWidget.sta])
-    
+            aWidget.setBackground(self.traceBgColors[aWidget.sta]) 
+
     # Change the color of time background
     def updateTimeBackground(self,init=False):
-        col=QtGui.QColor(self.pref['defaultColorTimeBg'].val)
+        col=QtGui.QColor(self.pref['basePen'].val['timeBackground'][0])
         self.timeWidget.setBackground(col)
         
     # Change the color of image background
     def updateImageBackground(self,init=False):
-        col=QtGui.QColor(self.pref['defaultColorImageBg'].val)
+        col=QtGui.QColor(self.pref['basePen'].val['imageBackground'][0])
         self.imageWidget.setBackground(col)
     
-    # Change the color of the archive axis
-    def updateArchiveBackground(self,init=False):
-        col=QtGui.QColor(self.pref['archiveColorBackground'].val)
-        self.archiveSpan.setBackground(col)
-        self.archiveEvent.setBackground(col)
-        
-    # Change the color of the archive availability boxes
-    def updateArchiveAvailColor(self,init=False):
-        col=QtGui.QColor(self.pref['archiveColorAvail'].val)
-        for box in self.archiveSpan.boxes:
-            box.setPen(col)
-            
-    # Change the color of the archive span select
-    def updateArchiveSpanColor(self,init=False):
-        col=QtGui.QColor(self.pref['archiveColorSpan'].val)
-        rgba=(col.red(),col.green(),col.blue(),65)
-        self.archiveSpan.span.setBrush(mkBrush(rgba))
-        for line in self.archiveSpan.span.lines:
-            line.setPen(col)
-        
-    # Change the color of the events in the archive visual...
-    # ...selected, not selected, use same color as selected for archive span line hover
-    def updateArchiveEveColor(self,init=False):
-        col1=QtGui.QColor(self.pref['archiveColorSelect'].val)
-        col2=QtGui.QColor(self.pref['archiveColorEve'].val)
-        # Set current event line color
-        if self.archiveEvent.curEveLine!=None:
-            self.archiveEvent.curEveLine.setPen(mkPen(col1))
-        # Set not-current event line color
-        if self.archiveEvent.otherEveLine!=None:
-            self.archiveEvent.otherEveLine.setPen(mkPen(col2))
-        # Use the select for highlighting the span when hovered
-        for line in self.archiveSpan.span.lines:
-            line.setHoverPen(col1)
-            
     # Update the color of the map axis
     def updateMapBackground(self,init=False):
-        col=QtGui.QColor(self.pref['defaultColorMapBg'].val)
+        col=QtGui.QColor(self.pref['basePen'].val['mapBackground'][0])
         self.mapWidget.setBackground(col)
     
     # Update the color of all of the station spots, with user specified colors
     def updateMapStations(self,init=False):
         # Assign the station colors for the stations in staLoc
         self.mapStaColors=self.getStaColors('mapSta')
+        staSize,staDep=self.pref['basePen'].val['mapStaDefault'][1:3]
         # Add the spots to the map
-        self.mapWidget.loadStaLoc(self.hotVar['staLoc'].val,self.mapStaColors,init)
+        self.mapWidget.loadStaLoc(self.hotVar['staLoc'].val,self.mapStaColors,
+                                  staSize,staDep,init)
     
     # Update the current event spots on the map widget
     def updateMapCurEve(self):
-        self.mapWidget.loadEvePoints(self.hotVar['mapCurEve'].val,'cur',
-                                     QtGui.QColor(self.pref['defaultColorMapCurEve'].val))
+        self.mapWidget.loadEvePoints(self.hotVar['mapCurEve'].val,'cur')
+        self.updateMapCurEvePen()
     
     # Update the previous event spots on the map widget
     def updateMapPrevEve(self):
-        self.mapWidget.loadEvePoints(self.hotVar['mapPrevEve'].val,'prev',
-                                     QtGui.QColor(self.pref['defaultColorMapPrevEve'].val))
+        self.mapWidget.loadEvePoints(self.hotVar['mapPrevEve'].val,'prev')
+        self.updateMapPrevEvePen()
     
-    # Update the color of the previous event symbols
-    def updateMapPrevEveColor(self,init=False): 
-        col=QtGui.QColor(self.pref['defaultColorMapPrevEve'].val)
-        item=self.mapWidget.prevEveItem
-        if item!=None:
-            item.setBrush(mkBrush(col.red(),col.green(),col.blue(),160))
-        
     # Update the color of the current event symbols
-    def updateMapCurEveColor(self,init=False): 
-        col=QtGui.QColor(self.pref['defaultColorMapCurEve'].val)
-        item=self.mapWidget.curEveItem
-        if item!=None:
-            item.setBrush(mkBrush(col.red(),col.green(),col.blue(),200))
+    def updateMapCurEvePen(self): 
+        self.mapWidget.updateEvePen(self.pref['basePen'].val['mapCurEve'][0:3],'cur')
+        
+    # Update the color of the previous event symbols
+    def updateMapPrevEvePen(self):
+        self.mapWidget.updateEvePen(self.pref['basePen'].val['mapPrevEve'][0:3],'prev')
+    
+    # Change the color of the archive axis
+    def updateArchiveBackground(self):
+        col=QtGui.QColor(self.pref['basePen'].val['archiveBackground'][0])
+        self.archiveSpan.setBackground(col)
+        self.archiveEvent.setBackground(col)
+        
+    # Change the color of the archive availability boxes
+    def updateArchiveAvailColor(self):
+        col=QtGui.QColor(self.pref['basePen'].val['archiveAvailability'][0])
+        for box in self.archiveSpan.boxes:
+            box.setPen(col)
+            
+    # Change the color of the archive span select
+    def updateArchiveSpanColor(self):
+        col=QtGui.QColor(self.pref['basePen'].val['archiveSpanSelect'][0])
+        rgba=(col.red(),col.green(),col.blue(),65)
+        self.archiveSpan.span.setBrush(mkBrush(rgba))
+        for line in self.archiveSpan.span.lines:
+            line.setPen(col)
+        
+    # Change the pen of the selected events in the archive visual, and the highlighted archive span color
+    def updateArchiveCurEvePen(self):
+        col=QtGui.QColor(self.pref['basePen'].val['archiveCurEve'][0])
+        self.archiveEvent.updateEvePens(self.pref['basePen'].val['archiveCurEve'][0:3],'cur')
+        # Use the select for highlighting the span when hovered
+        for line in self.archiveSpan.span.lines:
+            line.setHoverPen(col)    
+            
+    # Change the pen of the selected events in the archive visual, and the highlighted archive span color
+    def updateArchivePrevEvePen(self):
+        self.archiveEvent.updateEvePens(self.pref['basePen'].val['archivePrevEve'][0:3],'prev')
         
     # Update how many widgets are on the main page
     def updateStaPerPage(self,init=False):
@@ -893,7 +911,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             aWidget.setParent(None)
             self.traceLayout.removeWidget(aWidget)
             self.staWidgets=[]
-        axisPen=mkPen(QtGui.QColor(self.pref['defaultColorText'].val))
+        axisPen=mkPen(QtGui.QColor(self.pref['basePen'].val['widgetText'][0]))
         # Add the desired number of staWidgets
         while len(self.staWidgets)<self.pref['staPerPage'].val:
             self.staWidgets.append(TraceWidget(self.mainLayout))
@@ -917,7 +935,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.hotVar['archFiles'].val=archiveFiles
         self.hotVar['archFileTimes'].val=archiveTimes
         # Update the time boxes
-        self.archiveSpan.updateBoxes(archiveTimes,self.pref['archiveColorAvail'].val)
+        self.archiveSpan.updateBoxes(archiveTimes,self.pref['basePen'].val['archiveAvailability'][0])
         # Do not bother changing the span if nowhere to go
         if len(archiveFiles)==0:
             print('No miniseed files in '+self.hotVar['archDir'].val)
@@ -981,9 +999,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.hotVar['pickFiles'].val=self.getPickFiles()
         # Sort the pick files
         self.updateEveSort()
-        # Update the archive span widget
-        self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,self.hotVar['curPickFile'].val,
-                                         self.pref['archiveColorEve'].val,self.pref['archiveColorSelect'].val)
+        # Update the archive event widget
+        self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,self.hotVar['curPickFile'].val)
+        self.updateArchivePrevEvePen()
+        self.updateArchiveCurEvePen()
                                          
     # Read the correctly formatted pick files from the pick directory
     def getPickFiles(self):
@@ -1008,8 +1027,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         # Ensure that pick files returned are in wanted order
         self.updateEveSort()
         # Reset pick file time lines in archiveEvent
-        self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,self.hotVar['curPickFile'].val,
-                                         self.pref['archiveColorEve'].val,self.pref['archiveColorSelect'].val)
+        self.archiveEvent.updateEveLines(self.hotVar['pickFileTimes'].val,self.hotVar['curPickFile'].val)
+        self.updateArchivePrevEvePen()
+        self.updateArchiveCurEvePen()
         # See which files were present prior to the update
         prevFiles=self.getPickFiles()
         # Delete events which are no longer present
@@ -1139,6 +1159,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.pref=defaultPreferences(self)
         prefVals=self.setPref.value('prefVals',{})
         for aKey in prefVals.keys():
+            # ...skip if this preference was removed in a newer version
+            if aKey not in self.pref.keys():
+                continue
             self.pref[aKey].val=prefVals[aKey]
         # Saved sources
         self.saveSource=self.setSource.value('savedSources',{})

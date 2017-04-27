@@ -3,6 +3,7 @@ from PyQt4 import QtGui,QtCore
 from PyQt4.QtCore import Qt
 from CustomFunctions import dict2Text, text2Dict
 from CustomPen import Ui_customPenDialog
+from BasePen import Ui_basePenDialog
 from ComboDialog import Ui_comboBoxDialog
 from copy import deepcopy
 from future.utils import iteritems
@@ -35,48 +36,22 @@ def defaultPreferences(main):
     'pickTypesMaxCountPerSta':Pref(tag='pickTypesMaxCountPerSta',val={'P':1,'S':1},dataType=dict,
                                    func=main.updatePagePicks,condition={'bound':[1,999]},
                                    tip='Max number of picks of a given phase type allowed on any individual trace widget'),
-    'defaultColorText':Pref(tag='defaultColorText',val=14474460,dataType=int,
-                            dialog='ColorDialog',func=main.updateTextColor,
-                            tip='Color of all axis and label text'),
-    'defaultColorTraceBg':Pref(tag='defaultColorTraceBg',val=0,dataType=int,
-                               dialog='ColorDialog',func=main.updateTraceBackground,
-                               tip='Default background color of trace widget background,'+
-                               ' can be overwritten by hot variable "traceBgPenAssign"'),
-    'defaultColorTimeBg':Pref(tag='defaultColorTimeBg',val=0,dataType=int,
-                              dialog='ColorDialog',func=main.updateTimeBackground,
-                              tip='Background color of the time widget'),
-    'defaultColorImageBg':Pref(tag='defaultColorImageBg',val=0,dataType=int,
-                              dialog='ColorDialog',func=main.updateImageBackground,
-                              tip='Background color of the image widget'),
-    'defaultColorMapBg':Pref(tag='defaultColorMapBg',val=0,dataType=int,
-                             dialog='ColorDialog',func=main.updateMapBackground,
-                             tip='Background color of the map widget'),
-    'defaultColorMapSta':Pref(tag='defaultColorMapSta',val=16777215,dataType=int,
-                              dialog='ColorDialog',func=main.updateMapStations,
-                              tip='Default color of the station triangles on the map widget,'+
-                               ' can be overwritten by hot variable "mapStaPenAssign"'),
-    'defaultColorMapCurEve':Pref(tag='defaultColorMapCurEve',val=16776960,dataType=int,
-                                 dialog='ColorDialog',func=main.updateMapCurEveColor,
-                                 tip='Color of the current event points on the map widget'),
-    'defaultColorMapPrevEve':Pref(tag='defaultColorMapPrevEve',val=0,dataType=int,
-                                  dialog='ColorDialog',func=main.updateMapPrevEveColor,
-                                  tip='Color of the previous event points on the map widget'),
-    'archiveColorBackground':Pref(tag='archiveColorBackground',val=0,dataType=int,
-                                  dialog='ColorDialog',func=main.updateArchiveBackground,
-                                  tip='Background color of the archive event and archive span widgets'),
-    'archiveColorAvail':Pref(tag='archiveColorAvail',val=65280,dataType=int,
-                                dialog='ColorDialog',func=main.updateArchiveAvailColor,
-                                tip='Color of the data availability lines in the archive span widget'),
-    'archiveColorSpan':Pref(tag='archiveColorSpan',val=3289800,dataType=int,
-                                dialog='ColorDialog',func=main.updateArchiveSpanColor,
-                                tip='Color of the span select in the archive span widget'),
-    'archiveColorEve':Pref(tag='archiveColorEve',val=135,dataType=int,
-                                dialog='ColorDialog',func=main.updateArchiveEveColor,
-                                tip='Color of events not currently selected in the archive event widget'),
-    'archiveColorSelect':Pref(tag='archiveColorSelect',val=16711680,dataType=int,
-                              dialog='ColorDialog',func=main.updateArchiveEveColor,
-                              tip='Color of the currently selected event in the archive event widget'),
-    'customPen':Pref(tag='customPen',val={'default':[16777215,1.0,0.0],
+    'basePen':Pref(tag='basePen',val={'widgetText':[14474460,1.0,0.0,False], # [Color,Width,Depth,UpdateMe]
+                                      'traceBackground':[0,1.0,0.0,False],
+                                      'timeBackground':[0,1.0,0.0,False],
+                                      'imageBackground':[0,1.0,0.0,False],
+                                      'mapBackground':[0,1.0,0.0,False],
+                                      'mapStaDefault':[16777215,4.0,0.0,False],
+                                      'mapCurEve':[16776960,3.0,2.0,False],
+                                      'mapPrevEve':[13107400,2.0,1.0,False],
+                                      'archiveBackground':[0,1.0,0.0,False],
+                                      'archiveAvailability':[65280,1.0,0.0,False],
+                                      'archiveSpanSelect':[3289800,1.0,0.0,False],
+                                      'archiveCurEve':[16711680,3.0,1.0,False],
+                                      'archivePrevEve':[135,1.0,0.0,False],},
+                    dataType=dict,dialog='BasePenDialog',func=main.updateBaseColors,
+                    tip='Defines the base pen values for the main widgets'),
+    'customPen':Pref(tag='customPen',val={'default':[16777215,1.0,0.0], # [Color,Width,Depth]
                                           'noStaData':[3289650,1.0,0.0],
                                           'noTraceData':[8224125,1.0,0.0],
                                           'goodMap':[65280,1.0,0.0],
@@ -84,12 +59,12 @@ def defaultPreferences(main):
                                           'highlight':[255,1.0,2.0],
                                           'lowlight':[13158600,0.3,1.0],},dataType=dict,
                     dialog='CustomPenDialog',func=main.updateCustomPen,
-                    tip='Defines the pen values: tag, color, width, and depth (in/out position) referenced by various hot variables'),
+                    tip='Defines the custom pen values referenced by PenAssign hot variables'),
     'pickPen':Pref(tag='pickPen',val={'default':[16777215,1.0,4.0],
                                       'P':[65280,1.0,5.0],
                                       'S':[16776960,1.0,5.0],},dataType=dict,
                     dialog='CustomPenDialog',func=main.updatePagePicks,
-                    tip='Defines the pen values: tag, color, width, and depth (in/out position) for the pick lines'),
+                    tip='Defines the pen values for the pick lines'),
     }
     return pref
 
@@ -128,18 +103,15 @@ class Pref(object):
             # ...selecting from a list
             elif self.dialog=='ComboBoxDialog':
                 val,ok=ComboBoxDialog.returnValue(self.val,self.condition['isOneOf'],self.tag)                    
-            # ...singular valued colors
-            elif self.dialog=='ColorDialog':
-                colorDialog=QtGui.QColorDialog()
-                val=colorDialog.getColor(QtGui.QColor(self.val),hostWidget)
-                if val.isValid():
-                    val,ok=val.rgba(),True
-                else:
-                    val,ok=None,False
-            # ...custom colors and widths, with their associated tags for use as with hot variables
+            # ...default widget colors
+            elif self.dialog=='BasePenDialog':
+                BasePenDialog(self.val).exec_()
+                # The checks and updates to the preference value are done within the dialog
+                val,ok=self.val,True
+            # ...custom colors and widths
             elif self.dialog=='CustomPenDialog':
                 CustomPenDialog(self.val,self.tag).exec_()
-                # The updates to the preference is done within the dialog (and the checks are done there)
+                # The checks and updates to the preference value are done within the dialog
                 val,ok=self.val,True
             else:
                 print('New dialog?')
@@ -214,6 +186,91 @@ class LineEditDialog(QtGui.QDialog):
         result = dialog.exec_()
         return dialog.lineEditValue(), result==QtGui.QDialog.Accepted
 
+
+# Dialog window for editing the basic widget colors
+class BasePenDialog(QtGui.QDialog, Ui_basePenDialog):
+    def __init__(self,tpDict,parent=None):
+        QtGui.QDialog.__init__(self,parent)
+        self.setupUi(self)
+        self.tpDict=tpDict
+        self.keyOrder=sorted(self.tpDict.keys()) # Used to reference back before the last user change
+        # Fill in the current customPen information (before setting functionality, as functionality has a "onChanged" signal)
+        self.fillDialog()
+        # Give the dialog some functionaly
+        self.setFunctionality()
+        
+    # Set up some functionality to the custom pen dialog
+    def setFunctionality(self):
+        self.tpTable.itemDoubleClicked.connect(self.updatePenColor)
+        self.tpTable.itemChanged.connect(self.updateItemText)
+
+    # Fill the dialog with info relating to the current customPen dictionary
+    def fillDialog(self):
+        # Make the table large enough to hold all current information
+        self.tpTable.setRowCount(len(self.tpDict))
+        self.tpTable.setColumnCount(4)
+        # Set the headers
+        self.tpTable.setHorizontalHeaderLabels(['Tag','Color','Width','Depth'])     
+        # Enter data onto Table
+        for m,key in enumerate(sorted(self.tpDict.keys())):
+            # Generate the table items...
+            tagItem=QtGui.QTableWidgetItem(key)
+            tagItem.setFlags(Qt.ItemIsEnabled)
+            penItem=QtGui.QTableWidgetItem('')
+            penItem.setFlags(Qt.ItemIsEnabled)
+            penItem.setBackground(QtGui.QColor(self.tpDict[key][0]))
+            widItem=QtGui.QTableWidgetItem(str(self.tpDict[key][1]))
+            depItem=QtGui.QTableWidgetItem(str(self.tpDict[key][2]))
+            # Put items in wanted position
+            self.tpTable.setItem(m,0,tagItem)
+            self.tpTable.setItem(m,1,penItem)
+            self.tpTable.setItem(m,2,widItem)
+            self.tpTable.setItem(m,3,depItem)
+        # Resize the dialog
+        self.tpTable.resizeColumnsToContents()
+            
+    # Update the pen color for a given tag
+    def updatePenColor(self,item):
+        if item.column()!=1:
+            return
+        itemKey=self.keyOrder[item.row()]
+        # Go get a new color
+        colorDialog=QtGui.QColorDialog()
+        val=colorDialog.getColor(QtGui.QColor(self.tpDict[itemKey][0]),self)
+        # Set the new color (if the dialog was not canceled)
+        if val.isValid():
+            val=val.rgba()
+            item.setBackground(QtGui.QColor(val))
+            self.tpDict[itemKey][0]=val
+            # Mark that this item was edited
+            self.tpDict[itemKey][3]=True
+            
+    # Update the text values, if changed
+    def updateItemText(self,item):
+        if item.column()in [0,1]:
+            return
+        # The key, prior to changes
+        itemKey=self.keyOrder[item.row()]
+        # Updating the width or depth values
+        if item.column() in [2,3]:
+            prefIdx=item.column()-1
+            try:
+                val=float(item.text())
+            except:
+                val=-99999
+            # Ensure the width value is reasonable, if not change back the original
+            if prefIdx==1 and (val<0 or val>10):
+                print('Width should be in the range [0,10]')
+                item.setText(str(self.tpDict[itemKey][prefIdx]))
+            elif prefIdx==2 and (val<-10 or val>=10):
+                print('Depth should be in the range [-10,10)')
+                item.setText(str(self.tpDict[itemKey][prefIdx]))
+            # If passed checks, update the tpDict with the new width or depth
+            else:
+                self.tpDict[itemKey][prefIdx]=float(item.text())
+                # Mark that this item was edited
+                self.tpDict[itemKey][3]=True
+
 # Dialog window for editing the custom colors and widths
 class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
     def __init__(self,tpDict,tag,parent=None):
@@ -276,7 +333,7 @@ class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
     def updateItemText(self,item):
         if item.column()==1:
             return
-        # Disconnect itself, changes occur herem weird looping otherwise
+        # Disconnect itself, changes occur here weird looping otherwise
         self.tpTable.itemChanged.disconnect(self.updateItemText)
         # The key, prior to changes
         itemKey=self.keyOrder[item.row()]

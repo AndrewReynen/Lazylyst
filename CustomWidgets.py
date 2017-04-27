@@ -173,7 +173,7 @@ class ArchiveEventWidget(pg.PlotWidget):
         self.addNewEventSignal.emit()
     
     # Reset the event lines, given a new set of event times
-    def updateEveLines(self,fileTimes,curFile,penInt,penIntSelect):
+    def updateEveLines(self,fileTimes,curFile):
         # Remove the not-current event lines
         if self.otherEveLine!=None:
             self.removeItem(self.otherEveLine)
@@ -187,16 +187,14 @@ class ArchiveEventWidget(pg.PlotWidget):
             connect=connect.reshape(len(times)*2)
             path = pg.arrayToQPath(times.reshape(len(times)*2),connect,connect)
             item = pg.QtGui.QGraphicsPathItem(path)
-            item.setPen(pg.mkPen(QtGui.QColor(penInt)))
-            item.setZValue(0)
             # Reference and plot the line
             self.otherEveLine=item
             self.addItem(item)
         # Generate and plot the current pick file (if present)
-        self.updateEveLineSelect(curFile,penIntSelect)
+        self.updateEveLineSelect(curFile)
     
     # Update the current event line to proper position, and appropriate color
-    def updateEveLineSelect(self,curFile,penIntSelect):
+    def updateEveLineSelect(self,curFile):
         # Remove this line if no current file
         if self.curEveLine!=None:
             self.removeItem(self.curEveLine)
@@ -204,12 +202,22 @@ class ArchiveEventWidget(pg.PlotWidget):
         # Add the line if a pick file is selected
         if curFile!='':
             t=getTimeFromFileName(curFile)
-            line=pg.InfiniteLine(pos=t,pen=pg.mkPen(QtGui.QColor(penIntSelect)))
-            line.setZValue(10)
+            line=pg.InfiniteLine(pos=t,pen=pg.mkPen(QtGui.QColor(0)))
             # Reference and plot the line
             self.curEveLine=line
             self.addItem(line)
-        
+            
+    # Update the color, width and depth of an event line
+    def updateEvePens(self,evePen,eveType):
+        col,width,dep=evePen
+        col=QtGui.QColor(QtGui.QColor(col))
+        if eveType=='cur':
+            item=self.curEveLine
+        else:
+            item=self.otherEveLine
+        if item!=None:
+            item.setPen(pg.mkPen(col,width=width))
+            item.setZValue(dep)
         
 # List widget which holds all current pick files
 class ArchiveListWidget(QtGui.QListWidget):       
@@ -609,7 +617,8 @@ class MapWidget(pg.GraphicsLayoutWidget):
         return str(self.stas[np.where(self.staItem.points()==selPoint)[0][0]])
         
     # Load the new station meta data
-    def loadStaLoc(self,staLoc,colorAssign,init):
+    def loadStaLoc(self,staLoc,colorAssign,
+                   staSize,staDep,init):
         # Enable the autoscaling temporarily
         self.map.vb.enableAutoRange()
         # Hide the hovered station label
@@ -630,7 +639,8 @@ class MapWidget(pg.GraphicsLayoutWidget):
         for sta in self.stas:
             color=colorAssign[sta]
             brushArr.append(pg.mkBrush(color.red(),color.green(),color.blue(),200))
-        staScatter = CustScatter(size=8,symbol='t1',pen=pg.mkPen(None))
+        staScatter=CustScatter(size=staSize*2,symbol='t1',pen=pg.mkPen(None))
+        staScatter.setZValue(staDep)
         # Add in the points
         if len(staLoc)!=0:
             staScatter.addPoints(x=staLoc[:,1], y=staLoc[:,2], brush=brushArr)
@@ -661,26 +671,36 @@ class MapWidget(pg.GraphicsLayoutWidget):
             self.hoverStaItem.show()
         
     # Load a set of event points
-    def loadEvePoints(self,eveMeta,eveType,QCol):
+    def loadEvePoints(self,eveMeta,eveType):
         if eveType=='cur':
-            item,size,alpha=self.curEveItem,6,200
+            item,alpha=self.curEveItem,200
         else:
-            item,size,alpha=self.prevEveItem,3,160
+            item,alpha=self.prevEveItem,160
         # Remove the previous item
         if item!=None:
             self.map.removeItem(item)
-        # Add in all of the new points
-        scatter=pg.ScatterPlotItem(size=size,symbol='o',pen=pg.mkPen(None),
-                                   brush=pg.mkBrush(QCol.red(),QCol.green(),QCol.blue(),alpha))
+        # Add in all of the new points, size & color set in different function
+        scatter=pg.ScatterPlotItem(size=1,symbol='o',pen=pg.mkPen(None),brush=pg.mkBrush(0,0,0,alpha))
         scatter.addPoints(x=eveMeta[:,1],y=eveMeta[:,2])
         self.map.addItem(scatter)
         # Update the scatter item reference
         if eveType=='cur':
-            scatter.setZValue(3.0)
             self.curEveItem=scatter
         else:
-            scatter.setZValue(-1.0)
             self.prevEveItem=scatter
+        
+    # Update the event pen values
+    def updateEvePen(self,evePen,eveType):
+        col,size,dep=evePen
+        col=QtGui.QColor(QtGui.QColor(col))
+        if eveType=='cur':
+            item=self.curEveItem
+        else:
+            item=self.prevEveItem
+        if item!=None:
+            item.setBrush(pg.mkBrush(col.red(),col.green(),col.blue(),200))
+            item.setSize(size*2)
+            item.setZValue(dep)
     
     # Change the pen of the axis and axis labels
     def setPen(self,pen):
