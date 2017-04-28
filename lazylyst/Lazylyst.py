@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.4.2
+# Version 0.4.3
 # Copyright Andrew.M.G.Reynen
 import sys
 import logging
