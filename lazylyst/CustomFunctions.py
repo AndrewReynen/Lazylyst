@@ -1,4 +1,4 @@
-# Copyright Andrew.M.G.Reynen
+# Author: Andrew.M.G.Reynen
 import numpy as np
 from obspy import UTCDateTime
 from future.utils import iteritems

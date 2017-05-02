@@ -1,4 +1,4 @@
-# Copyright Andrew.M.G.Reynen
+# Author: Andrew.M.G.Reynen
 from obspy import read_inventory
 import numpy as np
 import pyproj

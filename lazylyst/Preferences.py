@@ -1,4 +1,4 @@
-# Copyright Andrew.M.G.Reynen
+# Author: Andrew.M.G.Reynen
 from PyQt4 import QtGui,QtCore
 from PyQt4.QtCore import Qt
 from CustomFunctions import dict2Text, text2Dict

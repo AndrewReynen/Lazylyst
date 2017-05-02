@@ -1,4 +1,4 @@
-# Copyright Andrew.M.G.Reynen
+# Author: Andrew.M.G.Reynen
 from obspy import Stream, read_inventory
 from obspy.core.inventory import Inventory
 from CustomFunctions import getTimeFromFileName
