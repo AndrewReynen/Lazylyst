@@ -26,7 +26,7 @@ setup(
   packages=find_packages(),
   install_requires=[
         'obspy>=1.0.2',
-        'pyqtgraph=0.10.0',
+        'pyqtgraph==0.10.0',
         'scandir>=1.4',
         'pyproj>=1.9.5.1',
         'scipy',
