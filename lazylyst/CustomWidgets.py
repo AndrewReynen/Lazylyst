@@ -603,6 +603,8 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.hoverStaItem=pg.TextItem(text='',anchor=(0.5,1))
         self.hoverStaItem.hide()
         self.map.addItem(self.hoverStaItem)
+        # Show station text when hovering over the station symbol
+        self.scene().sigMouseMoved.connect(self.onHover)
         
     # Get the station which was closest to the double click event, and set the selected station
     def staClicked(self,staScat):
@@ -646,7 +648,6 @@ class MapWidget(pg.GraphicsLayoutWidget):
             staScatter.addPoints(x=staLoc[:,1], y=staLoc[:,2], brush=brushArr)
         # Give some clicking ability to the stations
         staScatter.dblClicked.connect(self.staClicked)
-        self.scene().sigMouseMoved.connect(self.onHover)
         # Add the station scatter items
         self.map.addItem(staScatter)
         self.staItem=staScatter
@@ -677,7 +678,7 @@ class MapWidget(pg.GraphicsLayoutWidget):
         else:
             item,alpha=self.prevEveItem,160
         # Remove the previous item
-        if item!=None:
+        if item is not None:
             self.map.removeItem(item)
         # Add in all of the new points, size & color set in different function
         scatter=pg.ScatterPlotItem(size=1,symbol='o',pen=pg.mkPen(None),brush=pg.mkBrush(0,0,0,alpha))

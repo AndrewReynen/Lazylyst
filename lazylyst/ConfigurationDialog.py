@@ -56,7 +56,15 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         if self.confActiveList.hasFocus() or self.confPassiveList.hasFocus():
             curList=self.confActiveList if self.confActiveList.hasFocus() else self.confPassiveList
         return curList
-        
+
+    # Function to handle calls to the preference lists
+    def prefListKeyEvent(self):
+        # If the preference list had focus (again "backspace" is triggered by double click)
+        if self.confPrefList.key==Qt.Key_Backspace:
+            # Grab the key, and update if possible
+            item=self.confPrefList.currentItem()
+            if item.isSelected():
+                self.pref[item.text()].update(self)
         
     # Function to handle calls to the active and passive lists
     def actionListKeyEvent(self):
@@ -71,8 +79,9 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         elif self.curList.key==Qt.Key_Insert:
             self.createAction()
         # Skip if no action was selected
-        elif self.curList.currentItem()==None:
-            print('No action was selected')
+        elif self.curList.currentItem() is None:
+            return
+        elif not self.curList.currentItem().isSelected():
             return
         # Not allowed to edit any timed active action which is currently in use
         elif self.curList.currentItem().text() in self.main.qTimers.keys():
@@ -147,14 +156,6 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         self.curList.takeItem(self.curList.currentRow())
         # As well as from the action dictionary
         self.act.pop(actTag)
-    
-    # Function to handle calls to the preference lists
-    def prefListKeyEvent(self):
-        # If the preference list had focus (again "backspace" is triggered by double click)
-        if self.confPrefList.key==Qt.Key_Backspace:
-            # Grab the key, and update if possible
-            curKey=self.confPrefList.currentItem().text()
-            self.pref[curKey].update(self)
     
     # Menu activated upon right clicking of action entries
     def createActionMenu(self,pos):
