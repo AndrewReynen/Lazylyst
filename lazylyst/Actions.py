@@ -24,17 +24,8 @@ def defaultActions():
                            
     'OpenLazylyst':Action(tag='OpenLazylyst',name='passAction',
                            path='$main',trigger='DoubleClick',locked=True),
-                           
-    'ToggleDockArchive':Action(tag='ToggleDockArchive',name='toggleWidget',optionals={'whichWidget':'archive'},
-                           path='$main',trigger=QtGui.QKeySequence('F1'),locked=True),
-                           
-    'ToggleDockMap':Action(tag='ToggleDockMap',name='toggleWidget',optionals={'whichWidget':'map'},
-                           path='$main',trigger=QtGui.QKeySequence('F2'),locked=True),
 
-    'ToggleDockStdout':Action(tag='ToggleDockStdout',name='toggleWidget',optionals={'whichWidget':'stdout'},
-                           path='$main',trigger=QtGui.QKeySequence('F3'),locked=True),
-
-    'ToggleImage':Action(tag='ToggleImage',name='toggleWidget',optionals={'whichWidget':'image'},
+    'ToggleImage':Action(tag='ToggleImage',name='toggleImageWidget',
                            path='$main',trigger=QtGui.QKeySequence('F4'),locked=True),
 
     'ReloadPlugins':Action(tag='ReloadPlugins',name='reloadPlugins',

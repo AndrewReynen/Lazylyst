@@ -367,6 +367,10 @@ class TraceWidget(pg.PlotWidget):
         # Set the hover position, upon hovering
         self.scene().sigMouseMoved.connect(self.onHover)
         self.hoverPos=hoverPos
+        # Allow this widget to be fairly small
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.MinimumExpanding)
+        self.setSizePolicy(sizePolicy)
+        self.setMinimumSize(QtCore.QSize(0, 15))
         
     # Update the mouse position
     def onHover(self,pixPoint):
@@ -778,20 +782,3 @@ class ImageWidget(pg.PlotWidget):
         aMap = pg.ColorMap(np.array(pos), np.array(col,dtype=np.ubyte))
         lut = aMap.getLookupTable(np.min(data),np.max(data),256)
         return lut
-        
-
-## For when a QWidget can be promoted to a DockArea/Dock in qtDesigner ##
-## Testing the dock area class
-#class CustDockArea(DockArea):
-#    def __init__(self, parent=None):
-#        super(CustDockArea, self).__init__(parent) 
-#
-## Testing the dock class      
-#class CustDock(Dock):
-#    def __init__(self, parent=None):
-#        super(CustDock, self).__init__(parent)
-        
-
-        
-
-        

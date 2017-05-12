@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.4.4
+# Version 0.4.5
 # Author: Andrew.M.G.Reynen
 import sys
 import logging
@@ -47,6 +47,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         curPrefs=[aPref for key, aPref in iteritems(self.pref)]
         for aPref in curPrefs:
             aPref.update(self,init=True)
+        # Also check initial image widget visibility, has to be called after staWidgets are added
+        if self.setGen.value('imageHidden','false')=='true':
+            self.toggleImageWidget(init=True)
         
     # Start setting up some functionality to the UI
     def setFunctionality(self):
@@ -81,20 +84,25 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         scrollBar=self.textOutBrowser.verticalScrollBar()
         scrollBar.setValue(scrollBar.maximum())
         
-    # Toggle the "optional" widgets (map, archive, stdout, and image views) on or off
-    def toggleWidget(self,**kwargs):
-        dock=[self.archiveDock,self.mapDock,self.textOutDock,
-              self.imageWidget][['archive','map','stdout','image'].index(kwargs['whichWidget'])]
+    # Toggle the image widget on or off
+    def toggleImageWidget(self,init=False):
+        dock=self.imageWidget
+        maxHeight=self.timeWidget.maximumHeight()
         if dock.isHidden():
             dock.show()
-            if kwargs['whichWidget']=='image' and self.traceSplitSizes!=None:
+            if self.traceSplitSizes is not None:
                 self.traceSplitter.setSizes(self.traceSplitSizes)
+            else:
+                self.traceSplitter.setSizes([maxHeight+70,np.sum(self.traceSplitter.sizes())-(maxHeight+70)])
         else:
-            if kwargs['whichWidget']=='image':
+            # If starting up lazylyst, force the splitter boundary
+            if init:
+                self.traceSplitter.setSizes([maxHeight,999999])
+            else:
                 self.traceSplitSizes=self.traceSplitter.sizes()
-                maxHeight=self.timeWidget.maximumHeight()
                 self.traceSplitter.setSizes([maxHeight,np.sum(self.traceSplitSizes)-maxHeight])
             dock.hide()
+        ## Do not allow resizing splitter if there is no image being shown ##
             
     # Reload plugins from the specified modules
     def reloadPlugins(self):
@@ -1141,13 +1149,22 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.setPref=QSettings(mainPath+'/setPref.ini', QSettings.IniFormat)
         self.setSource=QSettings(mainPath+'/setSource.ini', QSettings.IniFormat)
         # UI size
-        self.resize(self.setGen.value('size', QtCore.QSize(1300, 700)))
+        if self.setGen.value("geometry") is not None:
+            self.restoreGeometry(self.setGen.value("geometry"))
+        if self.setGen.value("windowState") is not None:
+            self.restoreState(self.setGen.value("windowState"))
         # Actions...
         self.act=self.setAct.value('actions', defaultActions())
-        # ...get any locked actions which may be in new version
+        # ...reload locked actions from the defaults (may have been edited in a new version)
         for key,action in iteritems(defaultActions()):
-            if action.locked and action.tag not in self.act.keys():
+            if action.locked:
                 self.act[action.tag]=action
+        # ...remove any locked actions which do no longer exist by default
+        actKeys=self.act.keys()
+        for key in actKeys:
+            if self.act[key].locked and key not in defaultActions().keys():
+                self.act.pop(key)
+        # ...get the passive action ordering
         self.actPassiveOrder=self.setAct.value('actPassiveOrder', defaultPassiveOrder(self.act))
         if self.actPassiveOrder==None:
             self.actPassiveOrder=[]
@@ -1174,7 +1191,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     # Save all settings from current run
     def saveSettings(self):
         # UI size and widget visibility
-        self.setGen.setValue('size', self.size())
+        self.setGen.setValue('geometry',self.saveGeometry())
+        self.setGen.setValue('windowState',self.saveState())
+        self.setGen.setValue('imageHidden',self.imageWidget.isHidden())
         # Actions, cannot save functions (will be linked again upon loading)
         for key in self.act.keys():
             self.act[key].func=None
