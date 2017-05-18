@@ -42,8 +42,8 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>146</width>
-     <height>134</height>
+     <width>181</width>
+     <height>155</height>
     </size>
    </property>
    <property name="maximumSize">
@@ -129,8 +129,8 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>73</width>
-     <height>95</height>
+     <width>96</width>
+     <height>131</height>
     </size>
    </property>
    <property name="maximumSize">
@@ -161,7 +161,7 @@
       <height>16777215</height>
      </size>
     </property>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0">
+    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0">
      <property name="spacing">
       <number>1</number>
      </property>
@@ -190,6 +190,9 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QLineEdit" name="archiveListLineEdit"/>
+     </item>
     </layout>
    </widget>
   </widget>
@@ -202,8 +205,8 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>71</width>
-     <height>93</height>
+     <width>78</width>
+     <height>103</height>
     </size>
    </property>
    <property name="maximumSize">
@@ -244,7 +247,7 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>71</width>
+     <width>78</width>
      <height>126</height>
     </size>
    </property>
@@ -429,8 +432,8 @@
    </property>
    <property name="minimumSize">
     <size>
-     <width>73</width>
-     <height>79</height>
+     <width>80</width>
+     <height>82</height>
     </size>
    </property>
    <property name="features">

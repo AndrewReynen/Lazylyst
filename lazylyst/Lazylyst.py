@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.4.5
+# Version 0.4.6
 # Author: Andrew.M.G.Reynen
 import sys
 import logging
@@ -64,6 +64,7 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         self.archiveList.graph=self.archiveEvent
         self.archiveList.graph.addNewEventSignal.connect(self.addPickFile)
         self.archiveList.doubleClicked.connect(self.archiveListDoubleClickEvent)
+        self.archiveListLineEdit.editingFinished.connect(self.updateArchiveSpanList)
         # Give ability to the map
         self.mapWidget.staDblClicked.connect(self.mapDoubleClickEvent)
         # Link the image axis to the time axis
@@ -953,6 +954,8 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         buff=(t2-t1)*0.05
         self.archiveSpan.pltItem.setXRange(t1-buff,t2+buff)
         self.archiveSpan.span.setRegion((t1,t2))
+        # Also reset the archive list search text
+        self.archiveListLineEdit.setText('')
         
     # Update the span text so user can set their bounds easier
     def updateSpanText(self):
@@ -968,6 +971,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         t1,t2=self.archiveSpan.span.getRegion()
         # See which files should be listed
         toListFiles=files[np.where((times>=t1)&(times<=t2))]
+        # If the archive line edit is not empty, use to constrain search
+        text=self.archiveListLineEdit.text()
+        if text.replace(' ','')!='':
+            toListFiles=[aFile for aFile in toListFiles if text in aFile]
         # Reload the pick file list
         self.archiveList.clear()
         self.archiveList.addItems(toListFiles)
