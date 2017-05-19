@@ -15,12 +15,12 @@ def find_packages():
 
 setup(
   name = 'lazylyst',
-  version = '0.4.3',
+  version = '0.4.6',
   description = 'GUI for timeseries review with a focus on seismology',
   author = 'Andrew Reynen',
   author_email = 'andrew.m.g.reynen@gmail.com',
   url = 'https://github.com/AndrewReynen/Lazylyst', 
-  download_url = 'https://github.com/AndrewReynen/Lazylyst/archive/0.4.3.tar.gz', 
+  download_url = 'https://github.com/AndrewReynen/Lazylyst/archive/0.4.6.tar.gz', 
   keywords = ['seismology', 'timeseries', 'picking', 'pyqtgraph'], 
   classifiers = [],
   packages=find_packages(),
