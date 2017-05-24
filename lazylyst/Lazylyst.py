@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.4.6
+# Version 0.4.7
 # Author: Andrew.M.G.Reynen
 import sys
 import logging
@@ -82,9 +82,19 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
     
     # Scroll the trace log to the bottom
     def scrollTextOut(self):
+        # Check first to see if the text should be trimmed
+        splitText=self.textOutBrowser.toPlainText().split('\n')
+        lineCount=len(splitText)
+        maxCount,lineBuff=250,50
+        if lineCount>maxCount+lineBuff:
+            # Disconnect from itself - no need to scroll twice, then update the trimmed text
+            self.textOutBrowser.textChanged.disconnect(self.scrollTextOut)
+            self.textOutBrowser.setPlainText('\n'.join(splitText[-maxCount:]))
+            self.textOutBrowser.textChanged.connect(self.scrollTextOut)
+        # Scroll to bottom of log
         scrollBar=self.textOutBrowser.verticalScrollBar()
         scrollBar.setValue(scrollBar.maximum())
-        
+
     # Toggle the image widget on or off
     def toggleImageWidget(self,init=False):
         dock=self.imageWidget
