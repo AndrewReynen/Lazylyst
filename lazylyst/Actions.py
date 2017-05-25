@@ -356,13 +356,13 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
         # Key binds are only used for active actions
         if self.actPassiveRadio.isChecked():
             return
-        # If the key-bind is already in use, do not allow update
+        # If the keybind is already in use, do not allow update
         for tag,action in iteritems(self.actDict):
-            # Only active actions have key-binds (do not need to check passive)
+            # Only active actions have keybinds (do not need to check passive)
             if action.passive or action.trigger in ['DoubleClick','Set Trigger']:
                 continue
             if action.trigger.toString()==keyBindText and action.tag!=self.action.tag:
-                print(action.tag+' already uses key-bind '+keyBindText)
+                print(action.tag+' already uses Keybind '+keyBindText)
                 return
         # Otherwise, update the trigger line edit (trigger value is updated upon close)
         self.actTriggerLineEdit.setText(keyBindText)
@@ -439,7 +439,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
                     sendFalse=True
             if sendFalse:
                 return False
-        # If a active action, the trigger should be able to convert to a key-bind
+        # If a active action, the trigger should be able to convert to a keybind
         else:
             if self.actTriggerLineEdit.text()=='Set Trigger':
                 return False

@@ -36,8 +36,10 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
     
     # Load in all of the lists from previous state
     def loadLists(self):
-        self.confActiveList.addItems([key for key in self.act.keys() if not self.act[key].passive])
         self.confPassiveList.addItems(self.main.actPassiveOrder)
+        # Give tips to the active actions
+        for key in [key for key in self.act.keys() if not self.act[key].passive]:
+            self.confActiveList.addItem(self.actionTipItem(key))
         # Give tips for the preferences
         for key in self.pref.keys():
             item=QtGui.QListWidgetItem()
@@ -84,8 +86,8 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         elif not self.curList.currentItem().isSelected():
             return
         # Not allowed to edit any timed active action which is currently in use
-        elif self.curList.currentItem().text() in self.main.qTimers.keys():
-            print('Not allowed to change any timed active action which is currently in use')
+        elif self.curList.currentItem().text() in self.main.qTimers.keys()+self.main.qThreads.keys():
+            print('Not allowed to change any timed or threaded active action which is currently in use')
             return
         # Updating an action (Backspace Key -> which is triggered by double click)
         elif self.curList.key==Qt.Key_Backspace:
@@ -96,6 +98,18 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         # Update the passive order every time (ie. do not care how configuration dialog is closed)...
         # ...a passive action is added or edited
         self.updatePassiveOrder()
+        
+    # Assign the tool tip to an action
+    def actionTipItem(self,key):
+        item=QtGui.QListWidgetItem()
+        item.setText(key)
+        # Currently only for active actions
+        if not self.act[key].passive:
+            try:
+                item.setToolTip('Keybind: '+self.act[key].trigger.toString())
+            except:
+                item.setToolTip('Keybind: '+self.act[key].trigger)
+        return item
             
     # Update the selected action from the specified list
     def updateAction(self):
@@ -105,20 +119,16 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
             return
         # Remove the old action
         self.act.pop(self.curList.currentItem().text())
-        # Check to see if the edit made it swap lists...
-        # ...going from active to passive
-        if (self.curList==self.confActiveList and action.passive):
+        # Update the action dictionary with new
+        self.act[action.tag]=action
+        # If the edit made the action swap lists
+        if (self.curList==self.confActiveList and action.passive) or (not action.passive):
             self.curList.takeItem(self.curList.currentRow())
-            self.confPassiveList.addItem(action.tag)
-        # ...going from passive to active
-        elif (self.curList==self.confPassiveList and not action.passive):
-            self.curList.takeItem(self.curList.currentRow())
-            self.confActiveList.addItem(action.tag)
-        # ...updating the original list
+            oList=self.confPassiveList if action.passive else self.confActiveList
+            oList.addItem(self.actionTipItem(action.tag))
+        # Otherwise update the original list
         else:
             self.curList.currentItem().setText(action.tag)
-        # Update the action dictionary
-        self.act[action.tag]=action
     
     # Open the action set-up dialog with a blank new action
     def createAction(self):
@@ -133,17 +143,16 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
     def insertLazyAction(self,action):
         if action==None:
             return
+        # Insert new action to the action dictionary
+        self.act[action.tag]=action
         # Create the item for the list widget
-        item=QtGui.QListWidgetItem()
-        item.setText(action.tag)
+        item=self.actionTipItem(action.tag)
         self.setItemSleepColor(item,action.sleeping)
         # Add the action to the appropriate list
         if action.passive:
             self.confPassiveList.addItem(item)
         else:
             self.confActiveList.addItem(item)
-        # Insert new action to the action dictionary
-        self.act[action.tag]=action
     
     # Remove the selected action from the specified list
     def deleteAction(self):
