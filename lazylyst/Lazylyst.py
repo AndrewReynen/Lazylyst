@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
-# Version 0.4.8
+# Version 0.4.9
 # Author: Andrew.M.G.Reynen
 import sys
 import logging
 import sip
 import os
+import time
 import numpy as np
 sip.setapi('QVariant', 2)
 sip.setapi('QString', 2)
@@ -1150,7 +1151,19 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         elif self.pref['cursorStyle'].val=='cross':
             self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
-    
+            
+    # Take a screenshot and save to local directory
+    def takeScreenshot(self):
+        # Make the output directory if it does not exist
+        aDir=self.hotVar['mainPath'].val+'/Screenshots'
+        if not os.path.exists(aDir):
+            os.makedirs(aDir)
+        # Use the area bounding the main window to take an image of (docks outside will not be seen)
+        pixMap=QtGui.QPixmap.grabWindow(self.winId())
+        outName=time.strftime('%Y%m%d.%H%M%S',time.gmtime())
+        print('Screenshot: '+outName)
+        pixMap.save(aDir+'/'+outName, 'jpg')
+        
     # Load setting from previous run, and initialize base variables
     def loadSettings(self):
         # Load the hot variables

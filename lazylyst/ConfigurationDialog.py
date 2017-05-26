@@ -36,21 +36,19 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
     
     # Load in all of the lists from previous state
     def loadLists(self):
-        self.confPassiveList.addItems(self.main.actPassiveOrder)
-        # Give tips to the active actions
+        # Add the passive actions in order
+        for key in self.main.actPassiveOrder:
+            self.confPassiveList.addItem(self.actionItem(key))
+        # Add the active actions (will be alphabetically ordered)
         for key in [key for key in self.act.keys() if not self.act[key].passive]:
-            self.confActiveList.addItem(self.actionTipItem(key))
-        # Give tips for the preferences
+            self.confActiveList.addItem(self.actionItem(key))
+        # Add the preferences
         for key in self.pref.keys():
             item=QtGui.QListWidgetItem()
             item.setText(key)
             self.setItemSleepColor(item,False)
             item.setToolTip(self.pref[key].tip)
             self.confPrefList.addItem(item)
-        # Set the colors of the action lists
-        for aList in [self.confActiveList,self.confPassiveList]:
-            for i in range(aList.count()):
-                self.setItemSleepColor(aList.item(i),self.act[aList.item(i).text()].sleeping)
             
     # Return which action list is in focus
     def getCurActionList(self):
@@ -100,16 +98,29 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         self.updatePassiveOrder()
         
     # Assign the tool tip to an action
-    def actionTipItem(self,key):
+    def actionItem(self,key):
         item=QtGui.QListWidgetItem()
         item.setText(key)
-        # Currently only for active actions
+        # Set the tip (which is the trigger value)
         if not self.act[key].passive:
             try:
                 item.setToolTip('Keybind: '+self.act[key].trigger.toString())
             except:
                 item.setToolTip('Keybind: '+self.act[key].trigger)
+        else:
+            self.setPassiveTip(item)
+        # Set the color of the item displaying the sleep state
+        self.setItemSleepColor(item,self.act[key].sleeping)
         return item
+    
+    # Set a passive items tip
+    def setPassiveTip(self,item):
+        triggers=self.act[item.text()].trigger
+        # Don't fill the entire screen if many triggers
+        if len(triggers)>3:
+            item.setToolTip('Activated by: '+','.join(triggers[:3]+['...']))
+        else:
+            item.setToolTip('Activated by: '+','.join(triggers))
             
     # Update the selected action from the specified list
     def updateAction(self):
@@ -121,14 +132,15 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         self.act.pop(self.curList.currentItem().text())
         # Update the action dictionary with new
         self.act[action.tag]=action
-        # If the edit made the action swap lists
+        # If the action change had anything to do with an active action
         if (self.curList==self.confActiveList and action.passive) or (not action.passive):
             self.curList.takeItem(self.curList.currentRow())
             oList=self.confPassiveList if action.passive else self.confActiveList
-            oList.addItem(self.actionTipItem(action.tag))
-        # Otherwise update the original list
+            oList.addItem(self.actionItem(action.tag))
+        # Otherwise just update the existing passive item (to preserve the passive order)
         else:
             self.curList.currentItem().setText(action.tag)
+            self.setPassiveTip(self.curList.currentItem())
     
     # Open the action set-up dialog with a blank new action
     def createAction(self):
@@ -146,8 +158,7 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         # Insert new action to the action dictionary
         self.act[action.tag]=action
         # Create the item for the list widget
-        item=self.actionTipItem(action.tag)
-        self.setItemSleepColor(item,action.sleeping)
+        item=self.actionItem(action.tag)
         # Add the action to the appropriate list
         if action.passive:
             self.confPassiveList.addItem(item)

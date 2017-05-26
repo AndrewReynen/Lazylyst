@@ -191,7 +191,14 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="archiveListLineEdit"/>
+      <widget class="QLineEdit" name="archiveListLineEdit">
+       <property name="cursor">
+        <cursorShape>IBeamCursor</cursorShape>
+       </property>
+       <property name="placeholderText">
+        <string>Search</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </widget>

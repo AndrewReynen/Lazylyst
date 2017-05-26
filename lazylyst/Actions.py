@@ -30,6 +30,9 @@ def defaultActions():
 
     'ReloadPlugins':Action(tag='ReloadPlugins',name='reloadPlugins',
                            path='$main',trigger=QtGui.QKeySequence('F5'),locked=True),
+
+    'Screenshot':Action(tag='Screenshot',name='takeScreenshot',
+                           path='$main',trigger=QtGui.QKeySequence('F8'),locked=True),
                       
     'PageNext':Action(tag='PageNext',name='tabCurPage',
                       path='$main',optionals={'nextPage':True},
