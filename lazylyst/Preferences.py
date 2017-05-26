@@ -26,7 +26,7 @@ def defaultPreferences(main):
                         tip='How the archive list widget is sorted, also sorts hot variable pickFiles and pickTimes'),
     'cursorStyle':Pref(tag='cursorStyle',val='arrow',dataType=str,
                         dialog='ComboBoxDialog',func=main.updateCursor,condition={'isOneOf':['arrow','cross']},
-                        tip='Change the cursor icon'),
+                        tip='Cursor icon to use while hovering over plots'),
     'remExcessPicksStyle':Pref(tag='remExcessPicksStyle',val='oldest',dataType=str,
                         dialog='ComboBoxDialog',condition={'isOneOf':['oldest','closest','furthest']},
                         tip='Which excess pick(s) will be deleted when manually adding picks'),

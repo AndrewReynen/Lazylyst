@@ -941,9 +941,10 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
             self.staWidgets[-1].doubleClickSignal.connect(self.traceDoubleClickEvent)
             # Color the axes properly
             self.staWidgets[-1].getPlotItem().getAxis('left').setPen(axisPen)
-        # If Lazylyst is initiating (first load), no need to update the page
+        # If Lazylyst is initiating (first load), no need to update the page or cursor
         if not init:
             self.updatePage()
+            self.updateCursor()
         
     # Set the archive availability
     def updateArchive(self):
@@ -1145,12 +1146,15 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         else:
             self.archiveSpan.span.setRegion((curBounds[0],newBound))
     
-    # Update the cursor to be used within Lazylyst
+    # Update the cursor to be used on any graphics view widget (plot)
     def updateCursor(self,init=False):
         if self.pref['cursorStyle'].val=='arrow':
-            self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            cursor=QtGui.QCursor(QtCore.Qt.ArrowCursor)
         elif self.pref['cursorStyle'].val=='cross':
-            self.setCursor(QtGui.QCursor(QtCore.Qt.CrossCursor))
+            cursor=QtGui.QCursor(QtCore.Qt.CrossCursor)
+        for item in self.staWidgets+[self.mapWidget,self.imageWidget,
+                                     self.archiveEvent,self.archiveSpan]:
+            item.setCursor(cursor)
             
     # Take a screenshot and save to local directory
     def takeScreenshot(self):
