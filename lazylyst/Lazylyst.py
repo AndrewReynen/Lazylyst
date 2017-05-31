@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.4.9
+# Version 0.5.0
 # Author: Andrew.M.G.Reynen
 import sys
 import logging
@@ -9,8 +9,8 @@ import time
 import numpy as np
 sip.setapi('QVariant', 2)
 sip.setapi('QString', 2)
-from PyQt4 import QtGui,QtCore
-from PyQt4.QtCore import QSettings
+from PyQt5 import QtWidgets,QtGui,QtCore
+from PyQt5.QtCore import QSettings
 from MainWindow import Ui_MainWindow
 from CustomWidgets import TraceWidget, keyPressToString
 from CustomFunctions import getTimeFromFileName
@@ -26,9 +26,9 @@ from future.utils import iteritems
 from pyqtgraph import mkPen, mkBrush
 
 # Main window class
-class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
+class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
     def __init__(self):
-        QtGui.QMainWindow.__init__(self)
+        QtWidgets.QMainWindow.__init__(self)
         Ui_MainWindow.__init__(self)
         self.setupUi(self)
         self.tweakUi()
@@ -198,12 +198,9 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
                 self.qThreads[action.tag]=thread
                 self.updateSchemingList()
                 # Connect to the threads signals for when to send inputs, and collect returns
-                self.connect(thread, QtCore.SIGNAL('setNextInputs()'),
-                             lambda: self.setThreadInputs(thread))
-                self.connect(thread, QtCore.SIGNAL('sendReturns()'),
-                             lambda: self.updateReturns(thread.actQueue[thread.curIdx],thread.returns,thread.tag))
-                self.connect(thread, QtCore.SIGNAL('finished()'),
-                             lambda: self.updateThreadDict(thread.tag))
+                thread.setNextInputs.connect(lambda: self.setThreadInputs(thread))
+                thread.sendReturns.connect(lambda: self.updateReturns(thread.actQueue[thread.curIdx],thread.returns,thread.tag))
+                thread.finished.connect(lambda: self.updateThreadDict(thread.tag))
                 thread.start()
         else:
             for oAct in actQueue:
@@ -1163,10 +1160,12 @@ class LazylystMain(QtGui.QMainWindow, Ui_MainWindow):
         if not os.path.exists(aDir):
             os.makedirs(aDir)
         # Use the area bounding the main window to take an image of (docks outside will not be seen)
-        pixMap=QtGui.QPixmap.grabWindow(self.winId())
-        outName=time.strftime('%Y%m%d.%H%M%S',time.gmtime())
-        print('Screenshot: '+outName)
-        pixMap.save(aDir+'/'+outName, 'jpg')
+        screen=QtWidgets.QApplication.primaryScreen()
+        pixMap=screen.grabWindow(0)
+        if pixMap is not None:
+            outName=time.strftime('%Y%m%d.%H%M%S.png',time.gmtime())
+            print('Screenshot: '+outName)
+            pixMap.save(aDir+'/'+outName, 'png')
         
     # Load setting from previous run, and initialize base variables
     def loadSettings(self):
@@ -1259,7 +1258,7 @@ class QtHandler(logging.Handler):
     def emit(self, record):
         record = self.format(record)
         if record: XStream.stdout().write('%s\n'%record)
-    
+
 class XStream(QtCore.QObject):
     _stdout = None
     _stderr = None
@@ -1286,8 +1285,16 @@ class XStream(QtCore.QObject):
             sys.stderr = XStream._stderr
         return XStream._stderr
 
+def lazyExcepthook(aType, value, tback):
+    # log the exception here
+    ## FILL ##
+    # then call the default handler
+    sys.__excepthook__(aType, value, tback)
+
 # Start up the logging and UI
 if __name__ == '__main__':
+    # Allow errors to propogate without crashing
+    sys.excepthook = lazyExcepthook
     # For sending stdout to the trace log
     logger = logging.getLogger(__name__)
     handler = QtHandler()
@@ -1295,7 +1302,7 @@ if __name__ == '__main__':
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
     # Start up the UI
-    app = QtGui.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv)
     window = LazylystMain()
     window.show()
     sys.exit(app.exec_())

@@ -1,9 +1,8 @@
 # Author: Andrew.M.G.Reynen
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtCore import Qt
+from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5.QtCore import Qt
 import pyqtgraph as pg
 import numpy as np
-#from pyqtgraph.dockarea import DockArea, Dock
 from CustomFunctions import getTimeFromFileName
 from obspy import UTCDateTime
 from decimal import Decimal
@@ -218,9 +217,9 @@ class ArchiveEventWidget(pg.PlotWidget):
         if item!=None:
             item.setPen(pg.mkPen(col,width=width))
             item.setZValue(dep)
-        
+
 # List widget which holds all current pick files
-class ArchiveListWidget(QtGui.QListWidget):       
+class ArchiveListWidget(QtWidgets.QListWidget):       
     def __init__(self, parent=None):
         super(ArchiveListWidget, self).__init__(parent)
         
@@ -340,6 +339,7 @@ class TraceCurve(pg.PlotCurveItem):
         if pen.widthF()==0:
             self.setVisible(False)
 
+QtWidgets
 # Widget which will hold the trace data, and respond to picking keybinds     
 class TraceWidget(pg.PlotWidget):
     doubleClickSignal=QtCore.pyqtSignal()  
@@ -368,7 +368,7 @@ class TraceWidget(pg.PlotWidget):
         self.scene().sigMouseMoved.connect(self.onHover)
         self.hoverPos=hoverPos
         # Allow this widget to be fairly small
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.MinimumExpanding)
+        sizePolicy = QtGui.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding)
         self.setSizePolicy(sizePolicy)
         self.setMinimumSize(QtCore.QSize(0, 15))
         
@@ -430,8 +430,8 @@ class TraceWidget(pg.PlotWidget):
     def getRangeY(self):
         return self.getPlotItem().vb.viewRange()[1]
     
-# Widget which return key presses, however double click replace backspace
-class MixListWidget(QtGui.QListWidget):       
+# Widget which return key presses, however double click replaces backspace
+class MixListWidget(QtWidgets.QListWidget):       
     # Return signal if key was pressed while in focus
     keyPressedSignal=QtCore.pyqtSignal()  
     leaveSignal=QtCore.pyqtSignal()
@@ -446,6 +446,12 @@ class MixListWidget(QtGui.QListWidget):
             return
         self.keyPressedSignal.emit()
         
+    # Deselect all items if in a blank space
+    def mousePressEvent(self, ev):
+        if self.itemAt(ev.pos()) is None:
+            self.clearSelection()
+        QtWidgets.QListWidget.mousePressEvent(self, ev)
+        
     # Swapping a double click with the backspace button...
     # ...wanted to transmit double click as a key
     def mouseDoubleClickEvent(self,ev):
@@ -453,7 +459,7 @@ class MixListWidget(QtGui.QListWidget):
         if ev.button()!=1:
             return
         self.key=Qt.Key_Backspace
-        self.keyPressedSignal.emit()    
+        self.keyPressedSignal.emit()
 
     # Ensure that key presses are sent to the widget which the mouse is hovering over
     def enterEvent(self,ev):
@@ -463,8 +469,7 @@ class MixListWidget(QtGui.QListWidget):
     # If ever the list if left by the mouse, emit (used to trigger ordering of passive functions)
     def leaveEvent(self,ev):
         # Deselect all items upon leaving the widget
-        for i in range(self.count()):
-            self.setItemSelected(self.item(i), False)
+        self.clearSelection()
         self.leaveSignal.emit()
         
     # Return the lists entries in the order which it appears
@@ -474,7 +479,7 @@ class MixListWidget(QtGui.QListWidget):
         return list(txt[np.argsort(args)])
         
 # Generic widget for QListWidget with remove only keyPresses
-class KeyListWidget(QtGui.QListWidget):       
+class KeyListWidget(QtWidgets.QListWidget):       
     # Return signal if key was pressed while in focus
     keyPressedSignal = QtCore.pyqtSignal()  
     
@@ -514,7 +519,7 @@ def keyPressToString(ev):
     return keyname
 
 # Line edit which returns key-bind strings
-class KeyBindLineEdit(QtGui.QLineEdit):
+class KeyBindLineEdit(QtWidgets.QLineEdit):
     keyPressed=QtCore.pyqtSignal(str)
     
     def __init__(self, parent=None):
@@ -529,7 +534,7 @@ class KeyBindLineEdit(QtGui.QLineEdit):
         self.keyPressed.emit(keyname)
 
 # Line edit which returns signal upon being double cliced     
-class DblClickLineEdit(QtGui.QLineEdit):
+class DblClickLineEdit(QtWidgets.QLineEdit):
     doubleClicked=QtCore.pyqtSignal()  
     
     def __init__(self, parent=None):
@@ -539,7 +544,7 @@ class DblClickLineEdit(QtGui.QLineEdit):
         self.doubleClicked.emit()
         
 # Line edit which returns a signal upon being hovered out of
-class HoverLineEdit(QtGui.QLineEdit):
+class HoverLineEdit(QtWidgets.QLineEdit):
     hoverOut = QtCore.pyqtSignal()
     
     def __init__(self, parent=None):
@@ -557,7 +562,7 @@ class HoverLineEdit(QtGui.QLineEdit):
         self.changeState=True
         
 # Generic widget for QListWidget with remove only keyPresses
-class DblClickLabelWidget(QtGui.QLabel):       
+class DblClickLabelWidget(QtWidgets.QLabel):       
     # Return signal if label was double clicked
     doubleClicked=QtCore.pyqtSignal()  
     

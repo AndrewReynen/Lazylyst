@@ -1,15 +1,15 @@
 # Author: Andrew.M.G.Reynen
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtCore import Qt
+from PyQt5 import QtWidgets, QtCore, QtGui
+from PyQt5.QtCore import Qt
 from Configuration import Ui_ConfDialog
 from Actions import Action, ActionSetupDialog
 from copy import deepcopy
 
 # Configuration dialog
-class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
+class ConfDialog(QtWidgets.QDialog, Ui_ConfDialog):
     def __init__(self,parent=None,main=None,actions=None,
                  pref=None,hotVar=None):
-        QtGui.QDialog.__init__(self,parent)
+        QtWidgets.QDialog.__init__(self,parent)
         self.setupUi(self)
         self.main=main
         self.pref=pref
@@ -29,8 +29,8 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         # Right click menus for the action lists
         self.confActiveList.setContextMenuPolicy(Qt.CustomContextMenu)
         self.confPassiveList.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.confActiveList.connect(self.confActiveList,QtCore.SIGNAL("customContextMenuRequested(QPoint)" ),self.createActionMenu)
-        self.confPassiveList.connect(self.confPassiveList,QtCore.SIGNAL("customContextMenuRequested(QPoint)" ),self.createActionMenu)
+        self.confActiveList.customContextMenuRequested.connect(self.createActionMenu)
+        self.confPassiveList.customContextMenuRequested.connect(self.createActionMenu)
         # If the ordering of the passive list ever changes, update actPassiveOrder
         self.confPassiveList.leaveSignal.connect(self.updatePassiveOrder)
     
@@ -44,7 +44,7 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
             self.confActiveList.addItem(self.actionItem(key))
         # Add the preferences
         for key in self.pref.keys():
-            item=QtGui.QListWidgetItem()
+            item=QtWidgets.QListWidgetItem()
             item.setText(key)
             self.setItemSleepColor(item,False)
             item.setToolTip(self.pref[key].tip)
@@ -84,7 +84,7 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         elif not self.curList.currentItem().isSelected():
             return
         # Not allowed to edit any timed active action which is currently in use
-        elif self.curList.currentItem().text() in self.main.qTimers.keys()+self.main.qThreads.keys():
+        elif self.curList.currentItem().text() in list(self.main.qTimers.keys())+list(self.main.qThreads.keys()):
             print('Not allowed to change any timed or threaded active action which is currently in use')
             return
         # Updating an action (Backspace Key -> which is triggered by double click)
@@ -99,7 +99,7 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         
     # Assign the tool tip to an action
     def actionItem(self,key):
-        item=QtGui.QListWidgetItem()
+        item=QtWidgets.QListWidgetItem()
         item.setText(key)
         # Set the tip (which is the trigger value)
         if not self.act[key].passive:
@@ -184,20 +184,21 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
         self.menuAction=self.act[str(self.curList.currentItem().text())]
         # Can not edit locked actions, skip if locked        
         if self.menuAction.locked:
+            print('Cannot sleep or copy locked actions')
             return
         # Create the menu, and fill with options...
-        self.actionMenu= QtGui.QMenu()
+        self.actionMenu= QtWidgets.QMenu()
         # ...sleep or awake
         if self.menuAction.sleeping:
             menuItem=self.actionMenu.addAction("Awake")
         else:
             menuItem=self.actionMenu.addAction("Sleep")
-        self.connect(menuItem, QtCore.SIGNAL("triggered()"), self.toggleSleep) 
+        menuItem.triggered.connect(self.toggleSleep)
         # ...copy the action
         menuItem=self.actionMenu.addAction("Copy")
-        self.connect(menuItem, QtCore.SIGNAL("triggered()"), self.copyAction) 
+        menuItem.triggered.connect(self.copyAction)
         # Move to cursor position and show
-        parentPosition = self.curList.mapToGlobal(QtCore.QPoint(0, 0))        
+        parentPosition = self.curList.mapToGlobal(QtCore.QPoint(0, 0))       
         self.actionMenu.move(parentPosition + pos)
         self.actionMenu.show() 
     
@@ -213,9 +214,9 @@ class ConfDialog(QtGui.QDialog, Ui_ConfDialog):
     # Set the color of a list widget item based on the actions sleeping state
     def setItemSleepColor(self,item,sleeping):
         if sleeping:
-            item.setTextColor(QtGui.QColor(150,150,150))
+            item.setForeground(QtGui.QColor(150,150,150))
         else:
-            item.setTextColor(QtGui.QColor(40,40,40))
+            item.setForeground(QtGui.QColor(40,40,40))
             
     # Copy an action, triggered from the action menu
     def copyAction(self):

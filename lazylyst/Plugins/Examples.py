@@ -1,4 +1,6 @@
-import numpy as np
+import numpy as np        
+from obspy import UTCDateTime
+import time
 
 # Go to the next pick type (in alphabetical order)
 def togglePickMode(*args,**kwargs):
@@ -135,8 +137,14 @@ def testCustDict(custDict):
     print(custDict)
     return custDict
 
-# Example to return a source (testing this as a passive action on OpenLazylyst)
-def goToSource(wantSourceTag='Test'):
-    return wantSourceTag
-        
+# Threading test   
+def waitAction(waitTime=1):
+    time.sleep(waitTime)
+    
+# Matplotlib external plot test
+def testMatplotlib():
+    import matplotlib.pyplot as plt
+    plt.ion()
+    plt.plot([1,2],[1,2])
+    plt.show()
     

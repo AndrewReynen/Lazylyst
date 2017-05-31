@@ -1,6 +1,6 @@
 # Author: Andrew.M.G.Reynen
-from PyQt4 import QtGui
-from PyQt4.QtCore import Qt
+from PyQt5 import QtWidgets
+from PyQt5.QtCore import Qt
 from ChangeSource import Ui_CsDialog
 import os
 
@@ -25,9 +25,9 @@ class SaveSource(object):
         return allPathsExist
 
 # Change source dialog
-class CsDialog(QtGui.QDialog, Ui_CsDialog):
+class CsDialog(QtWidgets.QDialog, Ui_CsDialog):
     def __init__(self,hotVar,savedSources,parent=None):
-        QtGui.QDialog.__init__(self,parent)
+        QtWidgets.QDialog.__init__(self,parent)
         self.setupUi(self)
         self.hotVar=hotVar
         self.saveSource=savedSources
@@ -98,7 +98,7 @@ class CsDialog(QtGui.QDialog, Ui_CsDialog):
             startFolder=line.text()
         else:
             startFolder=os.path.dirname(os.path.realpath(__file__))
-        name=str(QtGui.QFileDialog.getExistingDirectory(self, "Select Folder",startFolder))
+        name=str(QtWidgets.QFileDialog.getExistingDirectory(self, "Select Folder",startFolder))
         name=name.replace('\\','/')
         # If a folder was selected, update the line edit
         if name!='' and os.path.isdir(name):
@@ -111,7 +111,7 @@ class CsDialog(QtGui.QDialog, Ui_CsDialog):
             startFolder=os.path.dirname(os.path.realpath(self.csStationLineEdit.text()))
         else:
             startFolder=os.path.dirname(os.path.realpath(__file__))
-        name=str(QtGui.QFileDialog.getOpenFileName(self, "Select File",startFolder))
+        name=str(QtWidgets.QFileDialog.getOpenFileName(self, "Select File",startFolder)[0])
         # If a folder was selected, update the line edit
         if name!='' and os.path.isfile(name):
             self.csStationLineEdit.setText(name)

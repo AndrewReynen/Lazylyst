@@ -1,4 +1,4 @@
-from PyQt4 import QtGui
+from PyQt5 import QtWidgets
 import numpy as np
 import scipy.optimize as optimize
 from scipy import signal
@@ -424,7 +424,7 @@ def stackLocate(pickSet,staLoc,sourceTag,tDelta=0.5,tIdxSpread=1,
     if len(pickSet)<eveProbMinSum:
         print('Not enough picks to pass minimum event summed probability')
         return np.empty((0,5))
-    QtGui.qApp.processEvents()
+    QtWidgets.qApp.processEvents()
     # Create the ROI from the staLoc
     roi=defaultROI(staLoc,maxVertDist)
     maxHypDist=((roi[0]-roi[1])**2+(roi[2]-roi[3])**2)**0.5

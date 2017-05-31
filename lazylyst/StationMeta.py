@@ -24,6 +24,9 @@ def readInventory(staFile):
 
 # Project the stations from Lon/Lat to desired system   
 def projStaLoc(staLoc,projStyle):
+    # If no entries, nothing to change
+    if 0 in staLoc.shape:
+        return staLoc
     # Generate the projection object to do the conversions...
     # ...Universal Transverse Mercator
     if projStyle=='UTM':

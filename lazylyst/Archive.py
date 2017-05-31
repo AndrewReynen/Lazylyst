@@ -2,7 +2,7 @@
 import numpy as np
 from obspy import read, UTCDateTime
 from obspy import Stream as EmptyStream
-from PyQt4 import QtGui, QtCore
+from PyQt5 import QtWidgets, QtCore
 import os
 import sys
 if sys.version_info[0]==2:
@@ -159,9 +159,9 @@ def getArchiveAvail(archDir,acceptFileTypes=['seed','miniseed','mseed']):
     np.save(archDir+'/lazylystArchiveTimes',curTimes)
     # ...and return the file names and times
     return curMeta[:,0],curTimes
-    
+
 # Progress bar for the archive...
-class ArchLoadProgressBar(QtGui.QDialog):
+class ArchLoadProgressBar(QtWidgets.QDialog):
     def __init__(self,holder,toReadFiles, parent=None, total=100):
         super(ArchLoadProgressBar, self).__init__(parent)
         self.holder=holder
@@ -172,13 +172,13 @@ class ArchLoadProgressBar(QtGui.QDialog):
         self.nextFileIdx=0
         # Set up progress bar size and min/max values
         self.resize(300,40)
-        self.progressbar = QtGui.QProgressBar()
+        self.progressbar = QtWidgets.QProgressBar()
         self.progressbar.setMinimum(1)
         self.progressbar.setMaximum(total)
         # Add cancel button
-        self.button = QtGui.QPushButton('Cancel')
+        self.button = QtWidgets.QPushButton('Cancel')
         self.button.clicked.connect(self.cancelLoad)
-        main_layout = QtGui.QVBoxLayout()
+        main_layout = QtWidgets.QVBoxLayout()
         # Add widgets and text to the  layout
         main_layout.addWidget(self.progressbar)
         main_layout.addWidget(self.button)
@@ -200,7 +200,7 @@ class ArchLoadProgressBar(QtGui.QDialog):
     def closeEvent(self, event):
         if self.timer.isActive():
             self.cancelLoad()
-        
+
     # Get the earliest and latest time data exists in the wanted files
     def getFileLims(self):
         # Stop if no more files to load
@@ -219,7 +219,7 @@ class ArchLoadProgressBar(QtGui.QDialog):
             self.progressbar.setValue(perc)
         # Update the GUI every Xth loop
         if self.nextFileIdx%10==0:
-            QtGui.qApp.processEvents()
+            QtWidgets.qApp.processEvents()
         # Update the index, and add this min/max time
         self.nextFileIdx+=1
         self.fileMinMaxs.append([minTime,maxTime])

@@ -1,6 +1,6 @@
 # Author: Andrew.M.G.Reynen
-from PyQt4 import QtGui,QtCore
-from PyQt4.QtCore import Qt
+from PyQt5 import QtWidgets,QtGui,QtCore
+from PyQt5.QtCore import Qt
 from CustomFunctions import dict2Text, text2Dict
 from CustomPen import Ui_customPenDialog
 from BasePen import Ui_basePenDialog
@@ -130,7 +130,7 @@ class Pref(object):
             self.func(init=init)
             
 # Dialog with line edit, allows for some initial text, and forced data type and condition
-class LineEditDialog(QtGui.QDialog):
+class LineEditDialog(QtWidgets.QDialog):
     def __init__(self,parent,tag,initText,condition,dataType):
         super(LineEditDialog, self).__init__(parent)
         self.setWindowTitle(tag)
@@ -138,14 +138,14 @@ class LineEditDialog(QtGui.QDialog):
         self.dataType=dataType
         
         # Set up the layout and line edit
-        layout = QtGui.QVBoxLayout(self)
-        self.le = QtGui.QLineEdit(self)
+        layout = QtWidgets.QVBoxLayout(self)
+        self.le = QtWidgets.QLineEdit(self)
         self.le.setText(initText)
         layout.addWidget(self.le)
         
         # OK and Cancel buttons
-        self.buttons = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             Qt.Horizontal, self)
         layout.addWidget(self.buttons)
         self.buttons.accepted.connect(self.accept)
@@ -184,13 +184,13 @@ class LineEditDialog(QtGui.QDialog):
     def returnValue(parent=None,tag='',initText='',condition={},dataType=str):
         dialog = LineEditDialog(parent,tag,initText,condition,dataType)
         result = dialog.exec_()
-        return dialog.lineEditValue(), result==QtGui.QDialog.Accepted
+        return dialog.lineEditValue(), result==QtWidgets.QDialog.Accepted
 
 
 # Dialog window for editing the basic widget colors
-class BasePenDialog(QtGui.QDialog, Ui_basePenDialog):
+class BasePenDialog(QtWidgets.QDialog, Ui_basePenDialog):
     def __init__(self,tpDict,parent=None):
-        QtGui.QDialog.__init__(self,parent)
+        QtWidgets.QDialog.__init__(self,parent)
         self.setupUi(self)
         self.tpDict=tpDict
         self.keyOrder=sorted(self.tpDict.keys()) # Used to reference back before the last user change
@@ -214,13 +214,13 @@ class BasePenDialog(QtGui.QDialog, Ui_basePenDialog):
         # Enter data onto Table
         for m,key in enumerate(sorted(self.tpDict.keys())):
             # Generate the table items...
-            tagItem=QtGui.QTableWidgetItem(key)
+            tagItem=QtWidgets.QTableWidgetItem(key)
             tagItem.setFlags(Qt.ItemIsEnabled)
-            penItem=QtGui.QTableWidgetItem('')
+            penItem=QtWidgets.QTableWidgetItem('')
             penItem.setFlags(Qt.ItemIsEnabled)
             penItem.setBackground(QtGui.QColor(self.tpDict[key][0]))
-            widItem=QtGui.QTableWidgetItem(str(self.tpDict[key][1]))
-            depItem=QtGui.QTableWidgetItem(str(self.tpDict[key][2]))
+            widItem=QtWidgets.QTableWidgetItem(str(self.tpDict[key][1]))
+            depItem=QtWidgets.QTableWidgetItem(str(self.tpDict[key][2]))
             # Put items in wanted position
             self.tpTable.setItem(m,0,tagItem)
             self.tpTable.setItem(m,1,penItem)
@@ -235,7 +235,7 @@ class BasePenDialog(QtGui.QDialog, Ui_basePenDialog):
             return
         itemKey=self.keyOrder[item.row()]
         # Go get a new color
-        colorDialog=QtGui.QColorDialog()
+        colorDialog=QtWidgets.QColorDialog()
         val=colorDialog.getColor(QtGui.QColor(self.tpDict[itemKey][0]),self)
         # Set the new color (if the dialog was not canceled)
         if val.isValid():
@@ -272,9 +272,9 @@ class BasePenDialog(QtGui.QDialog, Ui_basePenDialog):
                 self.tpDict[itemKey][3]=True
 
 # Dialog window for editing the custom colors and widths
-class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
+class CustomPenDialog(QtWidgets.QDialog, Ui_customPenDialog):
     def __init__(self,tpDict,tag,parent=None):
-        QtGui.QDialog.__init__(self,parent)
+        QtWidgets.QDialog.__init__(self,parent)
         self.setupUi(self)
         self.setWindowTitle(tag)
         self.tpDict=tpDict
@@ -301,14 +301,14 @@ class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
         # Enter data onto Table
         for m,key in enumerate(sorted(self.tpDict.keys())):
             # Generate the table items...
-            tagItem=QtGui.QTableWidgetItem(key)
+            tagItem=QtWidgets.QTableWidgetItem(key)
             if key=='default':
                 tagItem.setFlags(Qt.ItemIsEnabled)
-            penItem=QtGui.QTableWidgetItem('')
+            penItem=QtWidgets.QTableWidgetItem('')
             penItem.setFlags(Qt.ItemIsEnabled)
             penItem.setBackground(QtGui.QColor(self.tpDict[key][0]))
-            widItem=QtGui.QTableWidgetItem(str(self.tpDict[key][1]))
-            depItem=QtGui.QTableWidgetItem(str(self.tpDict[key][2]))
+            widItem=QtWidgets.QTableWidgetItem(str(self.tpDict[key][1]))
+            depItem=QtWidgets.QTableWidgetItem(str(self.tpDict[key][2]))
             # Put items in wanted position
             self.tpTable.setItem(m,0,tagItem)
             self.tpTable.setItem(m,1,penItem)
@@ -321,7 +321,7 @@ class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
             return
         itemKey=self.keyOrder[item.row()]
         # Go get a new color
-        colorDialog=QtGui.QColorDialog()
+        colorDialog=QtWidgets.QColorDialog()
         val=colorDialog.getColor(QtGui.QColor(self.tpDict[itemKey][0]),self)
         # Set the new color (if the dialog was not canceled)
         if val.isValid():
@@ -383,12 +383,12 @@ class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
         # Add a row with the default parameters
         m=self.tpTable.rowCount()
         self.tpTable.setRowCount(m+1)
-        self.tpTable.setItem(m,0,QtGui.QTableWidgetItem('NewPen'))
-        penItem=QtGui.QTableWidgetItem('')
+        self.tpTable.setItem(m,0,QtWidgets.QTableWidgetItem('NewPen'))
+        penItem=QtWidgets.QTableWidgetItem('')
         penItem.setFlags(Qt.ItemIsEnabled)
         self.tpTable.setItem(m,1,penItem)
-        self.tpTable.setItem(m,2,QtGui.QTableWidgetItem('1.0'))
-        self.tpTable.setItem(m,3,QtGui.QTableWidgetItem('0.0'))
+        self.tpTable.setItem(m,2,QtWidgets.QTableWidgetItem('1.0'))
+        self.tpTable.setItem(m,3,QtWidgets.QTableWidgetItem('0.0'))
         # Add it also to the dictionary
         self.tpDict['NewPen']=[4294967295,1.0,0.0]
         # Update the keyOrder
@@ -413,23 +413,23 @@ class CustomPenDialog(QtGui.QDialog, Ui_customPenDialog):
         self.tpTable.itemChanged.connect(self.updateItemText)
         
 # Dialog to get a specific date time back
-class DateDialog(QtGui.QDialog):
+class DateDialog(QtWidgets.QDialog):
     def __init__(self, parent = None):
         super(DateDialog, self).__init__(parent)
         
         # Give a window title
         self.setWindowTitle('Date Time Select')
 
-        layout = QtGui.QVBoxLayout(self)
+        layout = QtWidgets.QVBoxLayout(self)
         # Widget for editing the date
-        self.datetime = QtGui.QDateTimeEdit(self)
+        self.datetime = QtWidgets.QDateTimeEdit(self)
         self.datetime.setCalendarPopup(True)
         self.datetime.setDisplayFormat('yyyy-MM-dd hh:mm:ss')
         layout.addWidget(self.datetime)
 
         # OK and Cancel buttons
-        buttons = QtGui.QDialogButtonBox(
-            QtGui.QDialogButtonBox.Ok | QtGui.QDialogButtonBox.Cancel,
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
             Qt.Horizontal, self)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
@@ -454,12 +454,12 @@ class DateDialog(QtGui.QDialog):
         dateTime=dialog.dateTime()
         dateTime.setTimeSpec(Qt.UTC)
         newBound = dateTime.toTime_t()
-        return newBound, result == QtGui.QDialog.Accepted
+        return newBound, result == QtWidgets.QDialog.Accepted
         
 # Dialog window for selecting one of a few options
-class ComboBoxDialog(QtGui.QDialog, Ui_comboBoxDialog):
+class ComboBoxDialog(QtWidgets.QDialog, Ui_comboBoxDialog):
     def __init__(self,parent,curVal,acceptVals,tag):
-        QtGui.QDialog.__init__(self,parent)
+        QtWidgets.QDialog.__init__(self,parent)
         self.setupUi(self)
         self.setWindowTitle(tag)
         # Fill in the combo dialog box
@@ -474,4 +474,4 @@ class ComboBoxDialog(QtGui.QDialog, Ui_comboBoxDialog):
     def returnValue(curVal,acceptVals,tag,parent=None):
         dialog = ComboBoxDialog(parent,curVal,acceptVals,tag)
         result = dialog.exec_()
-        return dialog.comboBox.currentText(), result==QtGui.QDialog.Accepted
+        return dialog.comboBox.currentText(), result==QtWidgets.QDialog.Accepted

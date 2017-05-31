@@ -1,6 +1,6 @@
 # Author: Andrew.M.G.Reynen
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtCore import Qt
+from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5.QtCore import Qt
 from ActionSetup import Ui_actionDialog
 from CustomFunctions import dict2Text, text2Dict
 from future.utils import iteritems
@@ -234,9 +234,9 @@ class Action(object):
                 setattr(self,attrib,getattr(defAct,attrib))
         
 # Action setup dialog
-class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
+class ActionSetupDialog(QtWidgets.QDialog, Ui_actionDialog):
     def __init__(self,main,action,actDict,hotVar,pref,parent=None):
-        QtGui.QDialog.__init__(self,parent)
+        QtWidgets.QDialog.__init__(self,parent)
         self.setupUi(self)
         self.trigReminder=False # Used for reminder to user if toggling between active/passive
         self.main=main # The main window
@@ -337,7 +337,7 @@ class ActionSetupDialog(QtGui.QDialog, Ui_actionDialog):
                     tipObject=self.pref[tipObject]
                 else:
                     tipObject=self.hotVar[tipObject]
-            item=QtGui.QListWidgetItem()
+            item=QtWidgets.QListWidgetItem()
             item.setText(tipObject.tag)
             item.setToolTip(tipObject.tip)
             listWidget.addItem(item)
