@@ -3,7 +3,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt
 from Configuration import Ui_ConfDialog
 from Actions import Action, ActionSetupDialog
-from copy import deepcopy
+from future.utils import iteritems
 
 # Configuration dialog
 class ConfDialog(QtWidgets.QDialog, Ui_ConfDialog):
@@ -181,7 +181,10 @@ class ConfDialog(QtWidgets.QDialog, Ui_ConfDialog):
     def createActionMenu(self,pos):
         # Get the key of the clicked on action
         self.curList=self.getCurActionList()
-        self.menuAction=self.act[str(self.curList.currentItem().text())]
+        item=self.curList.currentItem()
+        if not item.isSelected():
+            return
+        self.menuAction=self.act[str(item.text())]
         # Can not edit locked actions, skip if locked        
         if self.menuAction.locked:
             print('Cannot sleep or copy locked actions')
@@ -220,17 +223,18 @@ class ConfDialog(QtWidgets.QDialog, Ui_ConfDialog):
             
     # Copy an action, triggered from the action menu
     def copyAction(self):
-        seenKeys=self.act.keys()
+        # Make a copy of the action
+        newAction=Action()
+        for key,val in iteritems(self.menuAction.__dict__):
+            if key!='func':
+                setattr(newAction,key,val)
+        newAction.linkToFunction(self.main)
         # Set up the new actions tag
+        seenKeys=self.act.keys()
         i=0
         while self.menuAction.tag+'('+str(i)+')' in seenKeys:
             i+=1
         # Assign the unique tag, and give a meaningless trigger (if an active action)
-        try:
-            newAction=deepcopy(self.menuAction)
-        except:
-            print('Failed to copy action '+str(self.menuAction.tag))
-            return
         newAction.tag=self.menuAction.tag+'('+str(i)+')'
         if not newAction.passive:
             print('Update '+newAction.tag+' trigger value, will be deleted upon configuration closure otherwise')

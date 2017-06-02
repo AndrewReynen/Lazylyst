@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from obspy import UTCDateTime
 
 # Function to change picking mode to the wanted mode...
@@ -27,16 +28,19 @@ def setTracePenAssign(curMode,curAssign):
     else:
         return {}
         
-# Delete the hovered stations, with current pick type
-def delPick(pickSet,pickMode,curSta):
+# Delete a given pick type, over a specific station (all stations if not specified)
+def delPick(pickSet,pickMode,whichSta=None):
     if len(pickSet)==0:
-        return np.empty((0,3))
-    pickSet=pickSet[np.where((pickSet[:,0]!=curSta)|(pickSet[:,1]!=pickMode))]
+        return '$pass'
+    if whichSta is None:
+        pickSet=pickSet[np.where((pickSet[:,1]!=pickMode))]
+    else:
+        pickSet=pickSet[np.where((pickSet[:,0]!=whichSta)|(pickSet[:,1]!=pickMode))]
     return pickSet
     
 # Remove all picks from the current pick set
 def delPickSet():
-    return np.empty((0,3))
+    return np.empty((0,3),dtype='a32')
         
 # Set the current pick file
 def setCurPickFile(curPickFile,pickFiles,nextFile=False,prevFile=False):
@@ -94,4 +98,43 @@ def writeMSEED(stream,timeRange,mainPath,curPickFile):
     outName=curPickFile.replace('.'+curPickFile.split('.')[-1],'.mseed')
     stream.trim(UTCDateTime(timeRange[0]),UTCDateTime(timeRange[1]))
     stream.write(mainPath+'/'+outName,format='MSEED')
+    
+# Add picks from nearby events with an alternate phase name (to color them differently)
+def addNearbyPicks(pickDir,pickFiles,pickTimes,preTime,postTime
+                   ,curPickFile,pickSet,givePickType='O'):
+    # Get a list of all files whos data would overlap, given pre/post times
+    curFileTime=pickTimes[list(pickFiles).index(curPickFile)]
+    nearFiles=pickFiles[np.where((pickTimes+preTime<=curFileTime+postTime)&
+                                 (pickTimes+postTime>=curFileTime+preTime))]
+    # Add all of these files picks with type "givePickType"
+    for aFile in nearFiles:
+        path=pickDir+'/'+aFile
+        # If the file is not empty and is not the current file
+        if os.path.getsize(path)!=0 and aFile!=curPickFile:
+            # Load the nearby picks
+            addPicks=np.genfromtxt(path,delimiter=',',dtype='a32')
+            if len(addPicks.shape)==1:
+                addPicks=np.array([addPicks])
+            # Swap the pick types and add to the current pick set
+            addPicks[:,1]=givePickType
+            pickSet=np.vstack((pickSet,addPicks))
+    # If no picks present, nothing to change
+    if 0 in pickSet.shape:
+        return '$pass'
+    # Remove any of the new picks which are outside the pre/post time
+    if givePickType in pickSet[:,1]:
+        pickSet=pickSet[np.where((pickSet[:,1]!=givePickType)|
+                                 ((pickSet[:,2].astype(float)<=curFileTime+postTime)&
+                                 (pickSet[:,2].astype(float)>=curFileTime+preTime)))]
+        return pickSet
+    # If no added picks, nothing to change
+    else:
+        return '$pass'
+            
+    
+    
+    
+    
+    
+    
     

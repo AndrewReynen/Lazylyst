@@ -558,6 +558,3 @@ class QueueThread(QtCore.QThread):
             while self.returns is not None:
                 self.msleep(50)
         self.exit()
-        
-        
-

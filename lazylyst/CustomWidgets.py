@@ -468,8 +468,6 @@ class MixListWidget(QtWidgets.QListWidget):
 
     # If ever the list if left by the mouse, emit (used to trigger ordering of passive functions)
     def leaveEvent(self,ev):
-        # Deselect all items upon leaving the widget
-        self.clearSelection()
         self.leaveSignal.emit()
         
     # Return the lists entries in the order which it appears

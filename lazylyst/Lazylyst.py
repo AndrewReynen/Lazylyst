@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.5.0
+# Version 0.5.1
 # Author: Andrew.M.G.Reynen
 import sys
 import logging
