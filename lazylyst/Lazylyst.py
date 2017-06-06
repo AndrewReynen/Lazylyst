@@ -1,16 +1,22 @@
 # -*- coding: utf-8 -*-
-# Version 0.5.1
+# Version 0.5.2
 # Author: Andrew.M.G.Reynen
+from __future__ import print_function, division
 import sys
 import logging
 import sip
 import os
 import time
-import numpy as np
+from future.utils import iteritems
+from fnmatch import fnmatch
 sip.setapi('QVariant', 2)
 sip.setapi('QString', 2)
+
+import numpy as np
 from PyQt5 import QtWidgets,QtGui,QtCore
 from PyQt5.QtCore import QSettings
+from pyqtgraph import mkPen, mkBrush
+
 from MainWindow import Ui_MainWindow
 from CustomWidgets import TraceWidget, keyPressToString
 from CustomFunctions import getTimeFromFileName
@@ -21,9 +27,6 @@ from Archive import getArchiveAvail, extractDataFromArchive
 from StationMeta import staXml2Loc, readInventory, projStaLoc
 from ConfigurationDialog import ConfDialog
 from SaveSource import CsDialog
-from fnmatch import fnmatch
-from future.utils import iteritems
-from pyqtgraph import mkPen, mkBrush
 
 # Main window class
 class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
@@ -488,7 +491,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
     
     # Function to handle updates of the hot variable curPage
     def updateCurPage(self):
-        maxPageNum=(len(self.hotVar['staSort'].val)-1)/self.pref['staPerPage'].val
+        maxPageNum=(len(self.hotVar['staSort'].val)-1)//self.pref['staPerPage'].val
         if maxPageNum==-1:
             return
         # Clip to the max/minimum if outside the accepted range
@@ -511,7 +514,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         
     # Built in function to tab to the next or previous page number
     def tabCurPage(self,nextPage=False,prevPage=False,pageNum=0):
-        maxPageNum=(len(self.hotVar['staSort'].val)-1)/self.pref['staPerPage'].val
+        maxPageNum=(len(self.hotVar['staSort'].val)-1)//self.pref['staPerPage'].val
         curNum=self.hotVar['curPage'].val
         # If the next or previous page, ensure still in bounds
         if nextPage and self.hotVar['curPage'].val+1<=maxPageNum:
@@ -1290,9 +1293,9 @@ def lazyExcepthook(aType, value, tback):
     ## FILL ##
     # then call the default handler
     sys.__excepthook__(aType, value, tback)
-
+    
 # Start up the logging and UI
-if __name__ == '__main__':
+def runLazylyst():
     # Allow errors to propogate without crashing
     sys.excepthook = lazyExcepthook
     # For sending stdout to the trace log
@@ -1306,3 +1309,6 @@ if __name__ == '__main__':
     window = LazylystMain()
     window.show()
     sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    runLazylyst()

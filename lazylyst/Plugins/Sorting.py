@@ -1,9 +1,5 @@
 import numpy as np
-import sys
-if sys.version_info[0]==2:
-    from Locate import getVelDelay,getPickData,simpleLocatorFunc
-else:
-    from Plugins.Locate import getVelDelay,getPickData,simpleLocatorFunc
+from Plugins.Locate import getVelDelay,getPickData,simpleLocatorFunc
 
 # Return the stations in alphabetical order
 def staSortAlph(staSort):

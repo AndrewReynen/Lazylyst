@@ -1,12 +1,15 @@
 # Author: Andrew.M.G.Reynen
-from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtCore import Qt
-from ActionSetup import Ui_actionDialog
-from CustomFunctions import dict2Text, text2Dict
-from future.utils import iteritems
+from __future__ import print_function
 import importlib
 import sys
 import os
+from future.utils import iteritems
+
+from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5.QtCore import Qt
+
+from ActionSetup import Ui_actionDialog
+from CustomFunctions import dict2Text, text2Dict
 
 # Default Actions
 def defaultActions():
@@ -321,7 +324,7 @@ class ActionSetupDialog(QtWidgets.QDialog, Ui_actionDialog):
         self.addTipItems(self.actAvailReturnList,[hotVar for key,hotVar in iteritems(self.hotVar) if hotVar.returnable])
         # ...preferences are only allowed as inputs (no need to add colors here, just adds clutter)
         self.addTipItems(self.actAvailInputList,[pref for key,pref in iteritems(self.pref) if not 
-                                                 ('color' in key.lower() or key in ['customPen','pickPen','cursorStyle'])])
+                                                 (key in ['basePen','customPen','pickPen','cursorStyle'])])
         # Fill in the selected triggers (passive),inputs and returns
         if self.action.passive:
             self.actSelectTriggerList.addItems(self.action.trigger)

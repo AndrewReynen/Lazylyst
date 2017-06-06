@@ -1,12 +1,15 @@
 # Author: Andrew.M.G.Reynen
+from __future__ import print_function
+from copy import deepcopy
+from future.utils import iteritems
+
 from PyQt5 import QtWidgets,QtGui,QtCore
 from PyQt5.QtCore import Qt
+
 from CustomFunctions import dict2Text, text2Dict
 from CustomPen import Ui_customPenDialog
 from BasePen import Ui_basePenDialog
 from ComboDialog import Ui_comboBoxDialog
-from copy import deepcopy
-from future.utils import iteritems
 
 # Default Preferences
 def defaultPreferences(main):

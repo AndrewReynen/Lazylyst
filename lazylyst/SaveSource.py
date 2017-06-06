@@ -1,8 +1,11 @@
 # Author: Andrew.M.G.Reynen
+from __future__ import print_function
+import os
+
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
+
 from ChangeSource import Ui_CsDialog
-import os
 
 # Saved sources class, for reading in old (or adding new) archive/pick/station information
 class SaveSource(object):

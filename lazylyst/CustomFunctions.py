@@ -1,7 +1,8 @@
 # Author: Andrew.M.G.Reynen
+from future.utils import iteritems
+
 import numpy as np
 from obspy import UTCDateTime
-from future.utils import iteritems
 
 # Convert a string into easy to read text, assumes no lists
 def dict2Text(aDict):  

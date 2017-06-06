@@ -1,9 +1,12 @@
 # Author: Andrew.M.G.Reynen
+from __future__ import print_function
+from future.utils import iteritems
+
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt
+
 from Configuration import Ui_ConfDialog
 from Actions import Action, ActionSetupDialog
-from future.utils import iteritems
 
 # Configuration dialog
 class ConfDialog(QtWidgets.QDialog, Ui_ConfDialog):

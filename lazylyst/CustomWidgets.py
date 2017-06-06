@@ -1,11 +1,14 @@
 # Author: Andrew.M.G.Reynen
+from __future__ import print_function, division
+from decimal import Decimal
+
+import numpy as np
+from obspy import UTCDateTime
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import Qt
 import pyqtgraph as pg
-import numpy as np
+
 from CustomFunctions import getTimeFromFileName
-from obspy import UTCDateTime
-from decimal import Decimal
 
 # Custom axis labels for the archive widget
 class TimeAxisItemArchive(pg.AxisItem):

@@ -1,40 +1,43 @@
 # Author: Andrew.M.G.Reynen
-import numpy as np
-from obspy import read, UTCDateTime
-from obspy import Stream as EmptyStream
-from PyQt5 import QtWidgets, QtCore
+from __future__ import print_function, division
 import os
 import sys
 if sys.version_info[0]==2:
     from scandir import scandir
 else:
     from os import scandir
+    
+import numpy as np
+from obspy import read, UTCDateTime
+from obspy import Stream as EmptyStream
+from PyQt5 import QtWidgets, QtCore
 
 # If the stream was not able to be merged, check to see if multiple sampling rates on the same channel...
 # ... and remove the ones with the uncommon sampling rate
 def RemoveOddRateTraces(stream):
-    unqStaRates=[] # Array to hold rates, per station
-    rates,stas=[],[]
+    unqStaRates=[] # Array to hold rates, per channel
+    rates,chas=[],[]
     for tr in stream:
-        if tr.stats.station+'.'+str(tr.stats.delta) not in unqStaRates:
-            unqStaRates.append(tr.stats.station+'.'+str(tr.stats.delta))
+        anID=tr.stats.station+'.'+tr.stats.channel+'.'+str(tr.stats.delta)
+        if anID not in unqStaRates:
+            unqStaRates.append(anID)
             rates.append(tr.stats.delta)
-            stas.append(tr.stats.station)
+            chas.append(tr.stats.station+'.'+tr.stats.channel)
     # ...figure out which station has two rates 
     unqRate,countRate=np.unique(rates,return_counts=True)
     if len(unqRate)==1:
         print('merge will fail, not issue of multiple sampling rates on same station')
     else:
         # ... and remove the traces with less common rates
-        unqSta,countSta=np.unique(stas,return_counts=True)
-        rmStas=unqSta[np.where(countSta!=1)]
+        unqCha,countCha=np.unique(chas,return_counts=True)
+        rmChas=unqCha[np.where(countCha!=1)]
         rmRates=unqRate[np.where(unqRate!=(unqRate[np.argmax(countRate)]))]
         trimRateStream=EmptyStream()
         for tr in stream:
-            if tr.stats.station in rmStas and tr.stats.delta in rmRates:
+            if tr.stats.station+'.'+tr.stats.channel in rmChas and tr.stats.delta in rmRates:
                 continue
             trimRateStream+=tr
-        print('stations:',str(rmStas),'had some traces removed (duplicate rates same channel)')
+        print('station.channel:',str(rmChas),'had some traces removed (duplicate rates same channel)')
         stream=trimRateStream
     return stream
 

@@ -1,15 +1,18 @@
 # Author: Andrew.M.G.Reynen
-from obspy import Stream, read_inventory
-from obspy.core.inventory import Inventory
-from CustomFunctions import getTimeFromFileName
-from copy import deepcopy
-from future.utils import iteritems
+from __future__ import print_function
 import importlib
 import os
-import numpy as np
 import sys
+from copy import deepcopy
+from future.utils import iteritems
 if sys.version_info.major == 3:
     unicode = str
+    
+import numpy as np
+from obspy import Stream, read_inventory
+from obspy.core.inventory import Inventory
+
+from CustomFunctions import getTimeFromFileName
 
 # Default Hot Variables
 def initHotVar():
