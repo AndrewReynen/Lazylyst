@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.5.2
+# Version 0.5.3
 # Author: Andrew.M.G.Reynen
 from __future__ import print_function, division
 import sys
@@ -138,6 +138,8 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         keyname=keyPressToString(ev)
         if keyname==None:
             return
+        # Set the time the user pressed this button
+        self.setUserSeenAtTime()
         # Loop through all actions and see if one is activated...
         # ... use the original set (an action may be added part way through, so can mess with the loop)
         actions=[action for key,action in iteritems(self.act) if action.trigger!='DoubleClick']
@@ -185,9 +187,10 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
 
     # Run the specified action
     def runActiveAction(self,action):
-        # Set the current station, and current trace ranges to be sent to actions
+        # Set the current station, current trace ranges, and afk time to be sent to actions
         self.setCurTraceStaAndPos()
         self.setTraceRanges()
+        self.setAfkTime()
         # First check to see if there are any (passive) actions which relate
         actQueue=self.collectActQueue(action)  
         # If the trigerring action is threaded, send the queue to a thread 
@@ -329,6 +332,11 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.qTimers[action.tag].stop()
         self.qTimers.pop(action.tag)
         self.updateStrollingList()
+    
+    # Set the user seen at time to the current time...
+    # ...called when user presses a button
+    def setUserSeenAtTime(self):
+        self.userSeenAtTime=time.time()
     
     # Open the configuration window
     def openConfiguration(self):
@@ -560,6 +568,10 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
     def setTraceRanges(self):
         self.hotVar['timeRange'].val=self.timeWidget.getTimeRange()
         self.hotVar['yTraceRanges'].val=np.array([widget.getRangeY() for widget in self.staWidgets],dtype=float)
+    
+    # Set the time since the last user interaction
+    def setAfkTime(self):
+        self.hotVar['afkTime'].val=time.time()-self.userSeenAtTime
         
     # Add a pick to the double-clicked station (single-pick addition)
     def addClickPick(self):
@@ -1223,6 +1235,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.qTimers={}
         self.qThreads={}
         self.traceSplitSizes=None
+        self.setUserSeenAtTime()
         
     # Save all settings from current run
     def saveSettings(self):

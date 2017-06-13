@@ -96,6 +96,8 @@ def initHotVar():
                    tip='Currently plotted image on the image widget'),
     'customDict':HotVar(tag='customDict',val={},dataType=dict,
                         tip='Dictionary to hold arbitrary variables'),
+    'afkTime':HotVar(tag='afkTime',val=0,dataType=float,returnable=False,
+                        tip='Time in seconds since last user interaction'),
     }
     return hotVar
 

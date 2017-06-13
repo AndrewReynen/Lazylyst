@@ -128,6 +128,7 @@ def getOriginInfo(vdInfo,pickSet,staLoc,probSpread,tDelta,maxSampShift):
     dIdxs=dIdxs*np.ones((maxSampShift,len(pickSet)),dtype=int)
     pIdxs=np.ones((maxSampShift,len(pickSet)),dtype=int)
     probs=np.ones((maxSampShift,len(pickSet)),dtype=float)
+    ## Add in P and S weighting ##
     origTimes=np.ones((maxSampShift,len(pickSet)),dtype=float)
     stas=np.ones((maxSampShift,len(pickSet)),dtype='a5')
     # Digitize the pick times
@@ -151,8 +152,7 @@ def getOriginInfo(vdInfo,pickSet,staLoc,probSpread,tDelta,maxSampShift):
         origTimes[:,j]=origTime
         stas[:,j]=sta
     # Create the origin info, for the high probability
-    originInfo={}#'t':outInfo[:,0],'sta':np.array(stas,dtype=str),'dist':outInfo[:,1],'probE':outInfo[:,2],
-                #'pIdx':outInfo[:,3].astype(int),'dIdx':outInfo[:,4].astype(int),'loc':outInfo[:,5:8]}
+    originInfo={}
     # Assign probabilities for each of these values based on the probSpread
     for tIdxShift,tProb in zip(np.arange(len(probSpread))-len(probSpread)/2,probSpread):
         for key,entry in [['t',origTimes],['sta',stas],['dist',hypDists],
@@ -401,7 +401,7 @@ def defaultROI(staLoc,maxVertDist):
 # ...eveProbMinSum is the minimum summed event probability to declare as an event
 # ...maxVertDist is the maximum vertical distance (km) to be used for stacking
 # ...maxEveCount, if this number of events is reached - the association will stop
-# ...nullBuffer, how many extra indicies to null out trios on either side of diagonals/straight
+# ...nullBuffer, how many extra indicies to null out trios on either side of diagonal/straight
 def stackLocate(pickSet,staLoc,sourceTag,tDelta=0.5,tIdxSpread=1,
                 eveProbMinSum=3.0,maxVertDist=10,
                 maxEveCount=999999,nullBuffer=0):

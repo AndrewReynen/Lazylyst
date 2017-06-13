@@ -47,17 +47,24 @@ def extractDataFromArchive(t1,t2,fileNames,fileTimes,wantedStaChas=[['*','*']]):
     # Return nothing if there is no data
     if len(fileTimes)==0:
         return EmptyStream()
-    # Catch the case where this where the asked time range is completely outside the archive data availability
+    # Catch the case where the asked time range is completely outside the archive data availability
     if t1>fileTimes[-1,1] or t2<fileTimes[0,0]:
         return EmptyStream()
     # Figure out what set of files are wanted
     collectArgs=np.where((fileTimes[:,0]<=t2)&(fileTimes[:,1]>=t1))[0]
     stream=EmptyStream()
+    flagged=False
     # Read in all of the information
     for aFile in fileNames[collectArgs]:
+        # Flag to user if the archive structure has changed
+        if not os.path.exists(aFile):
+            flagged=True
+            continue
         aStream=read(aFile)
         for aSta,aCha in wantedStaChas:
             stream+=aStream.select(station=aSta,channel=aCha)
+    if flagged: 
+        print('Archive structure as changed, reload the current archive')
     # Merge traces which are adjacent
     try:
         stream.merge(method=1)
