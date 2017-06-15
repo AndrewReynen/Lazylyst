@@ -632,7 +632,7 @@ class MapWidget(pg.GraphicsLayoutWidget):
     def loadStaLoc(self,staLoc,colorAssign,
                    staSize,staDep,init):
         # Enable the autoscaling temporarily
-        self.map.vb.enableAutoRange()
+        self.map.vb.enableAutoRange(enable=True)
         # Hide the hovered station label
         self.hoverStaItem.hide()
         # Clear away the old station spots
@@ -662,7 +662,7 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.map.addItem(staScatter)
         self.staItem=staScatter
         # Disable autoscaling the for map items
-        self.map.vb.disableAutoRange() 
+        self.map.vb.enableAutoRange(enable=False)
     
     # See which station is being hovered over
     def onHover(self,pixPoint):
@@ -693,6 +693,8 @@ class MapWidget(pg.GraphicsLayoutWidget):
         # Add in all of the new points, size & color set in different function
         scatter=pg.ScatterPlotItem(size=1,symbol='o',pen=pg.mkPen(None),brush=pg.mkBrush(0,0,0,alpha))
         scatter.addPoints(x=eveMeta[:,1],y=eveMeta[:,2])
+        ## Why does this update if autoRange already off?? ##
+        # print(self.map.vb.state['autoRange'])
         self.map.addItem(scatter)
         # Update the scatter item reference
         if eveType=='cur':

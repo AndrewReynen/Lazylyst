@@ -117,7 +117,7 @@ def defaultActions():
                           passive=True,
                           trigger=['PickAdd','PickDelete','PickSetDelete','PickFileCurDelete',
                                    'PickFileNext','PickFilePrev','PickFileSetToClick','ChangeSource'],
-                          inputs=['pickSet','staLoc','mapCurEve','staSort','sourceTag'],
+                          inputs=['pickSet','staLoc','mapCurEve','staSort','sourceTag','staProjStyle'],
                           returns=['mapCurEve','traceBgPenAssign','mapStaPenAssign']),
 
     'StaSortAlph':Action(tag='StaSortAlph',name='staSortAlph',path='Plugins.Sorting',
@@ -132,12 +132,12 @@ def defaultActions():
 
     'StaSortDist':Action(tag='StaSortDist',name='staSortDist',path='Plugins.Sorting',
                          trigger=QtGui.QKeySequence('C'),
-                         inputs=['staSort','staLoc','mapCurEve'],
+                         inputs=['staSort','staLoc','mapCurEve','staProjStyle'],
                          returns=['staSort']),
 
     'StaSortResidual':Action(tag='StaSortResidual',name='staSortResidual',path='Plugins.Sorting',
                          trigger=QtGui.QKeySequence('V'),
-                         inputs=['staSort','staLoc','sourceTag','pickSet','mapCurEve'],
+                         inputs=['staSort','staLoc','sourceTag','pickSet','mapCurEve','staProjStyle'],
                          returns=['staSort']),
                                   
     'StaSortReverse':Action(tag='StaSortReverse',name='staSortReverse',path='Plugins.Sorting',

@@ -6,10 +6,8 @@ from obspy.io.xseed import Parser
 from obspy import UTCDateTime
 import numpy as np
 
-
 # This file contains a group of functions which can be used/edited to
 # station metadata into the station XML format
-# Not for direct use with Lazylyst
 
 # Example Conversion of a station csv file to a station xml file
 def staCsv2Xml(staCsvPath,staXmlPath,source='Lazylyst'):

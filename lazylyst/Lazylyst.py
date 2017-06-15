@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.5.3
+# Version 0.5.4
 # Author: Andrew.M.G.Reynen
 from __future__ import print_function, division
 import sys

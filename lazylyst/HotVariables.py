@@ -123,9 +123,8 @@ class HotVar(object):
         if self.dataType in [list,type(np.array([0.0]))]:
             if len(self.val)==0:
                 return initHotVar()[self.tag].val
-        # The station xml file can take a while to copy...
-        ## Figure out way to pass it without worrying about user edits?? ##
-        if self.tag=='staXml':
+        # The station xml file, and customDict can take a while to copy - user will be able to edit
+        if self.tag in ['staXml','customDict']:
             return self.val
         elif self.tag=='stream':
             return self.val.copy()

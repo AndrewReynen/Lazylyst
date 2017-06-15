@@ -1,5 +1,6 @@
 import numpy as np
 from Plugins.Locate import getVelDelay,getPickData,simpleLocatorFunc
+from Plugins.GlobalLocate import sph2xyz,vecsAngle
 
 # Return the stations in alphabetical order
 def staSortAlph(staSort):
@@ -25,36 +26,52 @@ def staSortPickTime(staSort,pickSet,pickMode):
             pos.append(maxT+offset+i+1)
     return staSort[np.argsort(pos)]
 
-# Return the station based on the residual (largest first)
-def staSortDist(staSort,staLoc,mapCurEve):
+# Return the station based on the distance from the current event
+def staSortDist(staSort,staLoc,mapCurEve,staProjStyle):
+    # If no event has been located, do not change anything
+    if len(mapCurEve)==0:
+        return '$pass'
     # Secondary sorting is alphabetical
     staSort=np.sort(staSort)
-    # If no event has been located, return alphabetical
-    if len(mapCurEve)==0:
-        return staSort
-    eveLoc=mapCurEve[0,1:4]
-    # Loop through each station, getting its distance from the current event   
+    # Replace Lons,Lats,Elev with X,Y,Z on sphere if no projection...
+    # ...also split array into the string and float components
+    staNames=list(staLoc[:,0])
+    if staProjStyle=='None':
+        staLoc=sph2xyz(staLoc[:,1:3].astype(float))
+        eveLoc=sph2xyz(mapCurEve[:,1:3].astype(float))[0]
+    else:
+        staLoc=staLoc[:,1:].astype(float)
+        eveLoc=mapCurEve[0,1:4]
+    # Loop through each station, getting its distance from the current event...  
     pos=[]
     for i,sta in enumerate(staSort):
-        if sta in staLoc[:,0]:
-            staXYZ=staLoc[np.where(staLoc[:,0]==sta)[0][0],1:].astype(float)      
-            dist=np.sum((staXYZ-eveLoc)**2)**0.5
+        if sta in staNames:
+            staXyz=staLoc[staNames.index(sta),:]   
+            # ...if projected, then calculate euclidean distance
+            if staProjStyle!='None':
+                dist=np.sum((staXyz-eveLoc)**2)**0.5
+            # ...otherwise calculate the angle between stations and the event (depth ignored)
+            else:
+                dist=vecsAngle(staXyz,eveLoc)
             pos.append(dist)
         else:
             pos.append(-1*(i+1))
+    # Reassign the "pos" of stations which did not have a station metadata present
     pos=np.array(pos,dtype=float)
     args=np.where(pos<0)
     pos[args]=pos[args]*-1+np.max(pos)
     return staSort[np.argsort(pos)]
    
-# Return the station based on the residual (largest first)
-def staSortResidual(staSort,staLoc,sourceTag,pickSet,mapCurEve):
+# Return the station based on the residual (largest first)...
+# ...currently works only with SimpleLocator
+def staSortResidual(staSort,staLoc,sourceTag,pickSet,mapCurEve,staProjStyle):
     # Secondary sorting is alphabetical
     staSort=np.sort(staSort)
     # Get the velocity and delay info
     vdInfo=getVelDelay(sourceTag)
     # If there was no vpInfo defined, or no event has been located, return alphabetical
-    if vdInfo=='$pass' or len(mapCurEve)==0:
+    # Also return if not using a projection (simpleLocator requires it)
+    if vdInfo=='$pass' or len(mapCurEve)==0 or staProjStyle=='None':
         return staSort
     data,stas=getPickData(pickSet,staLoc,vdInfo)
     # If there was none of the wanted pick types, return alphabetical
