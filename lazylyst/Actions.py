@@ -238,7 +238,7 @@ class Action(object):
         
 # Action setup dialog
 class ActionSetupDialog(QtWidgets.QDialog, Ui_actionDialog):
-    def __init__(self,main,action,actDict,hotVar,pref,parent=None):
+    def __init__(self,main,action,actDict,hotVar,pref,tempLock,parent=None):
         QtWidgets.QDialog.__init__(self,parent)
         self.setupUi(self)
         self.trigReminder=False # Used for reminder to user if toggling between active/passive
@@ -252,7 +252,7 @@ class ActionSetupDialog(QtWidgets.QDialog, Ui_actionDialog):
         # Load in the text to the related action
         self.fillDialog()
         # Disable the majority of this gui if the action is locked...
-        if self.action.locked:
+        if self.action.locked or tempLock:
             self.lockDialog()
         # ...also, if this is only click event (double click for adding one pick)
         if self.action.trigger=='DoubleClick':

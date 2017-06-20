@@ -171,7 +171,7 @@ class ArchiveEventWidget(pg.PlotWidget):
     def mouseDoubleClickEvent(self, ev):
         super(ArchiveEventWidget, self).mouseDoubleClickEvent(ev)
         aPos=self.pltItem.vb.mapSceneToView(ev.pos())
-        self.newEveStr=UTCDateTime(aPos.x()).strftime('%Y%m%d.%H%M%S.%f')
+        self.newEveTime=aPos.x()
         self.addNewEventSignal.emit()
     
     # Reset the event lines, given a new set of event times

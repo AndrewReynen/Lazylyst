@@ -79,23 +79,22 @@ class ConfDialog(QtWidgets.QDialog, Ui_ConfDialog):
         if self.curList.key not in [Qt.Key_Insert,Qt.Key_Backspace,Qt.Key_Delete]:
             return
         # Creating a new action (Insert Key)
-        elif self.curList.key==Qt.Key_Insert:
+        if self.curList.key==Qt.Key_Insert:
             self.createAction()
+            return
         # Skip if no action was selected
-        elif self.curList.currentItem() is None:
+        if self.curList.currentItem() is None:
             return
-        elif not self.curList.currentItem().isSelected():
+        if not self.curList.currentItem().isSelected():
             return
-        # Not allowed to edit any timed active action which is currently in use
-        elif self.curList.currentItem().text() in list(self.main.qTimers.keys())+list(self.main.qThreads.keys()):
-            print('Not allowed to change any timed or threaded active action which is currently in use')
-            return
+        # Mark if the current action is currently in use
+        inUse=(self.curList.currentItem().text() in list(self.main.qTimers.keys())+list(self.main.qThreads.keys()))   
         # Updating an action (Backspace Key -> which is triggered by double click)
-        elif self.curList.key==Qt.Key_Backspace:
-            self.updateAction()
+        if self.curList.key==Qt.Key_Backspace:
+            self.updateAction(inUse=inUse)
         # Delete an action (Delete Key)
         elif self.curList.key==Qt.Key_Delete:
-            self.deleteAction()
+            self.deleteAction(inUse=inUse)
         # Update the passive order every time (ie. do not care how configuration dialog is closed)...
         # ...a passive action is added or edited
         self.updatePassiveOrder()
@@ -126,10 +125,14 @@ class ConfDialog(QtWidgets.QDialog, Ui_ConfDialog):
             item.setToolTip('Activated by: '+','.join(triggers))
             
     # Update the selected action from the specified list
-    def updateAction(self):
+    def updateAction(self,inUse=False):
+        # Let user know if edits will be accepted later
+        if inUse:
+            print('Only trigger edits are allowed as action is strolling or scheming')
         # Open the action set-up dialog with selected action
-        action=self.openActionSetup(self.act[self.curList.currentItem().text()])
-        if action==None:
+        action=self.openActionSetup(self.act[self.curList.currentItem().text()],tempLock=inUse)
+        # Do not update if no action returned or action is in use
+        if action==None or inUse:
             return
         # Remove the old action
         self.act.pop(self.curList.currentItem().text())
@@ -169,7 +172,10 @@ class ConfDialog(QtWidgets.QDialog, Ui_ConfDialog):
             self.confActiveList.addItem(item)
     
     # Remove the selected action from the specified list
-    def deleteAction(self):
+    def deleteAction(self,inUse=False):
+        if inUse:
+            print('Cannot delete an action which is strolling or scheming')
+            return
         actTag=self.curList.currentItem().text()
         # If this is a locked action, the user cannot delete it
         if self.act[actTag].locked:
@@ -250,9 +256,9 @@ class ConfDialog(QtWidgets.QDialog, Ui_ConfDialog):
         self.main.actPassiveOrder=self.confPassiveList.visualListOrder()
                 
     # Open the setup action dialog
-    def openActionSetup(self,action):
+    def openActionSetup(self,action,tempLock=False):
         self.dialog=ActionSetupDialog(self.main,action,self.act,
-                                      self.hotVar,self.pref)
+                                      self.hotVar,self.pref,tempLock)
         if self.dialog.exec_():
             action=self.dialog.returnAction()
             return action

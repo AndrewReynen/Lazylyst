@@ -261,10 +261,21 @@ def checkCurPickFile(main,pickFile):
     # If the user wants to return to a blank screen, let them
     if pickFile=='':
         return True
-    # If not already present, check its name
+    # Check to ensure name convention is maintained
+    if not checkPickFileNames(main,[pickFile]):
+        return False
+    # If the pick file exists and is present in pickFiles, allow...
+    if (pickFile in main.hotVar['pickFiles'].val and 
+        os.path.exists(main.hotVar['pickDir'].val+'/'+pickFile)):
+        return True
+    # ...otherwise check to ensure that the directory and pick files variable are synced
+    elif set(main.hotVar['pickFiles'].val)!=set(os.listdir(main.hotVar['pickDir'].val)):
+        print('Hot variable pickDir is not synced with pickFiles, refreshing')
+        main.refreshPickDirLists()
+    # After refreshing the current pick file must be in pickDir
     if pickFile not in main.hotVar['pickFiles'].val:
-        if not checkPickFileNames(main,[pickFile]):
-            return False
+        print(pickFile+' is not present in '+main.hotVar['pickDir'].val)
+        return False
     return True
 
 # Ensure that the pick set has the proper dimensions and data types [str,str,float] (although held as string)

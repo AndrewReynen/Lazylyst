@@ -93,12 +93,17 @@ def globalLocate(pickSet,staLoc,mainPath,customDict,staProjStyle):
 #    import time
 #    now=time.time()
     # Nothing to do if no picks, or not in lon,lats
-    if 0 in pickSet.shape or staProjStyle!='None':
+    if 0 in pickSet.shape:
+        return np.empty((0,5)),customDict
+    elif staProjStyle!='None':
+        print('Global locate requires stations to use lon,lat')
         return np.empty((0,5)),customDict
     # Load in the model (if not already loaded into the custom dictionary)
     if 'globEpiDict' not in customDict.keys():
-        customDict['globEpiDict']=pickle.load(open(mainPath+'/Plugins/epiTTparams.pickle','rb'))
-        customDict['globDepDict']=pickle.load(open(mainPath+'/Plugins/depTTparams.pickle','rb'))
+        with open(mainPath+'/Plugins/epiTTparams.pickle','rb') as aFile:
+            customDict['globEpiDict']=pickle.load(aFile)
+        with open(mainPath+'/Plugins/depTTparams.pickle','rb') as aFile:
+            customDict['globDepDict']=pickle.load(aFile)
     ttEpiDict=customDict['globEpiDict']
     ttDepDict=customDict['globDepDict']
     # Remove anything but P and S picks

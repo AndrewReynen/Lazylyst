@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.5.4
+# Version 0.5.5
 # Author: Andrew.M.G.Reynen
 from __future__ import print_function, division
 import sys
@@ -16,6 +16,7 @@ import numpy as np
 from PyQt5 import QtWidgets,QtGui,QtCore
 from PyQt5.QtCore import QSettings
 from pyqtgraph import mkPen, mkBrush
+from obspy import UTCDateTime
 
 from MainWindow import Ui_MainWindow
 from CustomWidgets import TraceWidget, keyPressToString
@@ -66,7 +67,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.archiveSpanT1Label.doubleClicked.connect(lambda: self.setSpanBoundViaDialog('T1'))
         # Give ability to the archive displays
         self.archiveList.graph=self.archiveEvent
-        self.archiveList.graph.addNewEventSignal.connect(self.addPickFile)
+        self.archiveList.graph.addNewEventSignal.connect(lambda: self.addPickFile(self.archiveList.graph.newEveTime))
         self.archiveList.doubleClicked.connect(self.archiveListDoubleClickEvent)
         self.archiveListLineEdit.editingFinished.connect(self.updateArchiveSpanList)
         # Give ability to the map
@@ -371,11 +372,15 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             print('Source update skipped')
 
     # Add an empty pick file to the pick directory, also add to GUI list
-    def addPickFile(self):
-        # Ignore if no archive is currently set
-        if self.hotVar['archDir'].val=='':
+    def addPickFile(self,pickFileTime):
+        # Ignore if no pick directory is currently set
+        if self.hotVar['pickDir'].val=='':
             return
-        aTimeStr=self.archiveList.graph.newEveStr
+        try:
+            aTimeStr=UTCDateTime(pickFileTime).strftime('%Y%m%d.%H%M%S.%f')
+        except:
+            print('Expected new pick file time in format timestamp(s)')
+            return
         # Assign an ID to the new event
         seenIDs=[int(aFile.split('_')[0]) for aFile in self.hotVar['pickFiles'].val]
         # Use the specified ID generation style
@@ -408,7 +413,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
     
     # Load a specific pick file from the pick directory (inter-event pick loading)...
     # ...hot variable pickSet is reset just prior to calling this (with no picks)
-    def loadPickFile(self):
+    def loadPickSet(self):
         path=self.hotVar['pickDir'].val+'/'+self.hotVar['curPickFile'].val
         # Check that the path exists
         if not os.path.exists(path):
@@ -416,7 +421,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             return
         # Check that the file has some content
         elif os.path.getsize(path)==0:
-            return
+            return # pickSet is set to empty prior
         pickSet=np.genfromtxt(path,delimiter=',',dtype=str)
         # Put into proper dimensions if only one pick was present
         if len(pickSet.shape)==1:
@@ -448,7 +453,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.hotVar['curPage'].val=0
         # Load the picks from given pick file, if it has been initialized...
         if self.hotVar['curPickFile'].val!='':
-            self.loadPickFile()
+            self.loadPickSet()
             # Ensure that the archive span and list includes this file
             self.checkArchiveSpan()
             # Get the wanted time, and query for the data
@@ -476,7 +481,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         # ...Otherwise load the default hot variables values, and reset values relating to curPickFile
         else:
             defaultHot=initHotVar()
-            for key in ['stream','pltSt','staSort','pickSet','curTraceSta']:
+            for key in ['stream','pltSt','staSort','pickSet','curTraceSta','curTracePos']:
                 self.hotVar[key].val=defaultHot[key].val
         # Add data, and picks to the station widgets
         self.updatePage()
@@ -923,9 +928,9 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         
     # Change the pen of the selected events in the archive visual, and the highlighted archive span color
     def updateArchiveCurEvePen(self):
-        col=QtGui.QColor(self.pref['basePen'].val['archiveCurEve'][0])
         self.archiveEvent.updateEvePens(self.pref['basePen'].val['archiveCurEve'][0:3],'cur')
         # Use the select for highlighting the span when hovered
+        col=QtGui.QColor(self.pref['basePen'].val['archiveCurEve'][0])
         for line in self.archiveSpan.span.lines:
             line.setHoverPen(col)    
             
@@ -1028,11 +1033,15 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
     def updateMapSelectSta(self):
         self.hotVar['curMapSta'].val=self.mapWidget.selectSta
         
-    # Load the pick file list for display, given completly new pick directory
+    # Load the pick file list for display given completly new pick directory
     def updatePickDir(self):
         # Reset the current pick file
         self.hotVar['curPickFile'].val=''
         self.hotVar['curPickFile'].update()
+        self.refreshPickDirLists()
+    
+    # Update the pick file names and times, and their associated visuals
+    def refreshPickDirLists(self):
         # Clear the old list
         self.archiveList.clear()
         self.hotVar['pickFiles'].val=self.getPickFiles()
@@ -1087,6 +1096,12 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             if self.hotVar['curPickFile'].val!='':
                 self.hotVar['curPickFile'].val=''
                 self.hotVar['curPickFile'].update()
+    
+    # Update the current pick file
+    ## May want to add locking pick files ## (ex. use new variable curLockFile)
+    ## How to deal with crashes? ##
+    def updateCurPickFile(self):
+        self.updateEvent()
             
     # Sort the pick files according to user preference...
     # ...also update the pickFileTimes
@@ -1105,19 +1120,6 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             print('The eveSortStyle '+self.pref['eveSortStyle'].val+' has not been implemented, sorting by id')
         # Clear the old GUI list, and add the new items
         self.updateArchiveSpanList()
-    
-    # With the same source information, go to the current pick file
-    def updateCurPickFile(self):
-        if self.hotVar['curPickFile'].val!='':
-            # If the file does not exist, create it
-            if self.hotVar['curPickFile'].val not in self.hotVar['pickFiles'].val:
-                newFile=open(self.hotVar['pickDir'].val+'/'+self.hotVar['curPickFile'].val,'w')
-                newFile.close()
-                # Add this event to pickFiles
-                self.hotVar['pickFiles'].val=np.concatenate((self.hotVar['pickFiles'].val,
-                                                             np.array([self.hotVar['curPickFile'].val])))
-                self.hotVar['pickFiles'].update()
-        self.updateEvent()
             
     # Update the image
     def updateImage(self):
