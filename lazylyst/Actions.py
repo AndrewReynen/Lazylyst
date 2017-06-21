@@ -33,6 +33,9 @@ def defaultActions():
 
     'ReloadPlugins':Action(tag='ReloadPlugins',name='reloadPlugins',
                            path='$main',trigger=QtGui.QKeySequence('F5'),locked=True),
+                           
+    'SaveSettings':Action(tag='SaveSettings',name='saveSettings',
+                           path='$main',trigger=QtGui.QKeySequence('Ctrl+S'),locked=True),
 
     'Screenshot':Action(tag='Screenshot',name='takeScreenshot',
                            path='$main',trigger=QtGui.QKeySequence('F8'),locked=True),

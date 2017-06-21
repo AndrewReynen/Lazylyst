@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.5.5
+# Version 0.5.6
 # Author: Andrew.M.G.Reynen
 from __future__ import print_function, division
 import sys
@@ -965,6 +965,9 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         
     # Set the archive availability
     def updateArchive(self):
+        # Do nothing if directory not initialized
+        if self.hotVar['archDir'].val=='':
+            return
         # Load in all of the start times of the archive...
         archiveFiles,archiveTimes=getArchiveAvail(self.hotVar['archDir'].val)
         # ...and sort them by start time (required for when extracting an events data)
@@ -985,6 +988,8 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.archiveSpan.span.setRegion((t1,t2))
         # Also reset the archive list search text
         self.archiveListLineEdit.setText('')
+        aFile=open('./aa','w')
+        aFile.close()
         
     # Update the span text so user can set their bounds easier
     def updateSpanText(self):
@@ -1052,21 +1057,29 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.updateArchivePrevEvePen()
         self.updateArchiveCurEvePen()
                                          
-    # Read the correctly formatted pick files from the pick directory
+    # Read correctly formatted pick files from the pick directory
     def getPickFiles(self):
-        pickFiles=[]
+        pickFiles,skipCount=[],0
         # Only accept files with proper naming convention
         for aFile in sorted(os.listdir(self.hotVar['pickDir'].val)):
+            # Do not check folders
+            if not os.path.isfile(self.hotVar['pickDir'].val+'/'+aFile):
+                continue
             splitFile=aFile.split('_')
             # Make sure the file has the proper extension '.picks'
             if len(splitFile)!=2 or aFile.split('.')[-1]!='picks':
+                skipCount+=1
                 continue
             try:
                 int(splitFile[0])
-                getTimeFromFileName(aFile).timestamp
+                getTimeFromFileName(aFile)
             except:
+                skipCount+=1
                 continue
             pickFiles.append(aFile)
+        # Let user know if some files had incorrect file name convention
+        if skipCount>0:
+            print(str(skipCount)+' file(s) skipped when reading in the pickDir (convention: "ID_YYYYMMDD.HHMMSS.ffffff.picks")')
         return np.array(pickFiles,dtype=str)
     
     # With the same pick directory, force an update on the pick files...
@@ -1257,6 +1270,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setPref.setValue('prefVals',prefVals)
         # Saved sources
         self.setSource.setValue('savedSources',self.saveSource)
+        print('Settings saved')
         
     # For actions which are triggered via built-in qt events
     def passAction(self):

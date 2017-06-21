@@ -128,7 +128,7 @@ def getArchiveAvail(archDir,acceptFileTypes=['seed','miniseed','mseed']):
     # If there are no files in archDir
     if len(curMeta)==0:
         return np.array([]),curTimes
-    # Get the previous files
+    # Get the previously loaded archive metadata if it exists
     prevMeta,prevTimes=getPrevArchive(archDir)
     # If the arrays are already exactly the same, do not bother updating
     if np.array_equal(prevMeta,curMeta):
@@ -172,7 +172,7 @@ def getArchiveAvail(archDir,acceptFileTypes=['seed','miniseed','mseed']):
 
 # Progress bar for the archive...
 class ArchLoadProgressBar(QtWidgets.QDialog):
-    def __init__(self,holder,toReadFiles, parent=None, total=100):
+    def __init__(self,holder,toReadFiles, parent=None):
         super(ArchLoadProgressBar, self).__init__(parent)
         self.holder=holder
         # Set up values to for scanning file times
@@ -184,7 +184,7 @@ class ArchLoadProgressBar(QtWidgets.QDialog):
         self.resize(300,40)
         self.progressbar = QtWidgets.QProgressBar()
         self.progressbar.setMinimum(1)
-        self.progressbar.setMaximum(total)
+        self.progressbar.setMaximum(100)
         # Add cancel button
         self.button = QtWidgets.QPushButton('Cancel')
         self.button.clicked.connect(self.cancelLoad)
@@ -203,7 +203,7 @@ class ArchLoadProgressBar(QtWidgets.QDialog):
     def cancelLoad(self):
         self.timer.stop()
         self.holder.value=self.fileMinMaxs
-        print(len(self.fileMinMaxs),' archive files were updated')
+        print(len(self.fileMinMaxs),'archive files were updated')
         self.close()
 
     # If closed, treat as canceled
