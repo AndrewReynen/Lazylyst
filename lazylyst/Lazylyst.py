@@ -988,8 +988,6 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.archiveSpan.span.setRegion((t1,t2))
         # Also reset the archive list search text
         self.archiveListLineEdit.setText('')
-        aFile=open('./aa','w')
-        aFile.close()
         
     # Update the span text so user can set their bounds easier
     def updateSpanText(self):
