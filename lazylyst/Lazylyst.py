@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.5.6
+# Version 0.5.7
 # Author: Andrew.M.G.Reynen
 from __future__ import print_function, division
 import sys
@@ -9,6 +9,7 @@ import os
 import time
 from future.utils import iteritems
 from fnmatch import fnmatch
+from copy import deepcopy
 sip.setapi('QVariant', 2)
 sip.setapi('QString', 2)
 
@@ -71,7 +72,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.archiveList.doubleClicked.connect(self.archiveListDoubleClickEvent)
         self.archiveListLineEdit.editingFinished.connect(self.updateArchiveSpanList)
         # Give ability to the map
-        self.mapWidget.staDblClicked.connect(self.mapDoubleClickEvent)
+        self.mapWidget.doubleClicked.connect(self.mapDoubleClickEvent)
         # Link the image axis to the time axis
         self.imageWidget.setXLink('timeAxis')
         # Allow stdout to be sent to the Trace Log
@@ -160,7 +161,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
     
     # Function to handle double clicks from the map widget
     def mapDoubleClickEvent(self):
-        action=self.act['MapStaDblClicked']
+        action=self.act['MapDblClicked']
         self.processAction(action)
     
     # Create and activate the queue of actions following the initiation of an active action
@@ -1018,7 +1019,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.updateStaLoc()
         # Reset any additional map related visuals
         defaultHot=initHotVar()
-        for key in ['mapCurEve','mapPrevEve']:
+        for key in ['mapCurEve','mapPrevEve','curMapSta','curMapPos']:
             self.hotVar[key].val=defaultHot[key].val
             self.hotVar[key].update()
     
@@ -1032,9 +1033,10 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             self.hotVar['staLoc'].val=projStaLoc(staLoc,self.pref['staProjStyle'].val)
         self.updateMapStations(init=True)
         
-    # Update the selected (double clicked) station on the map view
-    def updateMapSelectSta(self):
+    # Update the map variables to be set when double clicking on it
+    def updateMapDblClickedVars(self):
         self.hotVar['curMapSta'].val=self.mapWidget.selectSta
+        self.hotVar['curMapPos'].val=self.mapWidget.clickPos
         
     # Load the pick file list for display given completly new pick directory
     def updatePickDir(self):
@@ -1251,7 +1253,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setUserSeenAtTime()
         
     # Save all settings from current run
-    def saveSettings(self):
+    def saveSettings(self,closing=True):
         # UI size and widget visibility
         self.setGen.setValue('geometry',self.saveGeometry())
         self.setGen.setValue('windowState',self.saveState())
@@ -1259,7 +1261,8 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         # Actions, cannot save functions (will be linked again upon loading)
         for key in self.act.keys():
             self.act[key].func=None
-        self.setAct.setValue('actions',self.act)
+        saveAct=deepcopy(self.act)
+        self.setAct.setValue('actions',saveAct)
         self.setAct.setValue('actPassiveOrder',self.actPassiveOrder)
         # Preferences
         prefVals={}
@@ -1269,6 +1272,10 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         # Saved sources
         self.setSource.setValue('savedSources',self.saveSource)
         print('Settings saved')
+        # If not closing point to the functions again
+        if not closing:
+            for key in self.act.keys():
+                self.act[key].linkToFunction(self)
         
     # For actions which are triggered via built-in qt events
     def passAction(self):

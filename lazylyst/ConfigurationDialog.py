@@ -36,6 +36,11 @@ class ConfDialog(QtWidgets.QDialog, Ui_ConfDialog):
         self.confPassiveList.customContextMenuRequested.connect(self.createActionMenu)
         # If the ordering of the passive list ever changes, update actPassiveOrder
         self.confPassiveList.leaveSignal.connect(self.updatePassiveOrder)
+        # Add and delete action buttons
+        self.confActiveAddButton.clicked.connect(lambda: self.addDelClicked('active','add'))
+        self.confActiveDelButton.clicked.connect(lambda: self.addDelClicked('active','del'))
+        self.confPassiveAddButton.clicked.connect(lambda: self.addDelClicked('passive','add'))
+        self.confPassiveDelButton.clicked.connect(lambda: self.addDelClicked('passive','del'))
     
     # Load in all of the lists from previous state
     def loadLists(self):
@@ -52,6 +57,16 @@ class ConfDialog(QtWidgets.QDialog, Ui_ConfDialog):
             self.setItemSleepColor(item,False)
             item.setToolTip(self.pref[key].tip)
             self.confPrefList.addItem(item)
+            
+    # Handle add and delete action button click...
+    # ...mocks key press events
+    def addDelClicked(self,whichList,addDel):
+        # Set the appropriate current list
+        self.curList=self.confActiveList if whichList=='active' else self.confPassiveList
+        # Set the current lists button press
+        self.curList.key=Qt.Key_Insert if addDel=='add' else Qt.Key_Delete
+        # Forward this to the key press event handles
+        self.actionListKeyEvent(mock=True)
             
     # Return which action list is in focus
     def getCurActionList(self):
@@ -70,9 +85,11 @@ class ConfDialog(QtWidgets.QDialog, Ui_ConfDialog):
                 self.pref[item.text()].update(self)
         
     # Function to handle calls to the active and passive lists
-    def actionListKeyEvent(self):
+    def actionListKeyEvent(self,mock=False):
+        # If this was not a mock event (ie. actually triggered by key press)
+        if not mock:
+            self.curList=self.getCurActionList()
         # See if either of the action lists had focus, otherwise skip
-        self.curList=self.getCurActionList()
         if self.curList==None:
             return
         # Skip if no accepted keys were passed

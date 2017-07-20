@@ -342,7 +342,6 @@ class TraceCurve(pg.PlotCurveItem):
         if pen.widthF()==0:
             self.setVisible(False)
 
-QtWidgets
 # Widget which will hold the trace data, and respond to picking keybinds     
 class TraceWidget(pg.PlotWidget):
     doubleClickSignal=QtCore.pyqtSignal()  
@@ -479,7 +478,8 @@ class MixListWidget(QtWidgets.QListWidget):
         args=np.array([self.indexFromItem(self.item(i)).row() for i in range(self.count())])
         return list(txt[np.argsort(args)])
         
-# Generic widget for QListWidget with remove only keyPresses
+# Generic widget for QListWidget with remove only keyPresses...
+# ...currently only used for key bind of delete (if want more keys, must check appropriate lists)
 class KeyListWidget(QtWidgets.QListWidget):       
     # Return signal if key was pressed while in focus
     keyPressedSignal = QtCore.pyqtSignal()  
@@ -493,6 +493,12 @@ class KeyListWidget(QtWidgets.QListWidget):
         if self.key not in [Qt.Key_Delete]:
             return
         self.keyPressedSignal.emit()
+        
+    # Deselect all items if in a blank space
+    def mousePressEvent(self, ev):
+        if self.itemAt(ev.pos()) is None:
+            self.clearSelection()
+        QtWidgets.QListWidget.mousePressEvent(self, ev)
     
     # Ensure that key presses are sent to the widget which the mouse is hovering over
     def enterEvent(self,ev):
@@ -575,28 +581,25 @@ class DblClickLabelWidget(QtWidgets.QLabel):
 
 # Scatter Item class, but allow double click signal
 class CustScatter(pg.ScatterPlotItem):
-    dblClicked=QtCore.Signal(object)
+    doubleClicked=QtCore.Signal(object)
     
     def __init__(self, *args, **kwargs):
         super(CustScatter, self).__init__(*args, **kwargs)
     
-    # Return the clicked points upon double clicking
+    # Set the clicked points upon double clicking
     def mouseDoubleClickEvent(self,ev):
         if ev.button() == QtCore.Qt.LeftButton:
-            pts = self.pointsAt(ev.pos())
-            if len(pts) > 0:
-                self.clickPos=np.array([ev.pos().x(),ev.pos().y()])
-                self.ptsClicked = pts
-                self.dblClicked.emit(self)
-                ev.accept()
-            else:
-                ev.ignore()
-        else:
-            ev.ignore()
+            # Set the clicked position
+            self.clickPos=np.array([ev.pos().x(),ev.pos().y()])
+            # See which points were near the click position
+            self.ptsClicked=self.pointsAt(ev.pos())
+            # Emit the scatter plot
+            self.doubleClicked.emit(self)
+            ev.accept()
 
 # Widget for seeing what data times are available, and sub-selecting pick files
 class MapWidget(pg.GraphicsLayoutWidget):
-    staDblClicked=QtCore.Signal()
+    doubleClicked=QtCore.Signal()
     
     def __init__(self, parent=None):
         super(MapWidget, self).__init__(parent)
@@ -609,6 +612,7 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.selectSta=None # Which station is currently selected
         self.curEveItem=None # The current event scatter item
         self.prevEveItem=None # The previous event scatter item 
+        self.clickPos=[0,0] # Last double clicked position
         # Add in the hovered over station label
         self.hoverStaItem=pg.TextItem(text='',anchor=(0.5,1))
         self.hoverStaItem.hide()
@@ -616,17 +620,22 @@ class MapWidget(pg.GraphicsLayoutWidget):
         # Show station text when hovering over the station symbol
         self.scene().sigMouseMoved.connect(self.onHover)
         
-    # Get the station which was closest to the double click event, and set the selected station
-    def staClicked(self,staScat):
-        cPos=staScat.clickPos
-        self.selectSta=self.getSelectSta(cPos,staScat.ptsClicked)
-        self.staDblClicked.emit()
+    # Handle double click events to the station scatter item
+    def dblClicked(self,staScat):
+        self.clickPos=list(staScat.clickPos)
+        # Update the nearby station which was clicked
+        self.selectSta=self.getSelectSta(staScat.clickPos,staScat.ptsClicked)
+        # Forward the double clicked signal to main window
+        self.doubleClicked.emit()
         
     # Function to return the nearest station to the current moused point
     def getSelectSta(self,mousePos,nearPoints):
-        selPos=np.array([[point.pos().x(),point.pos().y()] for point in nearPoints])
-        selPoint=nearPoints[np.argmin(np.sum((selPos-mousePos)**2))]
-        return str(self.stas[np.where(self.staItem.points()==selPoint)[0][0]])
+        if len(nearPoints)>0:
+            selPos=np.array([[point.pos().x(),point.pos().y()] for point in nearPoints])
+            selPoint=nearPoints[np.argmin(np.sum((selPos-mousePos)**2))]
+            return str(self.stas[np.where(self.staItem.points()==selPoint)[0][0]])
+        else:
+            return None
         
     # Load the new station meta data
     def loadStaLoc(self,staLoc,colorAssign,
@@ -657,7 +666,7 @@ class MapWidget(pg.GraphicsLayoutWidget):
         if len(staLoc)!=0:
             staScatter.addPoints(x=staLoc[:,1], y=staLoc[:,2], brush=brushArr)
         # Give some clicking ability to the stations
-        staScatter.dblClicked.connect(self.staClicked)
+        staScatter.doubleClicked.connect(self.dblClicked) # For any point being clicked
         # Add the station scatter items
         self.map.addItem(staScatter)
         self.staItem=staScatter

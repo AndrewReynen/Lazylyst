@@ -69,6 +69,8 @@ def removeCurPickFile(curPickFile,pickFiles):
     
 # Go to the last double clicked station on the map 
 def goToStaPage(curMapSta,staSort,staPerPage,curPage):
+    if curMapSta is None:
+        return '$pass'
     if curMapSta not in staSort:
         return '$pass'
     goToPage=np.where(staSort==curMapSta)[0][0]/staPerPage

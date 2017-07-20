@@ -35,10 +35,11 @@ def defaultActions():
                            path='$main',trigger=QtGui.QKeySequence('F5'),locked=True),
                            
     'SaveSettings':Action(tag='SaveSettings',name='saveSettings',
-                           path='$main',trigger=QtGui.QKeySequence('Ctrl+S'),locked=True),
+                          path='$main',optionals={'closing':False},
+                          trigger=QtGui.QKeySequence('Ctrl+S'),locked=True),
 
     'Screenshot':Action(tag='Screenshot',name='takeScreenshot',
-                           path='$main',trigger=QtGui.QKeySequence('F8'),locked=True),
+                        path='$main',trigger=QtGui.QKeySequence('F8'),locked=True),
                       
     'PageNext':Action(tag='PageNext',name='tabCurPage',
                       path='$main',optionals={'nextPage':True},
@@ -108,11 +109,11 @@ def defaultActions():
                                    trigger=['PickFileSetToClick','PickFileNext','PickFilePrev','CloseLazylyst'],
                                    beforeTrigger=True),
                                    
-    'MapStaDblClicked':Action(tag='MapStaDblClicked',name='updateMapSelectSta',
+    'MapDblClicked':Action(tag='MapDblClicked',name='updateMapDblClickedVars',
                            path='$main',trigger='DoubleClick',locked=True),
 
     'GoToStaPage':Action(tag='GoToStaPage',name='goToStaPage',path='Plugins.General',
-                         passive=True,trigger=['MapStaDblClicked'],
+                         passive=True,trigger=['MapDblClicked'],
                          inputs=['curMapSta','staSort','staPerPage','curPage'],
                          returns=['curPage']),
                            
@@ -272,11 +273,14 @@ class ActionSetupDialog(QtWidgets.QDialog, Ui_actionDialog):
         self.actTriggerLineEdit.keyPressed.connect(self.updateKeyBind)
         self.actAvailTriggerList.itemDoubleClicked.connect(lambda: self.addAvailVar('trigger'))
         self.actSelectTriggerList.keyPressedSignal.connect(lambda: self.removeSelectVar('trigger'))
+        self.actSelectTriggerList.itemDoubleClicked.connect(lambda: self.removeSelectVar('trigger'))
         # For the input/return, avail/select lists
         self.actAvailInputList.itemDoubleClicked.connect(lambda: self.addAvailVar('input'))
         self.actAvailReturnList.itemDoubleClicked.connect(lambda: self.addAvailVar('return'))
         self.actSelectInputList.keyPressedSignal.connect(lambda: self.removeSelectVar('input'))
         self.actSelectReturnList.keyPressedSignal.connect(lambda: self.removeSelectVar('return'))
+        self.actSelectInputList.itemDoubleClicked.connect(lambda: self.removeSelectVar('input'))
+        self.actSelectReturnList.itemDoubleClicked.connect(lambda: self.removeSelectVar('return'))
     
     # Fill the dialog with info relating to action
     def fillDialog(self):
@@ -399,16 +403,14 @@ class ActionSetupDialog(QtWidgets.QDialog, Ui_actionDialog):
     
     # Removes the current item from a selected list of hot variables and/or preferences
     def removeSelectVar(self,listTag):
-        # See which pair of lists was called
-        if (listTag=='return' and self.actSelectReturnList.currentItem!=None and 
-            self.actSelectReturnList.key==Qt.Key_Delete):
-            self.actSelectReturnList.takeItem(self.actSelectReturnList.currentRow())
-        elif (listTag=='input' and self.actSelectInputList.currentItem!=None and 
-              self.actSelectInputList.key==Qt.Key_Delete):
-            self.actSelectInputList.takeItem(self.actSelectInputList.currentRow())
-        elif (listTag=='trigger' and self.actSelectTriggerList.currentItem!=None and 
-              self.actSelectTriggerList.key==Qt.Key_Delete):
-            self.actSelectTriggerList.takeItem(self.actSelectTriggerList.currentRow())
+        # See which list was selected
+        potTags=['return','input','trigger']
+        potLists=[self.actSelectReturnList,self.actSelectInputList,self.actSelectTriggerList]
+        aList=potLists[potTags.index(listTag)]
+        # Remove the item if one is selected
+        if aList.currentItem!=None:
+            if aList.currentItem().isSelected():
+                aList.takeItem(aList.currentRow())
             
     # Depending on if this is an active or passive action, turn on/off some widgets
     def togglePassiveActive(self,init=False):

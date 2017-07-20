@@ -61,11 +61,13 @@ class CsDialog(QtWidgets.QDialog, Ui_CsDialog):
         
     # Put the saved source into the saved source list and dictionary
     def loadSaveSource(self):
-        source=self.saveSource[self.csSaveSourceList.currentItem().text()]
-        self.csTagLineEdit.setText(source.tag)
-        self.csArchiveLineEdit.setText(source.archDir)
-        self.csPickLineEdit.setText(source.pickDir)
-        self.csStationLineEdit.setText(source.staFile)
+        if self.csSaveSourceList.currentItem() is not None:
+            if self.csSaveSourceList.currentItem().isSelected():
+                source=self.saveSource[self.csSaveSourceList.currentItem().text()]
+                self.csTagLineEdit.setText(source.tag)
+                self.csArchiveLineEdit.setText(source.archDir)
+                self.csPickLineEdit.setText(source.pickDir)
+                self.csStationLineEdit.setText(source.staFile)
     
     # Delete the selected saved source
     def delSaveSource(self):
