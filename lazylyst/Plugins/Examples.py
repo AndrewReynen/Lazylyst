@@ -1,5 +1,4 @@
 import numpy as np        
-from obspy import UTCDateTime
 import time
 
 # Go to the next pick type (in alphabetical order)

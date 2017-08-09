@@ -31,7 +31,7 @@ def streamFilter(*args,**kwargs):
 def sepChas(stream):
     # First sort the stream by channel name
     stream.sort(keys=['channel'])
-    stas=np.array([tr.stats.station for tr in stream])
+    stas=np.array([tr.stats.network+'.'+tr.stats.station+'.'+tr.stats.location for tr in stream])
     for sta in np.unique(stas):
         args=np.where(stas==sta)[0]
         offset=0

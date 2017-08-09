@@ -4,30 +4,24 @@ from obspy.core.inventory import (Inventory, Network, Station, Channel, Site,
 from obspy.core.util.obspy_types import FloatWithUncertaintiesAndUnit
 from obspy.io.xseed import Parser
 from obspy import UTCDateTime
+from obspy.clients.fdsn.client import Client
 import numpy as np
 
 # This file contains a group of functions which can be used/edited to
 # station metadata into the station XML format
 
-# Example Conversion of a station csv file to a station xml file
-def staCsv2Xml(staCsvPath,staXmlPath,source='Lazylyst'):
-    # Load the csv file
-    info=np.genfromtxt(staCsvPath,delimiter=',',dtype=str)
-    # For each network... 
-    networks=[]
-    unqNets=np.unique(info[:,5])
-    for net in unqNets:
-        netInfo=info[np.where(info[:,5]==net)]
-        # ...gather its stations
-        stations=[]
-        for entry in netInfo:
-            stations.append(Station(entry[0],entry[1],entry[2],entry[3],
-                                    site=Site(''),creation_date=UTCDateTime(1970, 1, 1)))
-        networks.append(Network(net,stations=stations))
-    # Generate the inventory object, and save it as a station XML
-    inv=Inventory(networks=networks,source=source)
-    inv.write(staXmlPath,format='stationxml',validate=True)
-
+# Example to extract a station XML file from an FDSN client
+def getXmlFromIRIS(network=None):
+    if network is None:
+        return
+    client=Client("IRIS")
+    # Use level=response to get channel information...
+    # ...which holds the location code necessary for station referencing
+    inv=client.get_stations(network=network,level='response')
+    inv.write('./'+network+'.xml',format='stationxml',validate=True)
+    
+getXmlFromIRIS(network='NX')
+    
 # Convert a list of two arrays into one which has uncertainty attached
 def genArrWithUncertainty(vals,errs):
     outArr=[FloatWithUncertaintiesAndUnit(val,lower_uncertainty=err,upper_uncertainty=err) 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Version 0.5.7
+# Version 0.5.8
 # Author: Andrew.M.G.Reynen
 from __future__ import print_function, division
 import sys
@@ -21,7 +21,7 @@ from obspy import UTCDateTime
 
 from MainWindow import Ui_MainWindow
 from CustomWidgets import TraceWidget, keyPressToString
-from CustomFunctions import getTimeFromFileName
+from CustomFunctions import getTimeFromFileName,getStaStr
 from HotVariables import initHotVar
 from Preferences import defaultPreferences, DateDialog
 from Actions import defaultActions, defaultPassiveOrder, QueueThread
@@ -424,6 +424,9 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         elif os.path.getsize(path)==0:
             return # pickSet is set to empty prior
         pickSet=np.genfromtxt(path,delimiter=',',dtype=str)
+        # In the odd case there are empty spaces in the file
+        if len(pickSet)==0:
+            return
         # Put into proper dimensions if only one pick was present
         if len(pickSet.shape)==1:
             pickSet=pickSet.reshape((1,3))
@@ -469,7 +472,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             # Sort traces by channel so they are added in same order (relative other stations)
             self.hotVar['pltSt'].val.sort(keys=['channel'])
             # Alphabetical sorting by default
-            self.hotVar['staSort'].val=np.sort(np.unique([str(tr.stats.station) for tr in self.hotVar['stream'].val]))
+            self.hotVar['staSort'].val=np.sort(np.unique([getStaStr(tr) for tr in self.hotVar['stream'].val]))
             # If there is data...
             # ...move the axis time limit to the appropriate position
             if len(self.hotVar['stream'].val)!=0:
@@ -729,7 +732,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             defaultColInt=self.pref['basePen'].val['mapStaDefault'][0]
             assignKey='mapStaPenAssign'
         else:
-            unqStas=np.unique([tr.stats.station for tr in self.hotVar['stream'].val])
+            unqStas=np.unique([getStaStr(tr) for tr in self.hotVar['stream'].val])
             defaultColInt=self.pref['basePen'].val['traceBackground'][0]
             assignKey='traceBgPenAssign'
         # Give empty staWidgets the default color
@@ -773,7 +776,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             self.staWidgets[i].sta=''
         # Add in the trace data for the current page
         i=0
-        stas=np.array([tr.stats.station for tr in self.hotVar['pltSt'].val])
+        stas=np.array([getStaStr(tr) for tr in self.hotVar['pltSt'].val])
         numStas=len(np.unique(stas))
         while self.hotVar['curPage'].val*self.pref['staPerPage'].val+i<numStas:
             if i==self.pref['staPerPage'].val:

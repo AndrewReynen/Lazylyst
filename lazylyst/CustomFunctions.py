@@ -49,3 +49,8 @@ def text2Dict(text):
 def getTimeFromFileName(fileName):
     timeStr=fileName.split('_')[1].replace('.'+fileName.split('.')[-1],'')
     return UTCDateTime().strptime(timeStr,'%Y%m%d.%H%M%S.%f')
+
+
+# Get the string representing the given station via the trace object
+def getStaStr(tr):
+    return str('.'.join([tr.stats.network,tr.stats.station,tr.stats.location]))

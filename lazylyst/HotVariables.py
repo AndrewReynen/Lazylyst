@@ -12,7 +12,7 @@ import numpy as np
 from obspy import Stream, read_inventory
 from obspy.core.inventory import Inventory
 
-from CustomFunctions import getTimeFromFileName
+from CustomFunctions import getTimeFromFileName,getStaStr
 
 # Default Hot Variables
 def initHotVar():
@@ -76,7 +76,7 @@ def initHotVar():
     'archFileTimes':HotVar(tag='archFileTimes',val=[],dataType=type(np.array([0.0])),returnable=False,
                            tip='Earliest and latest timestamp contained in the archive files'),   
     'curTraceSta':HotVar(tag='curTraceSta',val='',dataType=str,returnable=False,
-                         tip='Station code of the currently hovered over trace data widget'),
+                         tip='Network.Station.Location of the currently hovered over trace data widget'),
     'curTracePos':HotVar(tag='curTracePos',val=[0,0],dataType=list,returnable=False,
                          tip='Mouse position [X,Y] of the currently hovered over trace data widget'),
     'staFile':HotVar(tag='staFile',val='',dataType=str,
@@ -169,18 +169,18 @@ class HotVar(object):
 
 # Ensure that the new plot stream has the same combination of stations as stream
 def checkPltSt(main,pltSt):
-    oStas=np.unique([tr.stats.station for tr in main.hotVar['stream'].val])
-    nStas=np.unique([tr.stats.station for tr in pltSt])
+    oStas=np.unique([getStaStr(tr) for tr in main.hotVar['stream'].val])
+    nStas=np.unique([getStaStr(tr) for tr in pltSt])
     if not np.array_equal(np.sort(oStas),np.sort(nStas)):
-        print('The return pltSt does not have all and only the stations present in stream')
+        print('The return pltSt does not have all and only the stations (N.S.L) present in stream')
         return False
     return True
     
 # Ensure that the new station sorting doesn't have stations for which there are no traces
 def checkStaSort(main,newSort):
-    trStas=np.unique([tr.stats.station for tr in main.hotVar['pltSt'].val])
+    trStas=np.unique([getStaStr(tr) for tr in main.hotVar['pltSt'].val])
     if not np.array_equal(np.sort(trStas),np.sort(newSort)):
-        print('The return staSort does not have all and only the station present in pltSt')
+        print('The return staSort does not have all and only the stations (N.S.L) present in pltSt')
         return False
     return True
     
@@ -280,7 +280,8 @@ def checkCurPickFile(main,pickFile):
         return False
     return True
 
-# Ensure that the pick set has the proper dimensions and data types [str,str,float] (although held as string)
+# Ensure that the pick set has the proper dimensions and data types [str,str,float] (although held as string)...
+# ...also correct N.S.L format
 def checkPickSet(main,pickSet):
     if len(pickSet.shape)!=2:
         print('The pickSet must be 2 dimensional')
@@ -289,11 +290,28 @@ def checkPickSet(main,pickSet):
         print('The pickSet must have 3 columns')
         return False
     try:
-        pickSet[:,:2].astype(str)
         pickSet[:,2].astype(float)
     except:
-        print('The pickSet contains [station,pickType,timestamp(s)]')
+        print('The pickSet timestamp (third column) must contain numbers')
         return False
+    # Check that the station string (N.S.L) has the correct format
+    for entry in pickSet[:,0]:
+        if not checkNSL(entry):
+            return False
+    return True
+
+# Check that the station string (N.S.L) has the correct format
+# Each entry (Network.Station.Location) in the list should be a string, and be max length of (2.5.2)
+def checkNSL(nsl):
+    splitEntry=nsl.split('.')
+    if len(splitEntry)!=3:
+        print('Station strings refer to Network.Station.Location')
+        return False
+    for string,maxLen,name in zip(splitEntry,[2,5,2],['Network','Station','Location']):
+        if len(string)>maxLen:
+            print('Station strings refer to Network.Station.Location; '+
+                  name+' has max length of '+str(maxLen)+' characters')
+            return False
     return True
 
 # Ensure that the returned pen assignment (for traces) dictionary is holding the right data types
@@ -320,13 +338,12 @@ def checkStaColAssign(main,colAssign):
         if type(val)!=list:
             print('For all traceBgPenAssign/mapStaPenAssign returned key:value pairs, the value should be a list')
             return False
-        # Each entry (station) in the list should be a string, and <= 5 characters long
+        # Check that the station string (N.S.L) has the correct format
         for entry in val:
             if type(entry) not in [str,np.string_,np.str_]:
                 print('Returned traceBgPenAssign/mapStaPenAssign, lists should only contain strings, got type '+str(type(entry)))
                 return False
-            elif len(entry)>5:
-                print('Returned traceBgPenAssign/mapStaPenAssign, list entries refer to stations, which are max 5 characters long')
+            if not checkNSL(entry):
                 return False
     return True
     

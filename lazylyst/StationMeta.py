@@ -7,14 +7,23 @@ import pyproj
 # Convert a station xml file to a numpy array, containing only [StaCode,Lon,Lat,Ele]
 def staXml2Loc(staXml):
     # Loop through just to extract the station codes and locations...
-    # ...with format [Sta,Lon(deg),Lat(deg),Ele(m)], lon/lat assumed to be in WGS84 datum
-    outArr=[]
+    # ...with format [Net.Sta.Loc,Lon(deg),Lat(deg),Ele(m)], lon/lat assumed to be in WGS84 datum
+    outArr=np.empty((0,4),dtype='a32')
     for net in staXml:
         for sta in net:
-            outArr.append([sta.code,sta.longitude,sta.latitude,sta.elevation])
+            if len(sta.channels)==0:
+                print(net.code+','+sta.code+' has no channels, could not read location code')
+            for cha in sta:
+                nsl='.'.join([net.code,sta.code,cha.location_code])
+                # Do not add this station id already present
+                if len(outArr)>0:
+                    if nsl in outArr[:,0]:
+                        continue
+                entry=np.array([nsl,cha.longitude,cha.latitude,cha.elevation],dtype='a32')
+                outArr=np.vstack((outArr,entry))
     # If the file was empty, convert to appropriate shape
     if len(outArr)==0:
-        outArr=np.empty((0,4))
+        outArr=np.empty((0,4),dtype='a32')
     else:
         outArr=np.array(outArr,dtype=str)
     return outArr

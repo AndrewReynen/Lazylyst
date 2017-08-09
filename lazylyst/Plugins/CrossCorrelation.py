@@ -46,7 +46,7 @@ def getVertXCorOffsets(tempTrace,stream):
             continue
         if np.max(xCorArr)<=0:
             continue
-        aSta=tr.stats.station
+        aSta=tr.stats.network+'.'+tr.stats.station+'.'+tr.stats.location
         offset=tr.stats.starttime+tr.stats.delta*np.argmax(xCorArr)-tempTrace.stats.starttime
         xCor=np.max(xCorArr)
         # If another trace had the same station see if larger...
@@ -57,7 +57,7 @@ def getVertXCorOffsets(tempTrace,stream):
                 xCors[idx]=xCor
                 offsets[idx]=offset
         else:
-            stas.append(tr.stats.station)
+            stas.append(aSta)
             offsets.append(offset)
             xCors.append(xCor)
     return stas,offsets
@@ -90,7 +90,7 @@ def xCorAlign(*args,**kwargs):
         wantArgs=np.where(pickSet[:,1]==phaseType)[0]
     # Sort by increasing pick time, and select the first station which is present in the stream... 
     # ...and has a vertical component
-    stas=np.array([tr.stats.station for tr in pltSt])
+    stas=np.array([tr.stats.network+'.'+tr.stats.station+'.'+tr.stats.location for tr in pltSt])
     chas=np.array([tr.stats.channel[-1] for tr in pltSt])
     # Check to see that atleast two vertical channels are present
     if len(np.where(chas=='Z')[0])<2:
@@ -128,10 +128,11 @@ def xCorAlign(*args,**kwargs):
     missedStas=[]
     # Apply the offsets to the traces
     for tr in pltSt:
-        if tr.stats.station in stas:
-            tr.stats.starttime-=offsets[stas.index(tr.stats.station)]
+        aSta=tr.stats.network+'.'+tr.stats.station+'.'+tr.stats.location
+        if aSta in stas:
+            tr.stats.starttime-=offsets[stas.index(aSta)]
         else:
-            missedStas.append(tr.stats.station)
+            missedStas.append(aSta)
     if len(missedStas)>0:
         print('The stations: '+str(np.unique(missedStas))+' were not time shifted')
     return pltSt

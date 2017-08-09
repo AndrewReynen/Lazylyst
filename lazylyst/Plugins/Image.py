@@ -5,7 +5,8 @@ from scipy import signal
 # Optionals: [winLen (float),interLen (float),normType (one of sqrt,log,none)]
 def spectrogramVert(stream,curTraceSta,**kwargs):
     # Ensure that the vertical trace exists...
-    if curTraceSta+'Z' not in [tr.stats.station+tr.stats.channel[-1] for tr in stream]:
+    if curTraceSta+'Z' not in [tr.stats.network+'.'+tr.stats.station+'.'+
+                               tr.stats.location+tr.stats.channel[-1] for tr in stream]:
         return '$pass'
     # If winLen (window over which a single FFT computed) or interLen (sampling interval in time of spectrogram)...
     # ...does not exist, add in some defaults
@@ -22,7 +23,8 @@ def spectrogramVert(stream,curTraceSta,**kwargs):
         print('Accepted normalization "normType" args are [sqrt, log, none], assigning sqrt')
         kwargs['normType']='sqrt'
     # Grab the trace and calculate the spectrogram
-    trace=stream.select(component='Z',station=curTraceSta).merge()[0]
+    net,sta,loc=curTraceSta.split('.')
+    trace=stream.select(component='Z',station=sta,network=net,location=loc).merge()[0]
     trace.detrend('linear')
     trace.taper(0.1,type='hann',max_length=2.0)
     sps=trace.stats.sampling_rate
@@ -40,5 +42,5 @@ def spectrogramVert(stream,curTraceSta,**kwargs):
     # Scale between 0 and 1
     psd=(psd-np.min(psd))/(np.max(psd)-np.min(psd))
     return {'data':psd,'t0':trace.stats.starttime.timestamp,'tDelta':t[1]-t[0],
-            'y0':f[0],'yDelta':f[1]-f[0],'label':trace.stats.station,
+            'y0':f[0],'yDelta':f[1]-f[0],'label':tr.stats.network+'.'+tr.stats.station+'.'+tr.stats.location,
             'cmapRGBA':np.array([[0,0,0,255],[255,0,0,255]])}
