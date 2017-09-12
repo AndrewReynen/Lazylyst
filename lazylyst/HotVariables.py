@@ -423,11 +423,11 @@ def checkImage(main,image):
         print('Image data was not 2-dimensional, or had 0 length in at least one axis')
         keyFail=True
     if 'cmapPos' in givenKeys:
-        if len(image['cmapPos'].shape)!=1 or image['data'].shape[0]<2:
+        if len(image['cmapPos'].shape)!=1:
             print('Image cmapPos was not 1-dimensional, or had length less than 2')
             keyFail=True
     if 'cmapRGBA' in givenKeys:
-        if len(image['cmapRGBA'].shape)!=2 or image['data'].shape[0]<2:
+        if len(image['cmapRGBA'].shape)!=2:
             print('Image cmapRGBA was not 2-dimensional, or had length less than 2')
             keyFail=True
         elif image['cmapRGBA'].shape[1]!=4:
