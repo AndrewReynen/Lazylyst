@@ -147,6 +147,8 @@ class ArchiveEventWidget(pg.PlotWidget):
     # Update the mouse position text
     def onHover(self,pixPoint):
         mousePoint=self.pltItem.vb.mapSceneToView(pixPoint)
+        if np.isnan(mousePoint.x()):
+            return
         self.hoverTimeItem.setText(str(UTCDateTime(Decimal(mousePoint.x()))))
         t1,t2=self.getPlotItem().vb.viewRange()[0]
         if t2<=1:
