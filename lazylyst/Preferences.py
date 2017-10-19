@@ -51,7 +51,7 @@ def defaultPreferences(main):
                                       'archiveAvailability':[65280,1.0,0.0,False],
                                       'archiveSpanSelect':[3289800,1.0,0.0,False],
                                       'archiveCurEve':[16711680,3.0,1.0,False],
-                                      'archivePrevEve':[135,1.0,0.0,False],},
+                                      'archivePrevEve':[48865,1.0,0.0,False],},
                     dataType=dict,dialog='BasePenDialog',func=main.updateBaseColors,
                     tip='Defines the base pen values for the main widgets'),
     'customPen':Pref(tag='customPen',val={'default':[16777215,1.0,0.0], # [Color,Width,Depth]
@@ -426,7 +426,6 @@ class DateDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout(self)
         # Widget for editing the date
         self.datetime = QtWidgets.QDateTimeEdit(self)
-        self.datetime.setCalendarPopup(True)
         self.datetime.setDisplayFormat('yyyy-MM-dd hh:mm:ss')
         layout.addWidget(self.datetime)
 

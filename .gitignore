@@ -1,0 +1,5 @@
+*.pyc
+*.idea
+*.ini
+lazylystArchiveMeta.npy
+lazylystArchiveTimes.npy

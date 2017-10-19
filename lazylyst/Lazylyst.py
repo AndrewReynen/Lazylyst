@@ -1018,7 +1018,10 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
     # Update the map with the new station metadata
     def updateStaMeta(self):
         # Load in the new station metadata
-        self.hotVar['staXml'].val=readInventory(self.hotVar['staFile'].val)
+        if self.hotVar['staFile'].val.replace(' ','')=='':
+            self.hotVar['staXml'].val=initHotVar()['staXml'].val
+        else:
+            self.hotVar['staXml'].val=readInventory(self.hotVar['staFile'].val)
         self.updateStaLoc()
         # Reset any additional map related visuals
         defaultHot=initHotVar()

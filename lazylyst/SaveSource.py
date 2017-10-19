@@ -23,6 +23,9 @@ class SaveSource(object):
                          ['pick directory',self.pickDir],
                          ['station file',self.staFile]]:
             if not os.path.exists(path):
+                # Allow for no station file to be read
+                if txt=='station file' and path.replace(' ','')=='':
+                    continue
                 print('The '+txt+' does not exist at: '+path)
                 allPathsExist=False
         return allPathsExist
@@ -82,7 +85,7 @@ class CsDialog(QtWidgets.QDialog, Ui_CsDialog):
     # Using the current text
     def addSavedSource(self):
         source=self.curSource()
-        for text in [source.tag,source.archDir,source.pickDir,source.staFile]:
+        for text in [source.tag,source.archDir,source.pickDir]:
             if text.replace(' ','')=='':
                 print('Fill in the source information to save')
                 return

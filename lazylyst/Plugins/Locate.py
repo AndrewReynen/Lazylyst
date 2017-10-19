@@ -54,7 +54,10 @@ def simpleLocator(pickSet,staLoc,mapCurEve,staSort,sourceTag,staProjStyle):
     if len(pickSet)>=4:
         pickSet=pickSet[np.where((pickSet[:,1]=='P')|(pickSet[:,1]=='S'))]
     # Set up the pen assignment arrays
-    traceBgPenAssign={'noStaData':[sta for sta in staSort if sta not in staLoc[:,0]]}
+    if len(staLoc)==0:
+        traceBgPenAssign={'noStaData':list(staSort)}
+    else:
+        traceBgPenAssign={'noStaData':[sta for sta in staSort if sta not in staLoc[:,0]]}
     if len(staSort)==0:
         mapStaPenAssign={'noTraceData':[row[0] for row in staLoc]}
     else:
