@@ -51,8 +51,48 @@ class TimeAxisItemArchive(pg.AxisItem):
     def tickStrings(self, values, scale, spacing):
         return [UTCDateTime(value).strftime(self.unitStrs[self.unitIdx]) for value in values]
 
+# Function called to display date time text on widget
+def showHoverText(self,pixPoint):
+    mousePoint=self.pltItem.vb.mapSceneToView(pixPoint)
+    if np.isnan(mousePoint.x()):
+        return
+    self.hoverTimeItem.setText(str(UTCDateTime(Decimal(mousePoint.x()))))
+    t1,t2=self.getPlotItem().vb.viewRange()[0]
+    if t2<=1:
+        return
+    self.hoverTimeItem.setPos(t1+(t2-t1)*0.5,0)
+    self.hoverTimeItem.show() 
+    
+# Hide the date time text when not hovering over widget
+def hideHoverText(self,ev):
+    super(pg.PlotWidget, self).leaveEvent(ev)
+    self.hoverTimeItem.hide()
+    
+# Add a new pick file with the center mouse button
+def addNewPickFile(self, ev):
+    super(pg.PlotWidget, self).mouseDoubleClickEvent(ev)
+    self.newEveTime=self.pltItem.vb.mapSceneToView(ev.pos()).x()
+    self.addNewEventSignal.emit()
+    
+# Initiate common functions between the archiveEvent and archiveSpan widgets
+def addArchiveWidgetElements(self):
+    # Create text item
+    self.hoverTimeItem=pg.TextItem(text='',anchor=(0.5,1))
+    self.hoverTimeItem.setZValue(5)
+    self.hoverTimeItem.hide()
+    self.addItem(self.hoverTimeItem)
+    # Add the show text function
+    self.scene().sigMouseMoved.connect(lambda pixPoint:showHoverText(self,pixPoint))
+    # Add the hide text function
+    self.leaveEvent=lambda ev:hideHoverText(self,ev)
+    
+    # Add ability to add empty pick files if double clicked
+    self.mouseDoubleClickEvent=lambda ev:addNewPickFile(self,ev)
+    
 # Widget for seeing what data times are available, and sub-selecting pick files
 class ArchiveSpanWidget(pg.PlotWidget):
+    addNewEventSignal=QtCore.pyqtSignal()
+    
     def __init__(self, parent=None):
         super(ArchiveSpanWidget, self).__init__(parent,axisItems={'bottom': TimeAxisItemArchive(orientation='bottom')})
         self.pltItem=self.getPlotItem()
@@ -74,6 +114,8 @@ class ArchiveSpanWidget(pg.PlotWidget):
         # No y-axis panning or zooming allowed
         self.pltItem.vb.setMouseEnabled(y=False)
         self.pltItem.setYRange(0,1)
+        # Give some text upon hovering, and allow events to be added on double clicking
+        addArchiveWidgetElements(self)
         
     # Return the span bounds
     def getSpanBounds(self):
@@ -117,10 +159,9 @@ class ArchiveSpanWidget(pg.PlotWidget):
         self.addItem(item)      
         
 # Graphview widget which holds all current pick files
-class ArchiveEventWidget(pg.PlotWidget):
-    # Assign some signals when clicked
-    addNewEventSignal = QtCore.pyqtSignal()  
-
+class ArchiveEventWidget(pg.PlotWidget): 
+    addNewEventSignal=QtCore.pyqtSignal()
+    
     def __init__(self, parent=None):
         super(ArchiveEventWidget, self).__init__(parent)
         self.pltItem=self.getPlotItem()
@@ -137,29 +178,8 @@ class ArchiveEventWidget(pg.PlotWidget):
         self.pltItem.vb.setMouseEnabled(x=False,y=False)
         self.curEveLine=None # For the highlighted event
         self.otherEveLine=None # For all other events
-        # Give some text upon hovering
-        self.scene().sigMouseMoved.connect(self.onHover)
-        self.hoverTimeItem=pg.TextItem(text='',anchor=(0.5,1))
-        self.hoverTimeItem.setZValue(5)
-        self.hoverTimeItem.hide()
-        self.addItem(self.hoverTimeItem)
-        
-    # Update the mouse position text
-    def onHover(self,pixPoint):
-        mousePoint=self.pltItem.vb.mapSceneToView(pixPoint)
-        if np.isnan(mousePoint.x()):
-            return
-        self.hoverTimeItem.setText(str(UTCDateTime(Decimal(mousePoint.x()))))
-        t1,t2=self.getPlotItem().vb.viewRange()[0]
-        if t2<=1:
-            return
-        self.hoverTimeItem.setPos(t1+(t2-t1)*0.5,0)
-        self.hoverTimeItem.show()
-        
-    # Turn off the time when not hovering
-    def leaveEvent(self,ev):
-        super(ArchiveEventWidget, self).leaveEvent(ev)
-        self.hoverTimeItem.hide()
+        # Give some text upon hovering, and allow events to be added on double clicking
+        addArchiveWidgetElements(self)
     
     # Scale to where ever the archiveSpan has selected
     def updateXRange(self,linkWidget):
@@ -168,13 +188,6 @@ class ArchiveEventWidget(pg.PlotWidget):
     # Disable any scroll in/scroll out motions
     def wheelEvent(self,ev):
         return
-        
-    # Add a new pick file with the center mouse button
-    def mouseDoubleClickEvent(self, ev):
-        super(ArchiveEventWidget, self).mouseDoubleClickEvent(ev)
-        aPos=self.pltItem.vb.mapSceneToView(ev.pos())
-        self.newEveTime=aPos.x()
-        self.addNewEventSignal.emit()
     
     # Reset the event lines, given a new set of event times
     def updateEveLines(self,fileTimes,curFile):
@@ -749,13 +762,14 @@ class ImageWidget(pg.PlotWidget):
         self.pltItem.getAxis('left').setZValue(1)
         # Give some x-limits (do not go prior/after to 1970/2200)
         self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
-        # No y-axis panning or zooming allowed
-        self.pltItem.vb.setMouseEnabled(y=False)
         # Create a blank image item
         self.imageItem=pg.ImageItem()
         self.addItem(self.imageItem)
         self.prevPosX,self.prevScaleX=0,1
         self.prevPosY,self.prevScaleY=0,1
+        # Give the image a border
+        self.imageBorder=pg.QtGui.QGraphicsRectItem(-1,-1,0.1,0.1)
+        self.addItem(self.imageBorder)
         
     # Update the image on this widget
     def loadImage(self,imgDict):
@@ -774,8 +788,11 @@ class ImageWidget(pg.PlotWidget):
         # Set the coloring
         lut=self.getLUT(imgDict['data'],imgDict['cmapPos'],imgDict['cmapRGBA']) 
         self.imageItem.setLookupTable(lut)
-        # Set Y-limit to bound the image
-        self.setYRange(imgDict['y0'],imgDict['data'].shape[0]*imgDict['yDelta'],padding=0.0)
+        # Update image boundary
+        xSize,ySize=np.array([imgDict['tDelta'],imgDict['yDelta']])*imgDict['data'].T.shape
+        self.imageBorder.setRect(imgDict['t0'],imgDict['y0'],xSize,ySize)
+        # Set default Y-limit to zoom to the image
+        self.setYRange(imgDict['y0'],ySize,padding=0.0)
         # Apply the label
         self.pltItem.setLabel(axis='left',text=imgDict['label'])
     

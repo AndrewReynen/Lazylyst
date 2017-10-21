@@ -67,8 +67,8 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.archiveSpanT0Label.doubleClicked.connect(lambda: self.setSpanBoundViaDialog('T0'))
         self.archiveSpanT1Label.doubleClicked.connect(lambda: self.setSpanBoundViaDialog('T1'))
         # Give ability to the archive displays
-        self.archiveList.graph=self.archiveEvent
-        self.archiveList.graph.addNewEventSignal.connect(lambda: self.addPickFile(self.archiveList.graph.newEveTime))
+        self.archiveEvent.addNewEventSignal.connect(lambda: self.addPickFile(self.archiveEvent.newEveTime))
+        self.archiveSpan.addNewEventSignal.connect(lambda: self.addPickFile(self.archiveSpan.newEveTime))
         self.archiveList.doubleClicked.connect(self.archiveListDoubleClickEvent)
         self.archiveListLineEdit.editingFinished.connect(self.updateArchiveSpanList)
         # Give ability to the map
@@ -482,7 +482,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             # ...let user know otherwise
             else:
                 print('No data extracted from archive for curPickFile')
-        # ...Otherwise load the default hot variables values, and reset values relating to curPickFile
+        # ...Otherwise reset hot variable values relating to curPickFile
         else:
             defaultHot=initHotVar()
             for key in ['stream','pltSt','staSort','pickSet','curTraceSta','curTracePos']:
@@ -828,6 +828,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
                          ['traceBackground',self.updateTraceBackground],
                          ['timeBackground',self.updateTimeBackground],
                          ['imageBackground',self.updateImageBackground],
+                         ['imageBorder',self.updateImageBorderPen],
                          ['mapBackground',self.updateMapBackground],
                          ['mapStaDefault',self.updateMapStations],
                          ['mapCurEve',self.updateMapCurEvePen],
@@ -882,6 +883,16 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
     def updateMapBackground(self,init=False):
         col=QtGui.QColor(self.pref['basePen'].val['mapBackground'][0])
         self.mapWidget.setBackground(col)
+    
+    # Update the border to the image
+    def updateImageBorderPen(self,init=False):
+        col,width,depth=self.pref['basePen'].val['imageBorder'][0:3]
+        self.imageWidget.imageBorder.setPen(mkPen(QtGui.QColor(col),width=width))
+        self.imageWidget.imageBorder.setZValue(depth)
+        if width==0:
+            self.imageWidget.imageBorder.hide()
+        else:
+            self.imageWidget.imageBorder.show()
     
     # Update the color of all of the station spots, with user specified colors
     def updateMapStations(self,init=False):
@@ -1245,9 +1256,12 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.pref=defaultPreferences(self)
         prefVals=self.setPref.value('prefVals',{})
         for aKey in prefVals.keys():
-            # ...skip if this preference was removed in a newer version
+            # Skip if this preference was removed in a newer version
             if aKey not in self.pref.keys():
                 continue
+            # Add default base color preferences not previously seen
+            if aKey=='basePen':
+                prefVals[aKey].update({oKey:self.pref[aKey].val[oKey] for oKey in self.pref[aKey].val.keys() if oKey not in prefVals[aKey].keys()})
             self.pref[aKey].val=prefVals[aKey]
         # Saved sources
         self.saveSource=self.setSource.value('savedSources',{})

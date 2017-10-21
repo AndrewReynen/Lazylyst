@@ -43,6 +43,7 @@ def defaultPreferences(main):
                                       'traceBackground':[0,1.0,0.0,False],
                                       'timeBackground':[0,1.0,0.0,False],
                                       'imageBackground':[0,1.0,0.0,False],
+                                      'imageBorder':[16777215,2.0,-1.0,False],
                                       'mapBackground':[0,1.0,0.0,False],
                                       'mapStaDefault':[16777215,4.0,0.0,False],
                                       'mapCurEve':[16776960,3.0,2.0,False],
