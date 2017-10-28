@@ -859,6 +859,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         # Change the hovered station and time label colors
         self.mapWidget.hoverStaItem.setColor(col)
         self.archiveEvent.hoverTimeItem.setColor(col)
+        self.archiveSpan.hoverTimeItem.setColor(col)
         # Change pick file title color
         title=self.timeWidget.getPlotItem().titleLabel.text
         self.timeWidget.getPlotItem().titleLabel.setText(title,color=col)  
