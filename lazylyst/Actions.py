@@ -215,7 +215,8 @@ class Action(object):
                     else:
                         importlib.reload(mod)
                 func=getattr(mod,self.name)
-            except:
+            except Exception as error:
+                print(error)
                 print('Action '+self.tag+' did not load from '+self.path+'.'+self.name)
                 return
         # Otherwise, grab function from predefined location
