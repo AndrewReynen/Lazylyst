@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# Version 0.5.9
 # Author: Andrew.M.G.Reynen
 from __future__ import print_function, division
 import sys
@@ -7,11 +6,13 @@ import logging
 import sip
 import os
 import time
+import ctypes
 from future.utils import iteritems
 from fnmatch import fnmatch
 from copy import deepcopy
 sip.setapi('QVariant', 2)
 sip.setapi('QString', 2)
+__version__='0.6.0'
 
 import numpy as np
 from PyQt5 import QtWidgets,QtGui,QtCore
@@ -1360,8 +1361,13 @@ def runLazylyst():
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
     # Start up the UI
-    app = QtWidgets.QApplication(sys.argv)
+    app=QtWidgets.QApplication(sys.argv)
     window = LazylystMain()
+    app.setWindowIcon(QtGui.QIcon('./Resources/LazyPenguin_64x64.png'))
+    window.setWindowIcon(QtGui.QIcon('./Resources/LazyPenguin_64x64.png'))
+    if os.name=='nt':
+        myappid = u'yarp.lazylyst.'+__version__
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
     window.show()
     sys.exit(app.exec_())
 

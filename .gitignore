@@ -1,7 +1,6 @@
 *.pyc
 *.idea
 *.ini
-*.png
 Screenshots
 lazylystArchiveMeta.npy
 lazylystArchiveTimes.npy
