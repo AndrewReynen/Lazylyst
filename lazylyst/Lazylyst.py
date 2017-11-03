@@ -1364,7 +1364,6 @@ def runLazylyst():
     app=QtWidgets.QApplication(sys.argv)
     window = LazylystMain()
     app.setWindowIcon(QtGui.QIcon('./Resources/LazyPenguin_64x64.png'))
-    window.setWindowIcon(QtGui.QIcon('./Resources/LazyPenguin_64x64.png'))
     if os.name=='nt':
         myappid = u'yarp.lazylyst.'+__version__
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
