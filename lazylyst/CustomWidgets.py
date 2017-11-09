@@ -345,6 +345,7 @@ class PickLine(pg.InfiniteLine):
         self.setValue(aTime)
         self.setZValue(depth)
         self.setPen(col,width=width)
+        self.setVisible(width!=0)
 
 # Plot curve item, but now with reference to the channel
 class TraceCurve(pg.PlotCurveItem):
