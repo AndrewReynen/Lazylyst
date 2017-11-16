@@ -12,7 +12,8 @@ from fnmatch import fnmatch
 from copy import deepcopy
 sip.setapi('QVariant', 2)
 sip.setapi('QString', 2)
-__version__='0.6.0'
+sys.path.insert(0,os.path.dirname(os.path.realpath(__file__)))
+__version__='0.6.1'
 
 import numpy as np
 from PyQt5 import QtWidgets,QtGui,QtCore
@@ -48,6 +49,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
     def tweakUi(self):
         self.traceLayout.setContentsMargins(0,0,0,0)
         self.timeImageLayout.setContentsMargins(0,0,0,0)
+        self.setWindowTitle('Lazylyst '+__version__)
      
     # Go through all preferences, and call their update functions
     def applyPreferences(self):
@@ -1363,6 +1365,7 @@ def runLazylyst():
     # Start up the UI
     app=QtWidgets.QApplication(sys.argv)
     window = LazylystMain()
+    # Give an icon for the UI
     app.setWindowIcon(QtGui.QIcon('./Resources/LazyPenguin_64x64.png'))
     if os.name=='nt':
         myappid = u'yarp.lazylyst.'+__version__

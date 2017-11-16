@@ -2,6 +2,8 @@ from distutils.core import setup
 import inspect
 import os
 
+from lazylyst.Lazylyst import __version__
+
 SETUP_DIRECTORY = os.path.dirname(os.path.abspath(inspect.getfile(
     inspect.currentframe())))
 
@@ -15,12 +17,12 @@ def find_packages():
 
 setup(
   name = 'lazylyst',
-  version = '0.4.6',
+  version = __version__,
   description = 'GUI for timeseries review with a focus on seismology',
   author = 'Andrew Reynen',
   author_email = 'andrew.m.g.reynen@gmail.com',
   url = 'https://github.com/AndrewReynen/Lazylyst', 
-  download_url = 'https://github.com/AndrewReynen/Lazylyst/archive/0.4.6.tar.gz', 
+  download_url = 'https://github.com/AndrewReynen/Lazylyst/archive/'+__version__+'.tar.gz', 
   keywords = ['seismology', 'timeseries', 'picking', 'pyqtgraph'], 
   classifiers = [],
   packages=find_packages(),
