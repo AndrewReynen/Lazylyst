@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>871</width>
-    <height>785</height>
+    <height>527</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -66,7 +66,16 @@
      <property name="spacing">
       <number>0</number>
      </property>
-     <property name="margin">
+     <property name="leftMargin">
+      <number>0</number>
+     </property>
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <property name="rightMargin">
+      <number>0</number>
+     </property>
+     <property name="bottomMargin">
       <number>0</number>
      </property>
      <item>
@@ -165,7 +174,16 @@
      <property name="spacing">
       <number>1</number>
      </property>
-     <property name="margin">
+     <property name="leftMargin">
+      <number>0</number>
+     </property>
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <property name="rightMargin">
+      <number>0</number>
+     </property>
+     <property name="bottomMargin">
       <number>0</number>
      </property>
      <item>
@@ -236,7 +254,16 @@
      <property name="spacing">
       <number>1</number>
      </property>
-     <property name="margin">
+     <property name="leftMargin">
+      <number>0</number>
+     </property>
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <property name="rightMargin">
+      <number>0</number>
+     </property>
+     <property name="bottomMargin">
       <number>0</number>
      </property>
      <item>
@@ -284,7 +311,16 @@
      <property name="spacing">
       <number>1</number>
      </property>
-     <property name="margin">
+     <property name="leftMargin">
+      <number>0</number>
+     </property>
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <property name="rightMargin">
+      <number>0</number>
+     </property>
+     <property name="bottomMargin">
       <number>0</number>
      </property>
      <item>
@@ -454,7 +490,16 @@
    </attribute>
    <widget class="QWidget" name="traceViewLayout">
     <layout class="QVBoxLayout" name="verticalLayout_4">
-     <property name="margin">
+     <property name="leftMargin">
+      <number>0</number>
+     </property>
+     <property name="topMargin">
+      <number>0</number>
+     </property>
+     <property name="rightMargin">
+      <number>0</number>
+     </property>
+     <property name="bottomMargin">
       <number>0</number>
      </property>
      <item>
@@ -548,22 +593,22 @@
   <customwidget>
    <class>TimeWidget</class>
    <extends>QGraphicsView</extends>
-   <header>CustomWidgets.h</header>
+   <header>TemporalWidgets.h</header>
   </customwidget>
   <customwidget>
    <class>ArchiveSpanWidget</class>
    <extends>QGraphicsView</extends>
-   <header>CustomWidgets.h</header>
+   <header>TemporalWidgets.h</header>
   </customwidget>
   <customwidget>
    <class>ArchiveListWidget</class>
    <extends>QListWidget</extends>
-   <header>CustomWidgets.h</header>
+   <header>TemporalWidgets.h</header>
   </customwidget>
   <customwidget>
    <class>ArchiveEventWidget</class>
    <extends>QGraphicsView</extends>
-   <header>CustomWidgets.h</header>
+   <header>TemporalWidgets.h</header>
   </customwidget>
   <customwidget>
    <class>DblClickLabelWidget</class>
@@ -573,12 +618,12 @@
   <customwidget>
    <class>MapWidget</class>
    <extends>QGraphicsView</extends>
-   <header>CustomWidgets.h</header>
+   <header>MapWidgets.h</header>
   </customwidget>
   <customwidget>
    <class>ImageWidget</class>
    <extends>QGraphicsView</extends>
-   <header>CustomWidgets.h</header>
+   <header>TemporalWidgets.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

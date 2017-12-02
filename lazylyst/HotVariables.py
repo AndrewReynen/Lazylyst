@@ -98,6 +98,9 @@ def initHotVar():
                    tip='Currently plotted image on the image widget'),
     'customDict':HotVar(tag='customDict',val={},dataType=dict,
                         tip='Dictionary to hold arbitrary variables'),
+    'sourceDict':HotVar(tag='sourceDict',val={},dataType=dict,
+                        checkName='checkSourceDict',
+                        tip='Dictionary to hold source specific variables'),
     'afkTime':HotVar(tag='afkTime',val=0,dataType=float,returnable=False,
                         tip='Time in seconds since last user interaction'),
     }
@@ -135,23 +138,17 @@ class HotVar(object):
         
     # Call the specified function to update the hot variable value
     def update(self):
-        if self.func==None:
+        if self.func is None:
             return
         self.func()
-    
-    # Call the check function to ensure the proposed return value makes sense
-    def check(self,main):
-        if self.check==None:
-            return True
-        return self.check(main)
     
     # Link a hot variable to its pre-defined update and check functions
     def linkToFunction(self,main):
         # If there is no update function, skip
-        if self.funcName==None:
+        if self.funcName is None and self.checkName is None:
             return
         # Link to the check function first (if present)
-        if self.checkName==None:
+        if self.checkName is None:
             linkCheck=True
         else:
             try:
@@ -160,8 +157,8 @@ class HotVar(object):
             except:
                 linkCheck=False
                 print(self.tag+' check function did not load from $main.'+self.checkName)
-        # If the link to the check function passed, link to the update function
-        if linkCheck:
+        # If the link to the check function passed, link to the update function (if present)
+        if linkCheck and self.funcName is not None:
             try:
                 self.func=getattr(main,self.funcName)
             except:
@@ -220,6 +217,25 @@ def checkSourceTag(main,tag):
     if tag not in main.saveSource.keys():
         print('The sourceTag '+tag+' is not currently a saved source')
         return False
+    return True
+
+# Ensure that the source dictionary contains only dictionaries, and its values are accepted
+def checkSourceDict(main,sourceDict):
+    for groupName in sourceDict.keys():
+        # Entries must also be dictionaries
+        if type(sourceDict[groupName])!=dict:
+            print('The sourceDict had a group which was not a dictionary')
+            return False
+        for varName,varVal in iteritems(sourceDict[groupName]):
+            # Check that value is in supported types
+            if type(varVal) not in [str,int,float,type(np.array([]))]:
+                print('The sourceDict had a value "'+str(varName)+'" with type not in [str,int,float,numpy.array]')
+                return False
+            # If it is a numpy array, check that it is less than 2 dimensions
+            elif type(varVal)==type(np.array([])):
+                if len(varVal.shape)>1:
+                    print('sourceDict currently only support numpy arrays that are 0 or 1 dimensional')
+                    return False
     return True
 
 # Ensure that the supplied pick directory actually exists (make one if it does not)

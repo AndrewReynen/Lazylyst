@@ -280,4 +280,6 @@ class Ui_MainWindow(object):
         self.archiveViewDock.setWindowTitle(_translate("MainWindow", "Archive View"))
         self.traceViewDock.setWindowTitle(_translate("MainWindow", "Trace View"))
 
-from CustomWidgets import ArchiveEventWidget, ArchiveListWidget, ArchiveSpanWidget, DblClickLabelWidget, ImageWidget, MapWidget, TimeWidget
+from CustomWidgets import DblClickLabelWidget
+from MapWidgets import MapWidget
+from TemporalWidgets import ArchiveEventWidget, ArchiveListWidget, ArchiveSpanWidget, ImageWidget, TimeWidget

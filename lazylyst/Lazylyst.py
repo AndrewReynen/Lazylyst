@@ -13,7 +13,7 @@ from copy import deepcopy
 sip.setapi('QVariant', 2)
 sip.setapi('QString', 2)
 sys.path.insert(0,os.path.dirname(os.path.realpath(__file__)))
-__version__='0.6.1'
+__version__='0.7.0'
 
 import numpy as np
 from PyQt5 import QtWidgets,QtGui,QtCore
@@ -22,7 +22,8 @@ from pyqtgraph import mkPen, mkBrush
 from obspy import UTCDateTime
 
 from MainWindow import Ui_MainWindow
-from CustomWidgets import TraceWidget, keyPressToString
+from CustomWidgets import keyPressToString
+from TemporalWidgets import TraceWidget
 from CustomFunctions import getTimeFromFileName,getStaStr
 from HotVariables import initHotVar
 from Preferences import defaultPreferences, DateDialog
@@ -369,7 +370,8 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         if source.pathExist():
             for key,val in [['archDir',source.archDir],
                             ['pickDir',source.pickDir],
-                            ['staFile',source.staFile]]:
+                            ['staFile',source.staFile],
+                            ['sourceDict',source.sourceDict]]:
                 self.hotVar[key].val=val
                 self.hotVar[key].update()
         else:

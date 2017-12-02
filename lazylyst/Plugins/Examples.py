@@ -146,3 +146,9 @@ def testMatplotlib():
     plt.ion()
     plt.plot([1,2],[1,2])
     plt.show()
+    
+# Edit the source dictionary
+def editSourceDict(sourceDict):
+    sourceDict['aGroup']={'newVal':np.array([0,0,99,99.999]),
+                          'aaa':'haha'}
+    return sourceDict

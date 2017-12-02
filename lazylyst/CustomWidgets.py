@@ -1,452 +1,9 @@
 # Author: Andrew.M.G.Reynen
 from __future__ import print_function, division
-from decimal import Decimal
 
 import numpy as np
-from obspy import UTCDateTime
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import Qt
-import pyqtgraph as pg
-
-from CustomFunctions import getTimeFromFileName
-
-# Custom axis labels for the archive widget
-class TimeAxisItemArchive(pg.AxisItem):
-    def __init__(self, *args, **kwargs):
-        super(TimeAxisItemArchive, self).__init__(*args, **kwargs)
-        # Some nice units with respect to time
-        self.units=np.array([60,
-                             120,300,600,1800,3600,7200,
-                             3600*6,3600*24,3600*48,3600*24*5,3600*24*31,3600*24*180],dtype=float)
-        self.unitIdxs=np.arange(len(self.units))
-        # What the above units should be displayed as
-        self.unitStrs=['%Hh%Mm',
-                       '%Hh%Mm','%Hh%Mm','%Hh%Mm','%Hh%Mm','%Y-%m-%d %Hh','%Y-%m-%d %Hh',
-                       '%Y-%m-%d %Hh','%Y-%m-%d','%Y-%m-%d','%Y-%m-%d','%Y-%m-%d','%Y-%m-%d']
-        self.unitIdx=0
-
-    # Customize the locations of the ticks
-    def tickValues(self, minVal, maxVal, size):
-        # How many ticks are wanted on the page
-        numTicks=float(max([int(size/225),2]))
-        # Given how big the page is, see which units to apply
-        diff=maxVal-minVal
-        self.unitIdx=int(np.interp((diff)/numTicks,self.units,self.unitIdxs))
-        unit=self.units[self.unitIdx]
-        # In the case where zoomed in way to close
-        if unit>diff:
-            return [(0.5*diff,[minVal+0.20*diff,maxVal-0.20*diff])]
-        # In the case where zoomed out very far
-        if diff/(unit*numTicks)>2:
-            unit*=int(diff/(unit*numTicks))
-        # Start at the nearest whole unit
-        val=minVal-minVal%unit+unit
-        ticks=[]
-        while val<maxVal:
-            ticks.append(val)
-            val+=unit
-        return [(unit,ticks)]
-
-    # Customize what string are being shown
-    def tickStrings(self, values, scale, spacing):
-        return [UTCDateTime(value).strftime(self.unitStrs[self.unitIdx]) for value in values]
-
-# Function called to display date time text on widget
-def showHoverText(self,pixPoint):
-    mousePoint=self.pltItem.vb.mapSceneToView(pixPoint)
-    if np.isnan(mousePoint.x()):
-        return
-    self.hoverTimeItem.setText(str(UTCDateTime(Decimal(mousePoint.x()))))
-    t1,t2=self.getPlotItem().vb.viewRange()[0]
-    if t2<=1:
-        return
-    self.hoverTimeItem.setPos(t1+(t2-t1)*0.5,0)
-    self.hoverTimeItem.show() 
-    
-# Hide the date time text when not hovering over widget
-def hideHoverText(self,ev):
-    super(pg.PlotWidget, self).leaveEvent(ev)
-    self.hoverTimeItem.hide()
-    
-# Add a new pick file with the center mouse button
-def addNewPickFile(self, ev):
-    super(pg.PlotWidget, self).mouseDoubleClickEvent(ev)
-    self.newEveTime=self.pltItem.vb.mapSceneToView(ev.pos()).x()
-    self.addNewEventSignal.emit()
-    
-# Initiate common functions between the archiveEvent and archiveSpan widgets
-def addArchiveWidgetElements(self):
-    # Create text item
-    self.hoverTimeItem=pg.TextItem(text='',anchor=(0.5,1))
-    self.hoverTimeItem.setZValue(5)
-    self.hoverTimeItem.hide()
-    self.addItem(self.hoverTimeItem)
-    # Add the show text function
-    self.scene().sigMouseMoved.connect(lambda pixPoint:showHoverText(self,pixPoint))
-    # Add the hide text function
-    self.leaveEvent=lambda ev:hideHoverText(self,ev)
-    
-    # Add ability to add empty pick files if double clicked
-    self.mouseDoubleClickEvent=lambda ev:addNewPickFile(self,ev)
-    
-# Widget for seeing what data times are available, and sub-selecting pick files
-class ArchiveSpanWidget(pg.PlotWidget):
-    addNewEventSignal=QtCore.pyqtSignal()
-    
-    def __init__(self, parent=None):
-        super(ArchiveSpanWidget, self).__init__(parent,axisItems={'bottom': TimeAxisItemArchive(orientation='bottom')})
-        self.pltItem=self.getPlotItem()
-        self.pltItem.setMenuEnabled(enableMenu=False)
-        # Turn off the auto ranging
-        self.pltItem.vb.disableAutoRange()
-        # Don't plot anything outside of the plot limits
-        self.pltItem.setClipToView(True)
-        # Only show the bottom axis
-        self.pltItem.hideAxis('left')
-        self.pltItem.hideButtons()
-        # Give this widget a span select, for zooming
-        self.span = pg.LinearRegionItem([500,1000])
-        self.addItem(self.span)
-        # Give a name to the data availability regions
-        self.boxes=[]
-        # Give some x-limits (do not go prior/after to 1970/2200)
-        self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
-        # No y-axis panning or zooming allowed
-        self.pltItem.vb.setMouseEnabled(y=False)
-        self.pltItem.setYRange(0,1)
-        # Give some text upon hovering, and allow events to be added on double clicking
-        addArchiveWidgetElements(self)
-        
-    # Return the span bounds
-    def getSpanBounds(self):
-        t1,t2=self.span.getRegion()
-        return UTCDateTime(t1),UTCDateTime(t2)
-    
-    # Disable any scroll in/scroll out motions
-    def wheelEvent(self,ev):
-        return
-        
-    # Update the boxes representing the times
-    def updateBoxes(self,ranges,penInt):
-        # Remove the previous boxes
-        for item in self.boxes:
-            self.removeItem(item)
-        self.boxes=[]
-        # Skip, if no ranges to add
-        if len(ranges)==0:
-            return
-        # Try to merge these ranges (less lines)...
-        # ...sort first by range start values
-        ranges=np.array(ranges)
-        ranges=ranges[np.argsort(ranges[:,0])]
-        merge=[ranges[0]]
-        for rng in ranges:
-            # In the case they do not overlap
-            if rng[0]>merge[-1][1]:
-                merge.append(rng)
-            # If overlaping, and the new range extends further, push it
-            elif rng[1]>merge[-1][1]:
-                merge[-1][1]=rng[1]
-        merge=np.array(merge)
-        # Plot these efficiently (one disconnected line, rather than many lines)
-        connect = np.ones((len(merge), 2), dtype=np.ubyte)
-        connect[:,-1] = 0  #  disconnect segment between lines
-        path = pg.arrayToQPath(merge.reshape(len(merge)*2), np.ones((len(merge)*2))*0.5, connect.reshape(len(merge)*2))
-        item = pg.QtGui.QGraphicsPathItem(path)
-        item.setPen(pg.mkPen(QtGui.QColor(penInt)))
-        # Add in the new box
-        self.boxes.append(item)
-        self.addItem(item)      
-        
-# Graphview widget which holds all current pick files
-class ArchiveEventWidget(pg.PlotWidget): 
-    addNewEventSignal=QtCore.pyqtSignal()
-    
-    def __init__(self, parent=None):
-        super(ArchiveEventWidget, self).__init__(parent)
-        self.pltItem=self.getPlotItem()
-        self.pltItem.setMenuEnabled(enableMenu=False)
-        # Don't plot anything outside of the plot limits
-        self.pltItem.setClipToView(True)
-        # Do not show any axes
-        self.pltItem.hideAxis('left')
-        self.pltItem.hideAxis('bottom')
-        self.pltItem.hideButtons()
-        # Give some x-limits (do not go prior/after to 1970/2200)
-        self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp,yMin=-0.3,yMax=1.3)
-        # Disable all panning and zooming
-        self.pltItem.vb.setMouseEnabled(x=False,y=False)
-        self.curEveLine=None # For the highlighted event
-        self.otherEveLine=None # For all other events
-        # Give some text upon hovering, and allow events to be added on double clicking
-        addArchiveWidgetElements(self)
-    
-    # Scale to where ever the archiveSpan has selected
-    def updateXRange(self,linkWidget):
-        self.setXRange(*linkWidget.getRegion(), padding=0)
-        
-    # Disable any scroll in/scroll out motions
-    def wheelEvent(self,ev):
-        return
-    
-    # Reset the event lines, given a new set of event times
-    def updateEveLines(self,fileTimes,curFile):
-        # Remove the not-current event lines
-        if self.otherEveLine!=None:
-            self.removeItem(self.otherEveLine)
-            self.otherEveLine=None
-        # Generate the many pick lines as one disconnected line
-        if len(fileTimes)!=0:
-            fileTimes=np.reshape(fileTimes,(len(fileTimes),1))
-            times=np.hstack((fileTimes,fileTimes))
-            connect = np.ones((len(times), 2), dtype=np.ubyte)
-            connect[:,-1] = 0  #  disconnect segment between lines
-            connect=connect.reshape(len(times)*2)
-            path = pg.arrayToQPath(times.reshape(len(times)*2),connect,connect)
-            item = pg.QtGui.QGraphicsPathItem(path)
-            # Reference and plot the line
-            self.otherEveLine=item
-            self.addItem(item)
-        # Generate and plot the current pick file (if present)
-        self.updateEveLineSelect(curFile)
-    
-    # Update the current event line to proper position, and appropriate color
-    def updateEveLineSelect(self,curFile):
-        # Remove this line if no current file
-        if self.curEveLine!=None:
-            self.removeItem(self.curEveLine)
-            self.curEveLine=None
-        # Add the line if a pick file is selected
-        if curFile!='':
-            t=getTimeFromFileName(curFile)
-            line=pg.InfiniteLine(pos=t,pen=pg.mkPen(QtGui.QColor(0)))
-            # Reference and plot the line
-            self.curEveLine=line
-            self.addItem(line)
-            
-    # Update the color, width and depth of an event line
-    def updateEvePens(self,evePen,eveType):
-        col,width,dep=evePen
-        col=QtGui.QColor(QtGui.QColor(col))
-        if eveType=='cur':
-            item=self.curEveLine
-        else:
-            item=self.otherEveLine
-        if item!=None:
-            item.setPen(pg.mkPen(col,width=width))
-            item.setZValue(dep)
-
-# List widget which holds all current pick files
-class ArchiveListWidget(QtWidgets.QListWidget):       
-    def __init__(self, parent=None):
-        super(ArchiveListWidget, self).__init__(parent)
-        
-    # Return the list entries in the order which it appears
-    def visualListOrder(self):
-        aList=np.array([self.item(i).text() for i in range(self.count())])
-        args=np.array([self.indexFromItem(self.item(i)).row() for i in range(self.count())])
-        return [str(aFile) for aFile in aList[np.argsort(args)]]
-        
-    # Ensure that key presses are sent to the widget which the mouse is hovering over
-    def enterEvent(self,ev):
-        super(ArchiveListWidget, self).enterEvent(ev)
-        self.setFocus()
-        
-    # Exit focus when the list widget is left
-    def leaveEvent(self,ev):
-        super(ArchiveListWidget, self).leaveEvent(ev)
-        self.clearFocus()
-        
-# Custom axis labels for the time widget        
-class TimeAxisItem(pg.AxisItem):
-    def __init__(self, *args, **kwargs):
-        super(TimeAxisItem, self).__init__(*args, **kwargs)
-        # Some nice units with respect to time
-        self.units=np.array([10**-6,10**-5,10**-4,10**-3,10**-2,10**-1,
-                             1,2,5,10,30,60,
-                             120,300,600,1800,3600,7200,
-                             3600*6,3600*24,3600*48,3600*24*5,3600*24*31,3600*24*180],dtype=float)
-        self.unitIdxs=np.arange(len(self.units))
-        # What the above units should be displayed as
-        self.unitStrs=['%S.%fs','%S.%fs','%S.%fs','%S.%fs','%S.%fs','%S.%fs',
-                       '%S.%fs','%S.%fs','%Mm%Ss','%Mm%Ss','%Mm%Ss','%Mm%Ss',
-                       '%Mm%Ss','%Hh%Mm','%Hh%Mm','%dd %Hh%Mm','%dd %Hh%Mm','%dd %Hh%Mm',
-                       '%m-%d %Hh','%m-%d %Hh','%m-%d %Hh','%Y-%m-%d','%Y-%m-%d','%Y-%m-%d']
-        # How many characters to trim off the end of the above string
-        self.strTrim=[0,0,0,0,1,2,
-                      3,3,0,0,0,0,
-                      0,0,0,0,0,0,
-                      0,0,0,0,0,0]
-        self.unitIdx=0
-
-    # Customize the locations of the ticks
-    def tickValues(self, minVal, maxVal, size):
-        # How many ticks are wanted on the page
-        numTicks=float(max([int(size/160),2]))
-        # Given how big the page is, see which units to apply
-        diff=maxVal-minVal
-        self.unitIdx=int(np.interp((diff)/numTicks,self.units,self.unitIdxs))
-        unit=self.units[self.unitIdx]
-        # In the case where zoomed in way to close
-        if unit>diff:
-            return [(0.5*diff,[minVal+0.20*diff,maxVal-0.20*diff])]
-        # In the case where zoomed out very far
-        if diff/(unit*numTicks)>2:
-            unit*=int(diff/(unit*numTicks))
-        # Start at the nearest whole unit
-        val=minVal-minVal%unit+unit
-        ticks=[]
-        while val<maxVal:
-            ticks.append(val)
-            val+=unit
-        return [(unit,ticks)]
-
-    # Customize what string are being shown
-    def tickStrings(self, values, scale, spacing):
-        x=self.strTrim[self.unitIdx]
-        if x==0:
-            return [UTCDateTime(value).strftime(self.unitStrs[self.unitIdx]) for value in values]
-        else:
-            return [UTCDateTime(value).strftime(self.unitStrs[self.unitIdx])[:-(x+1)]+'s' for value in values]
-
-# Widget to nicely show the time axis, which is in sync with the trace data
-class TimeWidget(pg.PlotWidget):
-    def __init__(self, parent=None):
-        super(TimeWidget, self).__init__(parent,name='timeAxis',axisItems={'bottom': TimeAxisItem(orientation='bottom'),
-                                                                           'left':pg.AxisItem(orientation='left',showValues=False)})
-        self.getPlotItem().getAxis('left').setWidth(70)
-        self.getPlotItem().setMenuEnabled(enableMenu=False)
-        self.getPlotItem().hideButtons()
-        # Give some x-limits (do not go prior/after to 1970/2200)
-        self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
-        self.getPlotItem().vb.setMouseEnabled(y=False,x=False)
-        # Turn off all interaction
-        self.setEnabled(False)
-        # Give a blank title (gets rid of the y-axis)
-        self.getPlotItem().setLabels(title='')
-    
-    # Null any built in hover actions
-    def enterEvent(self,event):
-        return
-        
-    def leaveEvent(self,event):
-        return
-    
-    # Return the xmin,xmax (times) of the plot
-    def getTimeRange(self):
-        return self.getPlotItem().vb.viewRange()[0]
-
-# Infinite line, but now with reference to the pick type
-class PickLine(pg.InfiniteLine):
-    def __init__(self, aTime,aType,pen,parent=None):
-        super(PickLine, self).__init__(parent)
-        col,width,depth=pen
-        self.pickType=aType
-        self.setValue(aTime)
-        self.setZValue(depth)
-        self.setPen(col,width=width)
-        self.setVisible(width!=0)
-
-# Plot curve item, but now with reference to the channel
-class TraceCurve(pg.PlotCurveItem):
-    def __init__(self,x,y,cha,pen,dep,parent=None):
-        super(TraceCurve,self).__init__(parent)
-        self.setData(x=x,y=y,pen=pen)
-        self.cha=cha
-        self.setZValue(dep)
-        # If width of zero, do not show the curve
-        if pen.widthF()==0:
-            self.setVisible(False)
-
-# Widget which will hold the trace data, and respond to picking keybinds     
-class TraceWidget(pg.PlotWidget):
-    doubleClickSignal=QtCore.pyqtSignal()  
-    
-    def __init__(self, parent=None,sta='',hoverPos=None):
-        super(TraceWidget, self).__init__(parent)
-        self.pltItem=self.getPlotItem()
-        self.pltItem.setMenuEnabled(enableMenu=False)
-        # Speed up the panning and zooming
-        self.pltItem.setClipToView(True)
-        self.pltItem.setDownsampling(True, True, 'peak')
-        # Turn off the auto ranging
-        self.pltItem.vb.disableAutoRange()
-        # Only show the left axis
-        self.pltItem.hideAxis('bottom')
-        self.pltItem.hideButtons()
-        self.pltItem.getAxis('left').setWidth(70)
-        # Give some x-limits (do not go prior/after to 1970/2200)
-        self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
-        # Assign this widget a station
-        self.sta=sta
-        # Allow the widget to hold memory of pick lines, and traces
-        self.pickLines=[]
-        self.traceCurves=[]
-        # Set the hover position, upon hovering
-        self.scene().sigMouseMoved.connect(self.onHover)
-        self.hoverPos=hoverPos
-        # Allow this widget to be fairly small
-        sizePolicy = QtGui.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding)
-        self.setSizePolicy(sizePolicy)
-        self.setMinimumSize(QtCore.QSize(0, 15))
-        
-    # Update the mouse position
-    def onHover(self,pixPoint):
-        mousePoint=self.pltItem.vb.mapSceneToView(pixPoint)
-        self.hoverPos=Decimal(mousePoint.x()),Decimal(mousePoint.y())
-    
-    # Add a trace to the widget
-    def addTrace(self,x,y,cha,pen,dep):
-        curve=TraceCurve(x,y,cha,pen,dep)
-        self.addItem(curve)
-        self.traceCurves.append(curve)
-    
-    # Add a single pick line to this station
-    def addPick(self,aTime,aType,pen):
-        aLine=PickLine(aTime,aType,pen)
-        # Add the line to the plot, and its own pick lines
-        self.pltItem.addItem(aLine)
-        self.pickLines.append(aLine)
-        
-    # Remove a specific number of picks from the pick lines (with a given pick type)
-    def removePicks(self,aType,delTimes):
-        # Count forwards to select picks for deletion
-        delIdxs=[]
-        for i,aLine in enumerate(self.pickLines):
-            # If picks overlap, do not delete more than necessary
-            if len(delIdxs)==len(delTimes):
-                break
-            if aLine.pickType==aType and aLine.value() in delTimes:
-                delIdxs.append(i)
-        # Check to make sure all were deleted
-        if len(delIdxs)!=len(delTimes):
-            print('Missed deleting some plotted pick lines')
-        # Loop backwards and pop these picks off the widget
-        for idx in delIdxs[::-1]:
-            aLine=self.pickLines.pop(idx)
-            self.pltItem.removeItem(aLine)
-    
-    # Emit signal for picking
-    def mouseDoubleClickEvent(self, ev):
-        super(TraceWidget, self).mouseDoubleClickEvent(ev)
-        # If this widget is assigned a station, return signal
-        if self.sta!=None:
-            self.doubleClickSignal.emit()
-    
-    # Ensure that key presses are sent to the widget which the mouse is hovering over
-    def enterEvent(self,ev):
-        super(TraceWidget, self).enterEvent(ev)
-        self.setFocus()
-        
-    # Exit focus when the trace is left
-    def leaveEvent(self,ev):
-        super(TraceWidget, self).leaveEvent(ev)
-        self.clearFocus()
-        self.hoverPos=None
-        
-    # Return the ymin,ymax of the plot
-    def getRangeY(self):
-        return self.getPlotItem().vb.viewRange()[1]
     
 # Widget which return key presses, however double click replaces backspace
 class MixListWidget(QtWidgets.QListWidget):       
@@ -595,227 +152,232 @@ class DblClickLabelWidget(QtWidgets.QLabel):
     def mouseDoubleClickEvent(self,ev):
         self.doubleClicked.emit()
 
-# Scatter Item class, but allow double click signal
-class CustScatter(pg.ScatterPlotItem):
-    doubleClicked=QtCore.Signal(object)
-    
-    def __init__(self, *args, **kwargs):
-        super(CustScatter, self).__init__(*args, **kwargs)
-    
-    # Set the clicked points upon double clicking
-    def mouseDoubleClickEvent(self,ev):
-        if ev.button() == QtCore.Qt.LeftButton:
-            # Set the clicked position
-            self.clickPos=np.array([ev.pos().x(),ev.pos().y()])
-            # See which points were near the click position
-            self.ptsClicked=self.pointsAt(ev.pos())
-            # Emit the scatter plot
-            self.doubleClicked.emit(self)
-            ev.accept()
+# Widget to show/edit the source dictionary
+class SourceDictWidget(QtWidgets.QTreeWidget):
+    def __init__(self, parent = None):
+        QtWidgets.QTreeWidget.__init__(self, parent)
+        self.resize(500, 200)
+        self.setColumnCount(3)
+        self.setHeaderLabels(["Name", "Type", "Value"])
+        self.itemChanged.connect(self.checkEdits)
+        # Value of an item prior to edit
+        self.oldVal=''
+        # Allowed variable data types
+        self.varTypes=['str','int','float',
+                       'array(str)',
+                       'array(int)',
+                       'array(float)']
+        self.varConverts=[str,int,float,
+                          lambda x: np.array(x.split(','),dtype=str),
+                          lambda x: np.array(x.split(','),dtype=int),
+                          lambda x: np.array(x.split(','),dtype=float)]
+        
+    # Keep default mouse presses
+    def clickEvent(self,event):
+        QtWidgets.QTreeWidget.mousePressEvent(self,event)
+        # Clear selection if nothing clicked
+        if self.itemAt(event.pos()) is None:
+            self.clearSelection()
 
-# Widget for seeing what data times are available, and sub-selecting pick files
-class MapWidget(pg.GraphicsLayoutWidget):
-    doubleClicked=QtCore.Signal()
+    def mousePressEvent(self, event):
+        self.clickEvent(event)
+        # If wanting to make add/remove an item (right click)
+        if event.button() == QtCore.Qt.RightButton:
+            self.createMenu(event)
     
-    def __init__(self, parent=None):
-        super(MapWidget, self).__init__(parent)
-        # Add the map to the view, and turn off some of the automatic interactive properties
-        self.map=self.addPlot()
-        self.map.setMenuEnabled(enableMenu=False)
-        self.map.hideButtons()
-        self.stas=[] # The station names for the station spot items
-        self.staItem=None # The station scatter item
-        self.selectSta=None # Which station is currently selected
-        self.curEveItem=None # The current event scatter item
-        self.prevEveItem=None # The previous event scatter item 
-        self.clickPos=[0,0] # Last double clicked position
-        # Add in the hovered over station label
-        self.hoverStaItem=pg.TextItem(text='',anchor=(0.5,1))
-        self.hoverStaItem.hide()
-        self.map.addItem(self.hoverStaItem)
-        # Show station text when hovering over the station symbol
-        self.scene().sigMouseMoved.connect(self.onHover)
-        
-    # Handle double click events to the station scatter item
-    def dblClicked(self,staScat):
-        self.clickPos=list(staScat.clickPos)
-        # Update the nearby station which was clicked
-        self.selectSta=self.getSelectSta(staScat.clickPos,staScat.ptsClicked)
-        # Forward the double clicked signal to main window
-        self.doubleClicked.emit()
-        
-    # Function to return the nearest station to the current moused point
-    def getSelectSta(self,mousePos,nearPoints):
-        if len(nearPoints)>0:
-            selPos=np.array([[point.pos().x(),point.pos().y()] for point in nearPoints])
-            selPoint=nearPoints[np.argmin(np.sum((selPos-mousePos)**2))]
-            return str(self.stas[np.where(self.staItem.points()==selPoint)[0][0]])
-        else:
-            return None
-        
-    # Load the new station meta data
-    def loadStaLoc(self,staLoc,colorAssign,
-                   staSize,staDep,init):
-        # Enable the autoscaling temporarily
-        self.map.vb.enableAutoRange(enable=True)
-        # Hide the hovered station label
-        self.hoverStaItem.hide()
-        # Clear away the old station spots
-        if self.staItem!=None:
-            self.map.removeItem(self.staItem)
-        # Reset the double clicked station, if reloading the station file entirely
-        if init:
-            self.selectSta=None
-        # Generate the station items
-        if len(staLoc)==0:
-            self.stas=[]
-        else:
-            self.stas=staLoc[:,0]
-        # Get the brush values to be assigned
-        brushArr=[]
-        for sta in self.stas:
-            color=colorAssign[sta]
-            brushArr.append(pg.mkBrush(color.red(),color.green(),color.blue(),200))
-        staScatter=CustScatter(size=staSize*2,symbol='t1',pen=pg.mkPen(None))
-        staScatter.setZValue(staDep)
-        # Add in the points
-        if len(staLoc)!=0:
-            staScatter.addPoints(x=staLoc[:,1], y=staLoc[:,2], brush=brushArr)
-        # Give some clicking ability to the stations
-        staScatter.doubleClicked.connect(self.dblClicked) # For any point being clicked
-        # Add the station scatter items
-        self.map.addItem(staScatter)
-        self.staItem=staScatter
-        # Disable autoscaling the for map items
-        self.map.vb.enableAutoRange(enable=False)
-    
-    # See which station is being hovered over
-    def onHover(self,pixPoint):
-        if len(self.stas)==0:
+    # Make a note of values prior to edits
+    def mouseDoubleClickEvent(self,event):
+        self.clickEvent(event)
+        curItem=self.selectedItem()
+        # Do nothing if no item selected
+        if curItem is None:
             return
-        # Get the nearby points
-        mousePoint=self.staItem.mapFromScene(pixPoint)
-        nearPoints = self.staItem.pointsAt(mousePoint)
-        # Grab the nearest ones station code and update the 
-        if len(nearPoints)==0:
-            self.hoverStaItem.hide()
-        else:
-            mousePos=np.array([mousePoint.x(),mousePoint.y()])
-            sta=self.getSelectSta(mousePos,nearPoints)
-            self.hoverStaItem.setText(sta)
-            self.hoverStaItem.setPos(mousePoint)
-            self.hoverStaItem.show()
-        
-    # Load a set of event points
-    def loadEvePoints(self,eveMeta,eveType):
-        if eveType=='cur':
-            item,alpha=self.curEveItem,200
-        else:
-            item,alpha=self.prevEveItem,160
-        # Remove the previous item
-        if item is not None:
-            self.map.removeItem(item)
-        # Add in all of the new points, size & color set in different function
-        scatter=pg.ScatterPlotItem(size=1,symbol='o',pen=pg.mkPen(None),brush=pg.mkBrush(0,0,0,alpha))
-        scatter.addPoints(x=eveMeta[:,1],y=eveMeta[:,2])
-        ## Why does this update if autoRange already off?? ##
-        # print(self.map.vb.state['autoRange'])
-        self.map.addItem(scatter)
-        # Update the scatter item reference
-        if eveType=='cur':
-            self.curEveItem=scatter
-        else:
-            self.prevEveItem=scatter
-        
-    # Update the event pen values
-    def updateEvePen(self,evePen,eveType):
-        col,size,dep=evePen
-        col=QtGui.QColor(QtGui.QColor(col))
-        if eveType=='cur':
-            item=self.curEveItem
-        else:
-            item=self.prevEveItem
-        if item!=None:
-            item.setBrush(pg.mkBrush(col.red(),col.green(),col.blue(),200))
-            item.setSize(size*2)
-            item.setZValue(dep)
+        # Allow group name to be edited, and the variable name/value
+        curCol=self.currentColumn()
+        if (curItem.parent() is None and curCol==0) or curCol!=1:
+            self.oldVal=curItem.text(curCol)
+            self.editItem(curItem,curCol)
+
+    # Return list of the current group names
+    def currentGroupNames(self):
+        return[self.getName(groupItem) for groupItem in self.currentGroupItems()]
     
-    # Change the pen of the axis and axis labels
-    def setPen(self,pen):
-        for item in self.items():
-            if type(item)==pg.graphicsItems.AxisItem.AxisItem:
-                item.setPen(pen)
-                
-# Widget to hold raster information for plotting
-class ImageWidget(pg.PlotWidget): 
-    def __init__(self, parent=None):
-        super(ImageWidget, self).__init__(parent)        
-        self.pltItem=self.getPlotItem()
-        self.pltItem.setMenuEnabled(enableMenu=False)
-        # Speed up the panning and zooming
-        self.pltItem.setClipToView(True)
-        # Turn off the auto ranging
-        self.pltItem.vb.disableAutoRange()
-        # Only show the left axis
-        self.pltItem.hideAxis('bottom')
-        self.pltItem.hideButtons()
-        self.pltItem.getAxis('left').setWidth(70)
-        self.pltItem.getAxis('left').setZValue(1)
-        # Give some x-limits (do not go prior/after to 1970/2200)
-        self.getPlotItem().setLimits(xMin=0,xMax=UTCDateTime('2200-01-01').timestamp)
-        # Create a blank image item
-        self.imageItem=pg.ImageItem()
-        self.addItem(self.imageItem)
-        self.prevPosX,self.prevScaleX=0,1
-        self.prevPosY,self.prevScaleY=0,1
-        # Give the image a border
-        self.imageBorder=pg.QtGui.QGraphicsRectItem(-1,-1,0.1,0.1)
-        self.addItem(self.imageBorder)
+    # Return list of the current group items
+    def currentGroupItems(self):
+        return [self.topLevelItem(i) for i in range(self.topLevelItemCount())]
+    
+    # Return list of the variable names in a group item
+    def currentVariableNames(self,groupItem):
+        return [self.getName(varItem) for varItem in self.currentVariableItems(groupItem)]
+    
+    # Return list of variable items in a group item
+    def currentVariableItems(self,groupItem):
+        return [groupItem.child(i) for i in range(groupItem.childCount())]
+    
+    # Get the name of an item
+    def getName(self,item):
+        return str(item.text(0))
+
+    # Generate widget for a new group 
+    def addGroup(self,groupName='NewGroup'):
+        # Check to see that the default name is not taken
+        if groupName in self.currentGroupNames():
+            print('Name "'+groupName+'" already taken, edit before adding')
+            return
+        groupItem=QtWidgets.QTreeWidgetItem([groupName,'',''])
+        # Allow the item to be edited
+        groupItem.setFlags(groupItem.flags() | QtCore.Qt.ItemIsEditable)
+        self.addTopLevelItem(groupItem)
+        return groupItem
+    
+    # Generate widget for a new variable within a group
+    def addVariable(self,groupItem,varName='NewVariable',varVal=None):
+        # Check to see that the default name is not taken
+        if varName in self.currentVariableNames(groupItem):
+            print('Name "'+varName+'" already taken, edit before adding')
+            return
+        varText,varType=self.getVarTextAndType(varVal)
+        # Give default values for new variable
+        varItem=QtWidgets.QTreeWidgetItem([varName,'',varText])
+        # Allow the item to be edited
+        varItem.setFlags(varItem.flags() | QtCore.Qt.ItemIsEditable)
+        # Add the variable to the group
+        groupItem.addChild(varItem)
+        # Show what types are accepted
+        comboBox=QtWidgets.QComboBox()
+        comboBox.addItems(self.varTypes)
+        # Set the current combo item
+        comboBox.setCurrentIndex(self.varTypes.index(varType))
+        self.setItemWidget(varItem,1,comboBox)
+        # Connect to check edits if this value is changed
+        comboBox.currentIndexChanged.connect(lambda: self.checkEdits(varItem,1))
+        comboBox.highlighted.connect(lambda: self.setOldVal(comboBox.itemText(comboBox.currentIndex())))
+    
+    # Used to set the previous comboBox value
+    def setOldVal(self,val):
+        self.oldVal=val
+    
+    # Import and display a given source dictionary
+    def showSourceDict(self,sourceDict):
+        # Clear the old
+        for groupItem in self.currentGroupItems():
+           self.removeGroup(groupItem)
+        # Load the new
+        for groupName in sorted(sourceDict.keys()):
+            groupItem=self.addGroup(groupName=str(groupName))
+            for varName in sorted(sourceDict[groupName].keys()):
+                self.addVariable(groupItem,varName=str(varName),
+                                 varVal=sourceDict[groupName][varName])
+    
+    # Extract the displayed source dictionary
+    def getSourceDict(self):
+        sourceDict={}
+        for groupItem in self.currentGroupItems():
+            groupName=self.getName(groupItem)
+            sourceDict[groupName]={self.getName(varItem):self.stringToVarType(varItem) 
+                                   for varItem in self.currentVariableItems(groupItem)}
+        return sourceDict
+    
+    # Remove currently selected group
+    def removeGroup(self,item):
+        self.takeTopLevelItem(self.indexFromItem(item).row())
+    
+    # Remove currently selected variable
+    def removeVariable(self,item):
+        item.parent().takeChild(self.indexFromItem(item).row())
         
-    # Update the image on this widget
-    def loadImage(self,imgDict):
-        # Load in the defaults if some optional keys are not present
-        imgDict=self.loadDefaultKeys(imgDict)
-        # Set the image data
-        self.imageItem.setImage(imgDict['data'].T)
-        # Set position and scale of image...
-        diffX=imgDict['t0']-self.prevPosX
-        diffY=imgDict['y0']-self.prevPosY
-        self.imageItem.scale(imgDict['tDelta']/self.prevScaleX,imgDict['yDelta']/self.prevScaleY)
-        self.imageItem.translate(diffX/imgDict['tDelta'], diffY/imgDict['yDelta'])
-        self.prevPosX+=diffX
-        self.prevPosY+=diffY
-        self.prevScaleX,self.prevScaleY=imgDict['tDelta'],imgDict['yDelta']
-        # Set the coloring
-        lut=self.getLUT(imgDict['data'],imgDict['cmapPos'],imgDict['cmapRGBA']) 
-        self.imageItem.setLookupTable(lut)
-        # Update image boundary
-        xSize,ySize=np.array([imgDict['tDelta'],imgDict['yDelta']])*imgDict['data'].T.shape
-        self.imageBorder.setRect(imgDict['t0'],imgDict['y0'],xSize,ySize)
-        # Set default Y-limit to zoom to the image
-        self.setYRange(imgDict['y0'],ySize,padding=0.0)
-        # Apply the label
-        self.pltItem.setLabel(axis='left',text=imgDict['label'])
+    # Get the user visible value from the value and variable type 
+    def getVarTextAndType(self,val):
+        # If the value is none, convert to string
+        if val is None:
+            return '','str'
+        # Check first if a numpy array
+        if type(val)==type(np.array([])):
+            for aType in ['float','int','str']:
+                match='|S' if aType=='str' else aType
+                if match in str(val.dtype):
+                    if len(val.shape)==0:
+                        return str(val),'array('+aType+')'
+                    else:
+                        return ','.join(val.astype(str)),'array('+aType+')'
+        # Otherwise check float,int,str
+        for i in range(3)[::-1]:
+            try:
+                self.varConverts[i](val)
+                return str(val),self.varTypes[i]
+            except:
+                continue
+        return str(val),'str'
+        
+    # Convert the variable value to its appropriate type
+    def stringToVarType(self,item):
+        comboBox=self.itemWidget(item,1)
+        varType=comboBox.itemText(comboBox.currentIndex())
+        convertFunc=self.varConverts[self.varTypes.index(varType)]
+        if item.text(2).replace(' ','')=='':
+            return None
+        else:
+            return convertFunc(item.text(2))
     
-    # Give default values to keys which are not present in the image dictionary
-    def loadDefaultKeys(self,imgDict):
-        for key,val in [['y0',0],['yDelta',1],['label',''],
-                        ['cmapPos',np.array([np.min(imgDict['data']),np.max(imgDict['data'])])],
-                        ['cmapRGBA',np.array([[0,0,0,255],[255,255,255,255]])]
-                        ]:
-            if key not in imgDict.keys():
-                # In the case where the colors are given, but the positions are not, give evenly spaced positions
-                if key=='cmapPos' and 'cmapRGBA' in imgDict.keys():
-                    imgDict[key]=np.linspace(np.min(imgDict['data']),np.max(imgDict['data']),len(imgDict['cmapRGBA']))
-                else:
-                    imgDict[key]=val
-        # In the case where the positions are given, but not the colors - just use first and last position
-        if len(imgDict['cmapPos'])!=len(imgDict['cmapRGBA']):
-            imgDict['cmapPos']=np.array([imgDict['cmapPos'][0],imgDict['cmapPos'][-1]])
-        return imgDict
+    # Revert to an older value
+    def revertEdits(self,item,col,message):
+        # Disconnect from changed edits, revert to old value, reconnect
+        print(message)
+        self.itemChanged.disconnect(self.checkEdits)
+        item.setText(col,self.oldVal)
+        self.itemChanged.connect(self.checkEdits)
     
-    # Get the look-up-table (color map) 
-    def getLUT(self,data,pos,col):
-        aMap = pg.ColorMap(np.array(pos), np.array(col,dtype=np.ubyte))
-        lut = aMap.getLookupTable(np.min(data),np.max(data),256)
-        return lut
+    # Check recent edits for errors
+    def checkEdits(self,item,col):
+        # Ensure names are unique
+        if col==0:
+            # Make a list of the names currently present
+            if item.parent() is None:
+                takenNames=self.currentGroupNames()
+            else:
+                takenNames=self.currentVariableNames(item.parent())
+            # If name already taken, revert to old
+            if np.sum(np.array(takenNames,dtype=str)==str(item.text(col)))>1:
+                self.revertEdits(item,col,'Name already taken')
+        # Ensure type matches the value
+        elif col==1 and item.parent() is not None:
+            # Do not check if string (should always work)
+            comboBox=self.itemWidget(item,1)
+            if comboBox.itemText(comboBox.currentIndex())=='str':
+                return
+            try:
+                self.stringToVarType(item)
+            except Exception as error:
+                # Disconnect from changed edits, revert to type string, reconnect
+                print(str(error)+', reverting to old type')
+                comboBox.setCurrentIndex(self.varTypes.index(self.oldVal))
+        # Ensure value matches the type
+        elif col==2 and item.parent() is not None:
+            try:
+                self.stringToVarType(item)
+            except Exception as error:
+                self.revertEdits(item,col,str(error)+', reverting to old value')
+    
+    # Get the currently selected item
+    def selectedItem(self):
+        items=self.selectedItems()
+        if len(items)==0:
+            return None
+        else:
+            return items[0]
+    
+    # Create pop up menu to add/remove groups/variables
+    def createMenu(self,event, parent=None):
+        self.menu=QtWidgets.QMenu(parent)
+        self.menu.addAction('Add Group', self.addGroup)
+        if self.selectedItem() is not None:
+            if self.selectedItem().parent() is None:
+                self.menu.addAction('Add Variable',lambda: self.addVariable(self.selectedItem()))
+                self.menu.addSeparator()
+                self.menu.addAction('Remove Group',lambda: self.removeGroup(self.selectedItem()))
+            elif self.selectedItem().parent().parent() is None:
+                self.menu.addAction('Add Variable',lambda: self.addVariable(self.selectedItem().parent()))
+                self.menu.addSeparator()
+                self.menu.addAction('Remove Variable',lambda: self.removeVariable(self.selectedItem()))
+        self.menu.move(self.mapToGlobal(QtCore.QPoint(0,0))+event.pos())
+        self.menu.show() 

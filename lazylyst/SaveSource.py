@@ -10,11 +10,13 @@ from ChangeSource import Ui_CsDialog
 # Saved sources class, for reading in old (or adding new) archive/pick/station information
 class SaveSource(object):
     def __init__(self,tag=None,archDir=None,
-                 pickDir=None,staFile=None):
+                 pickDir=None,staFile=None,
+                 sourceDict={}):
         self.tag=tag
         self.archDir=archDir
         self.pickDir=pickDir
         self.staFile=staFile
+        self.sourceDict=sourceDict
     
     # A check to see if all files can be read
     def pathExist(self):
@@ -54,13 +56,14 @@ class CsDialog(QtWidgets.QDialog, Ui_CsDialog):
         self.csPickLineEdit.doubleClicked.connect(lambda: self.getPathName('pick'))
         self.csStationLineEdit.doubleClicked.connect(self.getFileName)
         
-    # Fill the dialog with info relating current source
+    # Fill the dialog with info relating to current source
     def fillDialog(self):
         # Fill line edits with current source
         self.csTagLineEdit.setText(self.hotVar['sourceTag'].val)
         self.csArchiveLineEdit.setText(self.hotVar['archDir'].val)
         self.csPickLineEdit.setText(self.hotVar['pickDir'].val)
         self.csStationLineEdit.setText(self.hotVar['staFile'].val)
+        self.sourceDictWidget.showSourceDict(self.hotVar['sourceDict'].val)
         
     # Put the saved source into the saved source list and dictionary
     def loadSaveSource(self):
@@ -71,6 +74,11 @@ class CsDialog(QtWidgets.QDialog, Ui_CsDialog):
                 self.csArchiveLineEdit.setText(source.archDir)
                 self.csPickLineEdit.setText(source.pickDir)
                 self.csStationLineEdit.setText(source.staFile)
+                # If the source had no source dict, use the default
+                if hasattr(source,'sourceDict'):
+                    self.sourceDictWidget.showSourceDict(source.sourceDict)
+                else:
+                    self.sourceDictWidget.showSourceDict(SaveSource().sourceDict)
     
     # Delete the selected saved source
     def delSaveSource(self):
@@ -82,9 +90,10 @@ class CsDialog(QtWidgets.QDialog, Ui_CsDialog):
         # ...and the gui list
         self.csSaveSourceList.takeItem(self.csSaveSourceList.currentRow())
     
-    # Using the current text
+    # Save the edits to the currently selected source
     def addSavedSource(self):
         source=self.curSource()
+        # Ensure that atleast the tag, archive directory, and pick directory are filled out
         for text in [source.tag,source.archDir,source.pickDir]:
             if text.replace(' ','')=='':
                 print('Fill in the source information to save')
@@ -129,7 +138,8 @@ class CsDialog(QtWidgets.QDialog, Ui_CsDialog):
         source=SaveSource(tag=self.csTagLineEdit.text(),
                           archDir=self.csArchiveLineEdit.text(),
                           pickDir=self.csPickLineEdit.text(),
-                          staFile=self.csStationLineEdit.text())
+                          staFile=self.csStationLineEdit.text(),
+                          sourceDict=self.sourceDictWidget.getSourceDict())
         return source
         
     # Upon close, return the source currently in the line edits
