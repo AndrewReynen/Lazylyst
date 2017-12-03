@@ -68,6 +68,9 @@ def initHotVar():
     'mapPrevEve':HotVar(tag='mapPrevEve',val=np.empty((0,5)),dataType=type(np.array([0.0])),
                        funcName='updateMapPrevEve',checkName='checkEveArr',
                        tip='Events plotted in the background of the map widget'),
+    'mapPolygon':HotVar(tag='mapPolygon',val=np.empty((0,2),dtype=float),dataType=type(np.array([0.0])),
+                       funcName='updateMapPolygon',checkName='checkMapPolygon',
+                       tip='Vertices of the polygon on the map widget'),
     'archDir':HotVar(tag='archDir',val='',dataType=str,
                      funcName='updateArchive',checkName='checkArchDir',
                      tip='Archive directory path'),
@@ -375,6 +378,21 @@ def checkEveArr(main,eveArr):
         eveArr.astype(float)
     except:
         print('The current/previous event array contains [ID,X,Y,Z,Timestamp(s)], which must all be numbers')
+        return False
+    return True
+
+# Ensure that the mapPolygon array is of the proper dimensions and datatype
+def checkMapPolygon(main,mapPolygon):
+    if len(mapPolygon.shape)!=2:
+        print('The mapPolygon array must be 2 dimensional')
+        return False
+    elif mapPolygon.shape[1]!=2:
+        print('The mapPolygon array must have 2 columns')
+        return False
+    try:
+        mapPolygon.astype(float)
+    except:
+        print('The mapPolygon array contains a list of vertices [[X1,Y1],[X2,Y2],...], which must all be numbers')
         return False
     return True
 

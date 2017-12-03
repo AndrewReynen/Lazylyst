@@ -13,7 +13,7 @@ from copy import deepcopy
 sip.setapi('QVariant', 2)
 sip.setapi('QString', 2)
 sys.path.insert(0,os.path.dirname(os.path.realpath(__file__)))
-__version__='0.7.1'
+__version__='0.7.2'
 
 import numpy as np
 from PyQt5 import QtWidgets,QtGui,QtCore
@@ -77,6 +77,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.archiveListLineEdit.editingFinished.connect(self.updateArchiveSpanList)
         # Give ability to the map
         self.mapWidget.doubleClicked.connect(self.mapDoubleClickEvent)
+        self.mapWidget.updatePolygonPenSignal.connect(self.updateMapPolygonPen)
         # Link the image axis to the time axis
         self.imageWidget.setXLink('timeAxis')
         # Allow stdout to be sent to the Trace Log
@@ -197,8 +198,13 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.setCurTraceStaAndPos()
         self.setTraceRanges()
         self.setAfkTime()
-        # First check to see if there are any (passive) actions which relate
-        actQueue=self.collectActQueue(action)  
+        # Check to see if there are any (passive) actions which relate
+        actQueue=self.collectActQueue(action)
+        # For potentially lengthy updates, only do so if necessary
+        seenTags=set([tag for act in actQueue for tag in self.act[act.tag].inputs])
+        for tag,func in [['mapPolygon',self.setMapPolygon]]:
+            if tag in seenTags:
+                func()
         # If the trigerring action is threaded, send the queue to a thread 
         if action.threaded: 
             # First check to see if the thread is already running, skip if it is
@@ -586,6 +592,10 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
     # Set the time since the last user interaction
     def setAfkTime(self):
         self.hotVar['afkTime'].val=time.time()-self.userSeenAtTime
+    
+    # Set the mapPolygon variable to have the currently displayed polygon vertices        
+    def setMapPolygon(self):
+        self.hotVar['mapPolygon'].val=self.mapWidget.getPolygonVertices()
         
     # Add a pick to the double-clicked station (single-pick addition)
     def addClickPick(self):
@@ -838,6 +848,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
                          ['mapStaDefault',self.updateMapStations],
                          ['mapCurEve',self.updateMapCurEvePen],
                          ['mapPrevEve',self.updateMapPrevEvePen],
+                         ['mapPolygon',self.updateMapPolygonPen],
                          ['archiveBackground',self.updateArchiveBackground],
                          ['archiveAvailability',self.updateArchiveAvailColor],
                          ['archiveSpanSelect',self.updateArchiveSpanColor],
@@ -908,6 +919,20 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         # Add the spots to the map
         self.mapWidget.loadStaLoc(self.hotVar['staLoc'].val,self.mapStaColors,
                                   staSize,staDep,init)
+        
+    # Update the polygon on the mapWidget
+    def updateMapPolygon(self):
+        # Remove old polygon
+        self.mapWidget.removePolygon()
+        # Add new if there are at least three vertices
+        mapPoly=self.hotVar['mapPolygon'].val
+        if len(mapPoly)>=3:
+            self.mapWidget.loadPolygon(mapPoly)
+            self.updateMapPolygonPen()
+    
+    # Update the pen of the map polygon
+    def updateMapPolygonPen(self):
+        self.mapWidget.updatePolygonPen(self.pref['basePen'].val['mapPolygon'][0:3])
     
     # Update the current event spots on the map widget
     def updateMapCurEve(self):

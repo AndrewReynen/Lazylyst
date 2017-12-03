@@ -48,6 +48,7 @@ def defaultPreferences(main):
                                       'mapStaDefault':[16777215,4.0,0.0,False],
                                       'mapCurEve':[16776960,3.0,2.0,False],
                                       'mapPrevEve':[13107400,2.0,1.0,False],
+                                      'mapPolygon':[3289800,1.0,10.0,False],
                                       'archiveBackground':[0,1.0,0.0,False],
                                       'archiveAvailability':[65280,1.0,0.0,False],
                                       'archiveSpanSelect':[3289800,1.0,0.0,False],

@@ -95,6 +95,7 @@ class RoiPolyLine(pg.PolyLineROI):
 # Widget for seeing what data times are available, and sub-selecting pick files
 class MapWidget(pg.GraphicsLayoutWidget):
     doubleClicked=QtCore.Signal()
+    updatePolygonPenSignal=QtCore.Signal()
     
     def __init__(self, parent=None):
         super(MapWidget, self).__init__(parent)
@@ -162,32 +163,45 @@ class MapWidget(pg.GraphicsLayoutWidget):
         pixelPos=event.pos()
         self.menu=QtWidgets.QMenu(parent)
         if self.polygon is None:
-            self.menu.addAction('Add polygon', lambda:self.addPolygon(pixelPos))
+            self.menu.addAction('Add polygon', lambda:self.addDefaultPolygon(pixelPos))
         else:
             self.menu.addAction('Remove polygon',self.removePolygon)
         self.menu.move(self.mapToGlobal(QtCore.QPoint(0,0))+pixelPos)
         self.menu.show()
-        
-    # Add the polygon to map 
-    def addPolygon(self,pixelPos,verticies=None):
-        # If no verticies giveb, make a box near clicked position
-        if verticies is None:
-            viewBox=self.map.getViewBox()
-            # Convert from pixel position
-            clickPos=viewBox.mapSceneToView(pixelPos)
-            clickPos=np.array([clickPos.x(),clickPos.y()])
-            # Get the map axis lengths
-            xLen,yLen=np.diff(np.array(viewBox.viewRange(),dtype=float),axis=1)*0.2
-            xLen,yLen=xLen[0],yLen[0]
-            verticies=[clickPos+np.array(extra) for extra in [[0,0],[0,yLen],[xLen,yLen],[xLen,0]]]
-        self.polygon=RoiPolyLine(verticies, closed=True)
+    
+    # Load the polygon onto the map
+    def loadPolygon(self,vertices):
+        self.polygon=RoiPolyLine(vertices, closed=True)
         self.polygon.handleMenuSignal.connect(self.setHandleMenuTime)
         self.map.addItem(self.polygon)
         
+    # If polygon created via GUI, make a box near clicked position
+    def addDefaultPolygon(self,pixelPos):
+        viewBox=self.map.getViewBox()
+        # Convert from pixel position
+        clickPos=viewBox.mapSceneToView(pixelPos)
+        clickPos=np.array([clickPos.x(),clickPos.y()])
+        # Get the map axis lengths
+        xLen,yLen=np.diff(np.array(viewBox.viewRange(),dtype=float),axis=1)*0.2
+        xLen,yLen=xLen[0],yLen[0]
+        vertices=[clickPos+np.array(extra) for extra in [[0,0],[0,yLen],[xLen,yLen],[xLen,0]]]
+        self.loadPolygon(vertices)
+        # Send off signal for the polygons pen to be updated
+        self.updatePolygonPenSignal.emit()
+        
     # Remove polygon from the map
     def removePolygon(self):
-        self.map.removeItem(self.polygon)
+        if self.polygon is not None:
+            self.map.removeItem(self.polygon)
         self.polygon=None
+    
+    # Get the positions of the handles on the polygon
+    def getPolygonVertices(self):
+        if self.polygon is None:
+            return np.empty((0,2),dtype=float)
+        positions=[handle['pos'] for handle in self.polygon.handles]
+        vertices=np.array([[entry.x(),entry.y()] for entry in positions])
+        return vertices
     
     # Set the time the handle menu was created
     def setHandleMenuTime(self,aTime):
@@ -216,8 +230,7 @@ class MapWidget(pg.GraphicsLayoutWidget):
         if init:
             self.selectSta=None
         # Remove the old polygon
-        if self.polygon is not None:
-            self.removePolygon()
+        self.removePolygon()
         # Generate the station items
         if len(staLoc)==0:
             self.stas=[]
@@ -274,6 +287,20 @@ class MapWidget(pg.GraphicsLayoutWidget):
             item.setBrush(pg.mkBrush(col.red(),col.green(),col.blue(),200))
             item.setSize(size*2)
             item.setZValue(dep)
+    
+    # Update the pen on the polygon
+    def updatePolygonPen(self,evePen):
+        if self.polygon is None:
+            return
+        col,width,dep=evePen
+        col=QtGui.QColor(QtGui.QColor(col))
+        self.polygon.setPen(col,width=width)
+        self.polygon.setZValue(dep)
+        self.polygon.setVisible(width!=0)
+        # Set the depth of the handles to be slightly higher
+        for handle in self.polygon.handles:
+            handle['item'].setZValue(dep+2)
+        
     
     # Change the pen of the axis and axis labels
     def setPen(self,pen):

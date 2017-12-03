@@ -152,3 +152,8 @@ def editSourceDict(sourceDict):
     sourceDict['aGroup']={'newVal':np.array([0,0,99,99.999]),
                           'aaa':'haha'}
     return sourceDict
+
+# Test polygon plotting
+def editPolygon(polygon):
+    polygon=np.vstack((polygon,polygon[-2:]+1))
+    return polygon

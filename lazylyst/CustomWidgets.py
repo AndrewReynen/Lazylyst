@@ -156,9 +156,11 @@ class DblClickLabelWidget(QtWidgets.QLabel):
 class SourceDictWidget(QtWidgets.QTreeWidget):
     def __init__(self, parent = None):
         QtWidgets.QTreeWidget.__init__(self, parent)
-        self.resize(500, 200)
         self.setColumnCount(3)
         self.setHeaderLabels(["Name", "Type", "Value"])
+        self.setColumnWidth(0,130)
+        self.setColumnWidth(1,90)
+        # Check any edits which are made
         self.itemChanged.connect(self.checkEdits)
         # Value of an item prior to edit
         self.oldVal=''
