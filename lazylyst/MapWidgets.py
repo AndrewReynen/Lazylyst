@@ -1,8 +1,9 @@
 # Author: Andrew.M.G.Reynen
 from __future__ import print_function, division
+import time
 
 import numpy as np
-from PyQt5 import QtGui, QtCore
+from PyQt5 import QtGui,QtCore,QtWidgets
 import pyqtgraph as pg
 
 # Scatter Item class, but allow double click signal
@@ -22,6 +23,74 @@ class CustScatter(pg.ScatterPlotItem):
             # Emit the scatter plot
             self.doubleClicked.emit(self)
             ev.accept()
+            
+# Verticies on the polygon
+class RoiHandle(pg.graphicsItems.ROI.Handle):
+    handleMenuSignal=QtCore.Signal(float)
+    def __init__(self, *args, **kwargs):
+        super(RoiHandle, self).__init__(*args, **kwargs)
+
+    def mouseClickEvent(self, ev):
+        # Right-click cancels drag
+        if ev.button() == QtCore.Qt.RightButton and self.isMoving:
+            self.isMoving = False  # Prevent any further motion
+            self.movePoint(self.startPos, finish=True)
+            ev.accept()
+        elif int(ev.button() & self.acceptedMouseButtons()) > 0:
+            ev.accept()
+            if ev.button() == QtCore.Qt.RightButton and self.deletable:
+                self.raiseContextMenu(ev)
+            self.sigClicked.emit(self, ev)
+        else:
+            ev.ignore()        
+    
+    # Make some edits to default pg Handle
+    def raiseContextMenu(self, ev):
+        menu = self.scene().addParentContextMenus(self, self.getMenu(), ev)
+        # Remove the unwanted actions
+        for action in menu.actions():
+            if str(action.text())!='Remove handle':
+                menu.removeAction(action)
+        # Make sure it is still ok to remove this handle
+        removeAllowed = all([r.checkRemoveHandle(self) for r in self.rois])
+        self.removeAction.setEnabled(removeAllowed)
+        pos = ev.screenPos()
+        # Note when the menu was added
+        self.handleMenuSignal.emit(time.time())
+        menu.popup(QtCore.QPoint(pos.x(), pos.y()))  
+
+# Editable polygon
+class RoiPolyLine(pg.PolyLineROI):
+    handleMenuSignal=QtCore.Signal(float)
+    def __init__(self, *args, **kwargs):
+        super(RoiPolyLine, self).__init__(*args, **kwargs)
+    
+    # Make use of the edited pg Handle "RoiHandle"  
+    def addHandle(self, info, index=None):
+        # If a Handle was not supplied, create it now
+        if 'item' not in info or info['item'] is None:
+            h = RoiHandle(self.handleSize, typ=info['type'], pen=self.handlePen, parent=self)
+            h.setPos(info['pos'] * self.state['size'])
+            info['item'] = h
+        else:
+            h = info['item']
+            if info['pos'] is None:
+                info['pos'] = h.pos()
+        # Connect the handle to this ROI
+        h.connectROI(self)
+        if index is None:
+            self.handles.append(info)
+        else:
+            self.handles.insert(index, info)
+        h.setZValue(self.zValue()+1)
+        h.sigRemoveRequested.connect(self.removeHandle)
+        h.handleMenuSignal.connect(self.relayMenuTime)
+        self.stateChanged(finish=True)
+        return h
+    
+    # Relay the time of a menu pop up on a handle 
+    def relayMenuTime(self,aTime):
+        self.handleMenuSignal.emit(aTime)
 
 # Widget for seeing what data times are available, and sub-selecting pick files
 class MapWidget(pg.GraphicsLayoutWidget):
@@ -39,12 +108,46 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.curEveItem=None # The current event scatter item
         self.prevEveItem=None # The previous event scatter item 
         self.clickPos=[0,0] # Last double clicked position
+        self.clickDownPos=False # Mouse position upon clicking down
         # Add in the hovered over station label
         self.hoverStaItem=pg.TextItem(text='',anchor=(0.5,1))
         self.hoverStaItem.hide()
         self.map.addItem(self.hoverStaItem)
         # Show station text when hovering over the station symbol
         self.scene().sigMouseMoved.connect(self.onHover)
+        # Holder for editable polygon
+        self.polygon=None
+        self.handleMenuTime=0
+
+    # Track where the mouse was pressed down
+    def mousePressEvent(self, event):
+        pg.GraphicsLayoutWidget.mousePressEvent(self,event)
+        self.clickDownPos=event.pos()
+    
+    # If no dragging occcured and handle menu was not created, create menu to add polygon
+    def mouseReleaseEvent(self,event):
+        pg.GraphicsLayoutWidget.mouseReleaseEvent(self,event)
+        if (event.pos()==self.clickDownPos and event.button() == QtCore.Qt.RightButton and
+            time.time()-self.handleMenuTime>0.05):
+            self.createMenu(event)
+            
+    # Add some functionality to default hover events...
+    # ...see which station is being hovered over
+    def onHover(self,pixPoint):
+        if len(self.stas)==0:
+            return
+        # Get the nearby points
+        mousePoint=self.staItem.mapFromScene(pixPoint)
+        nearPoints = self.staItem.pointsAt(mousePoint)
+        # Grab the nearest ones station code and update the 
+        if len(nearPoints)==0:
+            self.hoverStaItem.hide()
+        else:
+            mousePos=np.array([mousePoint.x(),mousePoint.y()])
+            sta=self.getSelectSta(mousePos,nearPoints)
+            self.hoverStaItem.setText(sta)
+            self.hoverStaItem.setPos(mousePoint)
+            self.hoverStaItem.show()
         
     # Handle double click events to the station scatter item
     def dblClicked(self,staScat):
@@ -53,6 +156,42 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.selectSta=self.getSelectSta(staScat.clickPos,staScat.ptsClicked)
         # Forward the double clicked signal to main window
         self.doubleClicked.emit()
+        
+    # Create pop up menu to add/remove groups/variables
+    def createMenu(self,event, parent=None):
+        pixelPos=event.pos()
+        self.menu=QtWidgets.QMenu(parent)
+        if self.polygon is None:
+            self.menu.addAction('Add polygon', lambda:self.addPolygon(pixelPos))
+        else:
+            self.menu.addAction('Remove polygon',self.removePolygon)
+        self.menu.move(self.mapToGlobal(QtCore.QPoint(0,0))+pixelPos)
+        self.menu.show()
+        
+    # Add the polygon to map 
+    def addPolygon(self,pixelPos,verticies=None):
+        # If no verticies giveb, make a box near clicked position
+        if verticies is None:
+            viewBox=self.map.getViewBox()
+            # Convert from pixel position
+            clickPos=viewBox.mapSceneToView(pixelPos)
+            clickPos=np.array([clickPos.x(),clickPos.y()])
+            # Get the map axis lengths
+            xLen,yLen=np.diff(np.array(viewBox.viewRange(),dtype=float),axis=1)*0.2
+            xLen,yLen=xLen[0],yLen[0]
+            verticies=[clickPos+np.array(extra) for extra in [[0,0],[0,yLen],[xLen,yLen],[xLen,0]]]
+        self.polygon=RoiPolyLine(verticies, closed=True)
+        self.polygon.handleMenuSignal.connect(self.setHandleMenuTime)
+        self.map.addItem(self.polygon)
+        
+    # Remove polygon from the map
+    def removePolygon(self):
+        self.map.removeItem(self.polygon)
+        self.polygon=None
+    
+    # Set the time the handle menu was created
+    def setHandleMenuTime(self,aTime):
+        self.handleMenuTime=aTime
         
     # Function to return the nearest station to the current moused point
     def getSelectSta(self,mousePos,nearPoints):
@@ -76,6 +215,9 @@ class MapWidget(pg.GraphicsLayoutWidget):
         # Reset the double clicked station, if reloading the station file entirely
         if init:
             self.selectSta=None
+        # Remove the old polygon
+        if self.polygon is not None:
+            self.removePolygon()
         # Generate the station items
         if len(staLoc)==0:
             self.stas=[]
@@ -98,23 +240,6 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.staItem=staScatter
         # Disable autoscaling the for map items
         self.map.vb.enableAutoRange(enable=False)
-    
-    # See which station is being hovered over
-    def onHover(self,pixPoint):
-        if len(self.stas)==0:
-            return
-        # Get the nearby points
-        mousePoint=self.staItem.mapFromScene(pixPoint)
-        nearPoints = self.staItem.pointsAt(mousePoint)
-        # Grab the nearest ones station code and update the 
-        if len(nearPoints)==0:
-            self.hoverStaItem.hide()
-        else:
-            mousePos=np.array([mousePoint.x(),mousePoint.y()])
-            sta=self.getSelectSta(mousePos,nearPoints)
-            self.hoverStaItem.setText(sta)
-            self.hoverStaItem.setPos(mousePoint)
-            self.hoverStaItem.show()
         
     # Load a set of event points
     def loadEvePoints(self,eveMeta,eveType):
