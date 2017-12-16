@@ -266,8 +266,6 @@ class MapWidget(pg.GraphicsLayoutWidget):
         # Add in all of the new points, size & color set in different function
         scatter=pg.ScatterPlotItem(size=1,symbol='o',pen=pg.mkPen(None),brush=pg.mkBrush(0,0,0,alpha))
         scatter.addPoints(x=eveMeta[:,1],y=eveMeta[:,2])
-        ## Why does this update if autoRange already off?? ##
-        # print(self.map.vb.state['autoRange'])
         self.map.addItem(scatter)
         # Update the scatter item reference
         if eveType=='cur':

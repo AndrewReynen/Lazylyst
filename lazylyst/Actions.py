@@ -2,7 +2,6 @@
 from __future__ import print_function
 import importlib
 import sys
-import os
 from future.utils import iteritems
 
 from PyQt5 import QtWidgets, QtGui, QtCore
@@ -145,7 +144,7 @@ def defaultActions():
 
     'StaSortResidual':Action(tag='StaSortResidual',name='staSortResidual',path='Plugins.Sorting',
                          trigger=QtGui.QKeySequence('V'),
-                         inputs=['staSort','staLoc','sourceTag','pickSet','mapCurEve','staProjStyle'],
+                         inputs=['staSort','staLoc','sourceDict','pickSet','mapCurEve','staProjStyle'],
                          returns=['staSort']),
                                   
     'StaSortReverse':Action(tag='StaSortReverse',name='staSortReverse',path='Plugins.Sorting',
@@ -177,7 +176,7 @@ class Action(object):
                  sleeping=False,threaded=False):
         self.tag=tag # User visible name for the action
         self.name=name # Function name
-        self.path=path # Function path (uses "." instead of "\", path is relative main script location)
+        self.path=path # Function path (uses "." instead of "\", path is relative a directory in the systems PATH variable)
         self.optionals=optionals # Dictionary of the optional values which can be sent to the function
         self.passive=passive # If the action is passive, this is true
         self.beforeTrigger=beforeTrigger # If the passive function should be applied before/after the function
@@ -198,17 +197,6 @@ class Action(object):
     def linkToFunction(self,main,reloadMod=False):
         # If the path does not relate to already defined function locations
         if self.path not in ['$main']:
-            # First check to see that the specified functions folder exists
-            modPath=main.hotVar['mainPath'].val+'/'+self.path.replace('.','/')
-            funcDir=modPath[:-(len(self.path.split('.')[-1])+1)]
-            if not os.path.exists(modPath+'.py'):
-                print(self.tag+' related module does not exist at path '+self.path)
-                return
-            # Next ensure that this path includes a __init__.py file
-            elif not os.path.exists(funcDir+'/__init__.py'):
-                print('created __init__.py at '+funcDir)
-                initFile=open(funcDir+'/__init__.py','w')
-                initFile.close()
             # Extract the function
             try:
                 mod=importlib.import_module(self.path)

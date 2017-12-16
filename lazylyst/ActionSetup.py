@@ -244,7 +244,7 @@ class Ui_actionDialog(object):
         self.actActiveRadio.setText(_translate("actionDialog", "Active"))
         self.passiveBeforeCheck.setToolTip(_translate("actionDialog", "Action is to applied prior its triggering active action"))
         self.passiveBeforeCheck.setText(_translate("actionDialog", "Before Trigger"))
-        self.actPathLabel.setToolTip(_translate("actionDialog", "Path relative Lazylyst where function is held"))
+        self.actPathLabel.setToolTip(_translate("actionDialog", "Path relative a directory on the computers PATH variable"))
         self.actPathLabel.setText(_translate("actionDialog", "Path"))
         self.actTriggerLabel.setToolTip(_translate("actionDialog", "Keybind to activate action"))
         self.actTriggerLabel.setText(_translate("actionDialog", "Trigger"))

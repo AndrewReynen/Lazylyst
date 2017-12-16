@@ -182,7 +182,7 @@
         </font>
        </property>
        <property name="toolTip">
-        <string>Path relative Lazylyst where function is held</string>
+        <string>Path relative a directory on the computers PATH variable</string>
        </property>
        <property name="text">
         <string>Path</string>

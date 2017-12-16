@@ -64,11 +64,11 @@ def staSortDist(staSort,staLoc,mapCurEve,staProjStyle):
    
 # Return the station based on the residual (largest first)...
 # ...currently works only with SimpleLocator
-def staSortResidual(staSort,staLoc,sourceTag,pickSet,mapCurEve,staProjStyle):
+def staSortResidual(staSort,staLoc,sourceDict,pickSet,mapCurEve,staProjStyle):
     # Secondary sorting is alphabetical
     staSort=np.sort(staSort)
     # Get the velocity and delay info
-    vdInfo=getVelDelay(sourceTag)
+    vdInfo=getVelDelay(sourceDict)
     # If there was no vpInfo defined, or no event has been located, return alphabetical
     # Also return if not using a projection (simpleLocator requires it)
     if vdInfo=='$pass' or len(mapCurEve)==0 or staProjStyle=='None':

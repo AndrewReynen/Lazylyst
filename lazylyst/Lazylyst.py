@@ -13,7 +13,7 @@ from copy import deepcopy
 sip.setapi('QVariant', 2)
 sip.setapi('QString', 2)
 sys.path.insert(0,os.path.dirname(os.path.realpath(__file__)))
-__version__='0.7.3'
+__version__='0.7.4'
 
 import numpy as np
 from PyQt5 import QtWidgets,QtGui,QtCore
@@ -1395,7 +1395,7 @@ def runLazylyst():
     app=QtWidgets.QApplication(sys.argv)
     window = LazylystMain()
     # Give an icon for the UI
-    app.setWindowIcon(QtGui.QIcon('./Resources/LazyPenguin_64x64.png'))
+    app.setWindowIcon(QtGui.QIcon(os.path.dirname(os.path.realpath(__file__))+'/Resources/LazyPenguin_64x64.png'))
     if os.name=='nt':
         myappid = u'yarp.lazylyst.'+__version__
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
