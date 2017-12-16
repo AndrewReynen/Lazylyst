@@ -7,14 +7,16 @@ warnings.simplefilter("ignore", optimize.OptimizeWarning)
 # ...used for the simple locator (see simpleLocatorFunc for the equation, units in km and s)
 # ...Vp=P-velocity,Vs=S-velocity,Dp=P-delay,Ds=S-delay
 # ...tResThresh is the time residual which is residual value beyond which is considered poor
-def getVelDelay(sourceTag):
-    sources={'testing':{'Vp':5.0,'Vs':2.9,'Dp':0,'Ds':0,'tResThresh':0.5},
-             'NX':{'Vp':6.19,'Vs':3.57,'Dp':0.74,'Ds':1.13,'tResThresh':1.0},
-            }
-    if sourceTag in sources.keys():
-        return sources[sourceTag]
-    else:
+def getVelDelay(sourceDict):
+    # Ensure all required values are present
+    if 'Velocity' not in sourceDict.keys():
         return '$pass'
+    velDict={}
+    for key in ['Vp','Vs','Dp','Ds','tResThresh']:
+        if key not in sourceDict['Velocity'].keys():
+            return '$pass'
+        velDict[key]=sourceDict['Velocity'][key]
+    return velDict
 
 # Function to calculate the arrival times
 # ti=function((xi,yi,zi,vi,di),x0,y0,t0)
@@ -49,7 +51,7 @@ def getPickData(pickSet,staLoc,vdInfo):
 # Locate event using a straight ray path, and non-linear least squares curve fitting
 # Also assign residual coloring to the stations
 # Will not return a location if no velocities supplied, or stations are not projected
-def simpleLocator(pickSet,staLoc,mapCurEve,staSort,sourceTag,staProjStyle):
+def simpleLocator(pickSet,staLoc,mapCurEve,staSort,sourceDict,staProjStyle):
     # Use only P and S picks
     if len(pickSet)>=4:
         pickSet=pickSet[np.where((pickSet[:,1]=='P')|(pickSet[:,1]=='S'))]
@@ -64,7 +66,7 @@ def simpleLocator(pickSet,staLoc,mapCurEve,staSort,sourceTag,staProjStyle):
         mapStaPenAssign={'noTraceData':[row[0] for row in staLoc if row[0] not in staSort]}
     mapStaPenAssign['goodMap']=list(np.unique(pickSet[:,0]))
     # If there is no vpInfo defined or the stations are not projected, do not update the location
-    vdInfo=getVelDelay(sourceTag)
+    vdInfo=getVelDelay(sourceDict)
     if vdInfo=='$pass' or staProjStyle=='None':
         return '$pass',traceBgPenAssign,mapStaPenAssign
     data,stas=getPickData(pickSet,staLoc,vdInfo)    

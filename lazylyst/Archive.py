@@ -123,7 +123,7 @@ class ValueObj(object):
         self.value=[]
 
 # Read in all the start and stop times of the files
-def getArchiveAvail(archDir,acceptFileTypes=['seed','miniseed','mseed']):
+def getArchiveAvail(archDir,acceptFileTypes=['seed','miniseed','mseed'],showBar=True):
     # Get the currently present files metadata
     curMeta=getDirFiles(archDir,acceptFileTypes)
     curMeta=np.array(curMeta,dtype=str)
@@ -154,11 +154,16 @@ def getArchiveAvail(archDir,acceptFileTypes=['seed','miniseed','mseed']):
     # See which current files need to be loaded
     loadIdxs+=[i for i,j in checkIdxs if not np.array_equal(curMeta[i],prevMeta[j])]
     loadIdxs=np.array(loadIdxs,dtype=int)
-    # Go get all of these times
+    # Go get all of these times ## ##
     holder=ValueObj() 
     if len(loadIdxs)!=0:
-        bar=ArchLoadProgressBar(holder,curMeta[loadIdxs,0])
-        bar.exec_() 
+        # Have the option to show the progress bar, or run all and now show progress
+        bar=ArchLoadProgressBar(holder,curMeta[loadIdxs,0],useTimer=showBar)
+        if showBar:
+            bar.exec_()
+        else:
+            while len(holder.value)==0:
+                bar.getFileLims()
         times=np.array(holder.value)
         # As the new times loading could have been canceled, update just the ones which were updated
         curTimes[loadIdxs[:len(times)]]=times                   
@@ -176,7 +181,7 @@ def getArchiveAvail(archDir,acceptFileTypes=['seed','miniseed','mseed']):
 
 # Progress bar for the archive...
 class ArchLoadProgressBar(QtWidgets.QDialog):
-    def __init__(self,holder,toReadFiles, parent=None):
+    def __init__(self,holder,toReadFiles,useTimer=True, parent=None):
         super(ArchLoadProgressBar, self).__init__(parent)
         self.holder=holder
         # Set up values to for scanning file times
@@ -184,6 +189,8 @@ class ArchLoadProgressBar(QtWidgets.QDialog):
         self.nFiles=float(len(self.files))
         self.fileMinMaxs=[]
         self.nextFileIdx=0
+        # Marker if the quick MSEED reading fails
+        self.quickReadFail=False
         # Set up progress bar size and min/max values
         self.resize(300,40)
         self.progressbar = QtWidgets.QProgressBar()
@@ -200,10 +207,9 @@ class ArchLoadProgressBar(QtWidgets.QDialog):
         self.setWindowTitle('Loading archive changes...')
         # Add a timer and start loading
         self.timer = QtCore.QTimer()
-        self.timer.timeout.connect(self.getFileLims)
-        self.timer.start(5) # 5 millisecond interval
-        # Marker if the quick MSEED reading fails
-        self.quickReadFail=False
+        if useTimer:
+            self.timer.timeout.connect(self.getFileLims)
+            self.timer.start(5) # 5 millisecond interval
     
     # Stop the timer from loading files
     def cancelLoad(self):

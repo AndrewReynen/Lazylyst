@@ -33,7 +33,7 @@ def defaultPreferences(main):
     'remExcessPicksStyle':Pref(tag='remExcessPicksStyle',val='oldest',dataType=str,
                         dialog='ComboBoxDialog',condition={'isOneOf':['oldest','closest','furthest']},
                         tip='Which excess pick(s) will be deleted when manually adding picks'),
-    'staProjStyle':Pref(tag='staProjStyle',val='None',dataType=str,
+    'staProjStyle':Pref(tag='staProjStyle',val='AEA Conic',dataType=str,
                         dialog='ComboBoxDialog',func=main.updateStaLoc,condition={'isOneOf':['None','AEA Conic','UTM']},
                         tip='Projection method to be applied when converting Lat,Lon to X,Y'),
     'pickTypesMaxCountPerSta':Pref(tag='pickTypesMaxCountPerSta',val={'P':1,'S':1},dataType=dict,

@@ -32,6 +32,19 @@ class SaveSource(object):
                 allPathsExist=False
         return allPathsExist
 
+
+# Default saved source
+def defaultSource():
+    exampleDir=os.path.dirname(os.path.realpath(__file__))+'/ExampleSource/'
+    source=SaveSource(tag='ExampleSource',
+                      archDir=exampleDir+'Archive',
+                      pickDir=exampleDir+'Picks',
+                      staFile=exampleDir+'NX_stations.xml',
+                      sourceDict={'Velocity':{'Vp':6.19,'Vs':3.57,
+                                              'Dp':0.74,'Ds':1.13,
+                                              'tResThresh':1.0}})
+    return {source.tag:source}
+
 # Change source dialog
 class CsDialog(QtWidgets.QDialog, Ui_CsDialog):
     def __init__(self,hotVar,savedSources,parent=None):

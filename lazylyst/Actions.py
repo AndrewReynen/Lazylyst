@@ -33,6 +33,10 @@ def defaultActions():
 
     'ReloadPlugins':Action(tag='ReloadPlugins',name='reloadPlugins',
                            path='$main',trigger=QtGui.QKeySequence('F5'),locked=True),
+
+    'ReloadArchive':Action(tag='ReloadArchive',name='updateArchive',
+                           path='$main',optionals={'showBar':False,'resetSearch':True},
+                           trigger=QtGui.QKeySequence('F6'),threaded=True),
                            
     'SaveSettings':Action(tag='SaveSettings',name='saveSettings',
                           path='$main',optionals={'closing':False},
@@ -121,7 +125,7 @@ def defaultActions():
                           passive=True,
                           trigger=['PickAdd','PickDelete','PickSetDelete','PickFileCurDelete',
                                    'PickFileNext','PickFilePrev','PickFileSetToClick','ChangeSource'],
-                          inputs=['pickSet','staLoc','mapCurEve','staSort','sourceTag','staProjStyle'],
+                          inputs=['pickSet','staLoc','mapCurEve','staSort','sourceDict','staProjStyle'],
                           returns=['mapCurEve','traceBgPenAssign','mapStaPenAssign']),
 
     'StaSortAlph':Action(tag='StaSortAlph',name='staSortAlph',path='Plugins.Sorting',

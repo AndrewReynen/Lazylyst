@@ -13,7 +13,7 @@ from copy import deepcopy
 sip.setapi('QVariant', 2)
 sip.setapi('QString', 2)
 sys.path.insert(0,os.path.dirname(os.path.realpath(__file__)))
-__version__='0.7.2'
+__version__='0.7.3'
 
 import numpy as np
 from PyQt5 import QtWidgets,QtGui,QtCore
@@ -26,12 +26,12 @@ from CustomWidgets import keyPressToString
 from TemporalWidgets import TraceWidget
 from CustomFunctions import getTimeFromFileName,getStaStr
 from HotVariables import initHotVar
-from Preferences import defaultPreferences, DateDialog
-from Actions import defaultActions, defaultPassiveOrder, QueueThread
-from Archive import getArchiveAvail, extractDataFromArchive
-from StationMeta import staXml2Loc, readInventory, projStaLoc
+from Preferences import defaultPreferences,DateDialog
+from Actions import defaultActions,defaultPassiveOrder,QueueThread
+from Archive import getArchiveAvail,extractDataFromArchive
+from StationMeta import staXml2Loc,readInventory,projStaLoc
 from ConfigurationDialog import ConfDialog
-from SaveSource import CsDialog
+from SaveSource import CsDialog,defaultSource
 
 # Main window class
 class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
@@ -1010,12 +1010,12 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             self.updateCursor()
         
     # Set the archive availability
-    def updateArchive(self):
+    def updateArchive(self,showBar=True,resetSearch=True):
         # Do nothing if directory not initialized
         if self.hotVar['archDir'].val=='':
             return
         # Load in all of the start times of the archive...
-        archiveFiles,archiveTimes=getArchiveAvail(self.hotVar['archDir'].val)
+        archiveFiles,archiveTimes=getArchiveAvail(self.hotVar['archDir'].val,showBar=showBar)
         # ...and sort them by start time (required for when extracting an events data)
         argSort=np.argsort(archiveTimes[:,0])
         archiveFiles,archiveTimes=archiveFiles[argSort],archiveTimes[argSort]
@@ -1027,13 +1027,15 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         if len(archiveFiles)==0:
             print('No miniseed files in '+self.hotVar['archDir'].val)
             return
-        # Set the initial span boundaries, and x-limits
-        t1,t2=np.min(archiveTimes[:,0]),np.max(archiveTimes[:,1])
-        buff=(t2-t1)*0.05
-        self.archiveSpan.pltItem.setXRange(t1-buff,t2+buff)
-        self.archiveSpan.span.setRegion((t1,t2))
-        # Also reset the archive list search text
-        self.archiveListLineEdit.setText('')
+        # Set the archive file search conditions with default
+        if resetSearch:
+            # Set the initial span boundaries, and x-limits
+            t1,t2=np.min(archiveTimes[:,0]),np.max(archiveTimes[:,1])
+            buff=(t2-t1)*0.05
+            self.archiveSpan.pltItem.setXRange(t1-buff,t2+buff)
+            self.archiveSpan.span.setRegion((t1,t2))
+            # Also reset the archive list search text
+            self.archiveListLineEdit.setText('')
         
     # Update the span text so user can set their bounds easier
     def updateSpanText(self):
@@ -1295,7 +1297,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
                 prefVals[aKey].update({oKey:self.pref[aKey].val[oKey] for oKey in self.pref[aKey].val.keys() if oKey not in prefVals[aKey].keys()})
             self.pref[aKey].val=prefVals[aKey]
         # Saved sources
-        self.saveSource=self.setSource.value('savedSources',{})
+        self.saveSource=self.setSource.value('savedSources',defaultSource())
         # Create empty variables
         self.staWidgets=[]
         self.qTimers={}
