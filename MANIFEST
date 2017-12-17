@@ -15,9 +15,11 @@ lazylyst\CustomWidgets.py
 lazylyst\HotVariables.py
 lazylyst\Lazylyst.py
 lazylyst\MainWindow.py
+lazylyst\MapWidgets.py
 lazylyst\Preferences.py
 lazylyst\SaveSource.py
 lazylyst\StationMeta.py
+lazylyst\TemporalWidgets.py
 lazylyst\__init__.py
 lazylyst\Plugins\CrossCorrelation.py
 lazylyst\Plugins\Examples.py

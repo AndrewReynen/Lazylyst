@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 import inspect
 import os
 
@@ -21,6 +21,7 @@ setup(
   description = 'GUI for timeseries review with a focus on seismology',
   author = 'Andrew Reynen',
   author_email = 'andrew.m.g.reynen@gmail.com',
+  license='MIT License',
   url = 'https://github.com/AndrewReynen/Lazylyst', 
   download_url = 'https://github.com/AndrewReynen/Lazylyst/archive/'+__version__+'.tar.gz', 
   keywords = ['seismology', 'timeseries', 'picking', 'pyqtgraph'], 
@@ -31,8 +32,6 @@ setup(
         'pyqtgraph==0.10.0',
         'scandir>=1.4',
         'pyproj>=1.9.5.1',
-        'scipy',
-        'numpy',
         'sip'
     ],
 )
