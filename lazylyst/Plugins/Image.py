@@ -44,5 +44,5 @@ def spectrogramVert(stream,curTraceSta,**kwargs):
     # Scale between 0 and 1
     psd=(psd-np.min(psd))/(np.max(psd)-np.min(psd))
     return {'data':psd,'t0':trace.stats.starttime.timestamp,'tDelta':t[1]-t[0],
-            'y0':f[0],'yDelta':f[1]-f[0],'label':tr.stats.network+'.'+tr.stats.station+'.'+tr.stats.location,
+            'y0':f[0],'yDelta':f[1]-f[0],'label':trace.stats.network+'.'+trace.stats.station+'.'+trace.stats.location,
             'cmapRGBA':np.array([[0,0,0,255],[255,0,0,255]])}

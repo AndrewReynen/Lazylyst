@@ -35,3 +35,6 @@ lazylyst/Plugins/Image.py
 lazylyst/Plugins/Locate.py
 lazylyst/Plugins/Sorting.py
 lazylyst/Plugins/__init__.py
+lazylyst/Scripts/GlobalLocateCalcTT.py
+lazylyst/Scripts/StationXML.py
+lazylyst/Scripts/__init__.py

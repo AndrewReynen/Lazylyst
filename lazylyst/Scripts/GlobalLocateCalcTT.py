@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
@@ -20,7 +22,7 @@ def getEpiPoints():
     pTimes,sTimes=[],[]
     for deg in testDegs:
         if deg%1==0:
-            print deg
+            print(deg)
         # Get the earliest p and s arrival time
         arrivals=model.get_travel_times(source_depth_in_km=5,distance_in_degree=deg,
                                         phase_list=['ttp','tts'])
@@ -36,7 +38,7 @@ def getDepthPoints():
     testDeps=np.arange(0,200.1,5)
     fullArr=[]
     for deg in testDegs:
-        print deg
+        print(deg)
         pTimes,sTimes=[],[]
         for dep in testDeps:
             # Get the earliest p and s arrival time
@@ -66,7 +68,7 @@ def getEpiParams():
              'startDep':startDep}
     pParams,sParams=[],[]
     for deg in np.arange(0,180.0+0.1*spacing,spacing):
-        print deg
+        print(deg)
         aMin=np.max([0,deg-buff])
         aMax=np.min([180,deg+buff])
         wantArgs=np.where((outArr[:,0]>=aMin)&(outArr[:,0]<=aMax))[0]

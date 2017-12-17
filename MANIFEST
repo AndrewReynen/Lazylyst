@@ -21,6 +21,14 @@ lazylyst\SaveSource.py
 lazylyst\StationMeta.py
 lazylyst\TemporalWidgets.py
 lazylyst\__init__.py
+lazylyst\.\setGen.ini
+lazylyst\ExampleSource\NX_stations.xml
+lazylyst\ExampleSource\Archive\20150907.000435.500000.mseed
+lazylyst\ExampleSource\Archive\20150907.000900.500000.mseed
+lazylyst\ExampleSource\Archive\lazylystArchiveMeta.npy
+lazylyst\ExampleSource\Archive\lazylystArchiveTimes.npy
+lazylyst\ExampleSource\Picks\006000_20150907.000435.500000.picks
+lazylyst\ExampleSource\Picks\006001_20150907.000900.500000.picks
 lazylyst\Plugins\CrossCorrelation.py
 lazylyst\Plugins\Examples.py
 lazylyst\Plugins\Filters.py
@@ -30,3 +38,8 @@ lazylyst\Plugins\Image.py
 lazylyst\Plugins\Locate.py
 lazylyst\Plugins\Sorting.py
 lazylyst\Plugins\__init__.py
+lazylyst\Resources\LazyPenguin_64x64.png
+lazylyst\Scripts\GlobalLocateCalcTT.py
+lazylyst\Scripts\README.txt
+lazylyst\Scripts\StationXML.py
+lazylyst\Scripts\__init__.py

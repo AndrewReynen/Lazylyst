@@ -13,7 +13,7 @@ from copy import deepcopy
 sip.setapi('QVariant', 2)
 sip.setapi('QString', 2)
 sys.path.insert(0,os.path.dirname(os.path.realpath(__file__)))
-__version__='0.7.4'
+from __init__ import __version__
 
 import numpy as np
 from PyQt5 import QtWidgets,QtGui,QtCore

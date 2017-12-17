@@ -1,0 +1,39 @@
+package:
+  name: lazylyst
+  version: "0.7.4.15"
+
+source:
+  fn: lazylyst-0.7.4.15.tar.gz
+  md5: ac83b71bc980b76710dc6120dc3cef14
+  url: https://pypi.python.org/packages/c1/79/b3b38372beb6e2234ac4575fb4e442648bc6517d86a82745041bfe846550/lazylyst-0.7.4.15.tar.gz
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - sip
+    - future
+    - obspy >=1.1.0
+    - scandir
+    - pyqtgraph ==0.10.0
+    - pyproj >=1.9.5.1
+    - pyqt
+
+  run:
+    - python
+    - sip
+    - future
+    - obspy >=1.1.0
+    - scandir
+    - pyqtgraph ==0.10.0
+    - pyproj >=1.9.5.1
+    - pyqt
+
+test:
+  imports:
+    - lazylyst
+
+about:
+  home: https://github.com/AndrewReynen/Lazylyst
+  license: MIT License
+  summary: GUI created for time series review, using a flexible framework for new workflows
