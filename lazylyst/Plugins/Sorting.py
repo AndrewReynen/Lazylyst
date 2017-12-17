@@ -1,4 +1,7 @@
+from __future__ import print_function
+
 import numpy as np
+
 from Plugins.Locate import getVelDelay,getPickData,simpleLocatorFunc
 from Plugins.GlobalLocate import sph2xyz,vecsAngle
 

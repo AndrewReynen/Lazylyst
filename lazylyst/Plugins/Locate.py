@@ -1,6 +1,8 @@
+from __future__ import print_function
+import warnings
+
 import numpy as np
 import scipy.optimize as optimize
-import warnings
 warnings.simplefilter("ignore", optimize.OptimizeWarning)
 
 # Get the velocity and delay values based on the current source...

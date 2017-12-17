@@ -1,5 +1,7 @@
-import numpy as np
+from __future__ import print_function
 import os
+
+import numpy as np
 from obspy import UTCDateTime
 
 # Function to change picking mode to the wanted mode...

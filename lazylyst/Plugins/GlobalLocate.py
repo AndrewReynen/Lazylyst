@@ -1,6 +1,8 @@
+from __future__ import print_function
+import pickle
+
 import numpy as np
 from scipy.optimize import curve_fit
-import pickle
 
 # Reference each pick to a station index
 def getPickStaIdxs(pickSet,staNames):

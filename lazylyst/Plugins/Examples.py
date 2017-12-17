@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import numpy as np        
 import time
 
@@ -10,7 +12,6 @@ def togglePickMode(*args,**kwargs):
     else:
         idx=0
     idx=(idx+1)%len(availPickModes)
-    print 'Picking mode: '+availPickModes[idx]
     return availPickModes[idx]
     
 # Go to the first or last page
