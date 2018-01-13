@@ -1067,7 +1067,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         else:
             self.hotVar['staXml'].val=readInventory(self.hotVar['staFile'].val)
         self.hotVar['staLoc'].val=staXml2Loc(self.hotVar['staXml'].val)
-        self.updateMapProj() ## ##
+        self.updateMapProj()
         # Reset any additional map related visuals
         defaultHot=initHotVar()
         for key in ['mapCurEve','mapPrevEve','curMapSta','curMapPos']:

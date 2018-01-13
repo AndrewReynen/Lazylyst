@@ -44,9 +44,8 @@ def defaultPreferences(main):
                         'func':None,
                         'funcInv':None},
                     dataType=dict,
-                    dialog='MapProjDialog',func=main.updateMapProj,#,func=main.updateStaLoc,
+                    dialog='MapProjDialog',func=main.updateMapProj,
                     tip='Projection to be applied when converting Lat,Lon,Ele to X,Y,Z'),
-                       ## Will have to edit Location function to only accept if "simple and AEA or UTM w/e" ##
     'pickTypesMaxCountPerSta':Pref(tag='pickTypesMaxCountPerSta',val={'P':1,'S':1},dataType=dict,
                                    func=main.updatePagePicks,condition={'bound':[1,999]},
                                    tip='Max number of picks of a given phase type allowed on any individual trace widget'),
