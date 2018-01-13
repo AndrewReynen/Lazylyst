@@ -5,6 +5,8 @@ import numpy as np
 import scipy.optimize as optimize
 warnings.simplefilter("ignore", optimize.OptimizeWarning)
 
+from StationMeta import unitConversionDict
+
 # Get the velocity and delay values based on the current source...
 # ...used for the simple locator (see simpleLocatorFunc for the equation, units in km and s)
 # ...Vp=P-velocity,Vs=S-velocity,Dp=P-delay,Ds=S-delay
@@ -27,7 +29,7 @@ def simpleLocatorFunc(data,x0,y0,z0,t0):
     return t0+((((data[:,0]-x0)**2+(data[:,1]-y0)**2+(data[:,2]-z0)**2)**0.5)+data[:,3]*data[:,4])/data[:,3]
 
 # Gather the information to be sent to the location minimization function
-def getPickData(pickSet,staLoc,vdInfo):
+def getPickData(pickSet,staLoc,vdInfo,mapProj):
     # Form array to be able to send to the 0 dimensional travel time function
     data,stas=[],[] #[xi,yi,zi,vi,ti],[]
     for aPick in pickSet:
@@ -48,12 +50,20 @@ def getPickData(pickSet,staLoc,vdInfo):
         aTime=float(aPick[2]) ## Give more sig digs?... rough approximation anyways
         data.append([aStaX,aStaY,aStaZ,aVel,aDelay,aTime])
         stas.append(aPick[0])
+    data=np.array(data)
+    if len(data)>0:
+        # Get the unit conversion factor between the default km and current
+        convFactor=unitConversionDict()[mapProj['units']]/1000.0
+        # Divide by factor to get the wanted velocity
+        data[:,3]/=convFactor
     return np.array(data),np.array(stas,dtype=str)
 
 # Locate event using a straight ray path, and non-linear least squares curve fitting
 # Also assign residual coloring to the stations
 # Will not return a location if no velocities supplied, or stations are not projected
-def simpleLocator(pickSet,staLoc,mapCurEve,staSort,sourceDict,staProjStyle):
+def simpleLocator(pickSet,staLoc,mapProj,staSort,sourceDict):
+    # Convert from Lon,Lat,Ele to X,Y,Z
+    staLoc[:,1:4]=mapProj['func'](staLoc[:,1:4])
     # Use only P and S picks
     if len(pickSet)>=4:
         pickSet=pickSet[np.where((pickSet[:,1]=='P')|(pickSet[:,1]=='S'))]
@@ -69,9 +79,9 @@ def simpleLocator(pickSet,staLoc,mapCurEve,staSort,sourceDict,staProjStyle):
     mapStaPenAssign['goodMap']=list(np.unique(pickSet[:,0]))
     # If there is no vpInfo defined or the stations are not projected, do not update the location
     vdInfo=getVelDelay(sourceDict)
-    if vdInfo=='$pass' or staProjStyle=='None':
+    if vdInfo=='$pass' or mapProj['units']=='deg':
         return '$pass',traceBgPenAssign,mapStaPenAssign
-    data,stas=getPickData(pickSet,staLoc,vdInfo)    
+    data,stas=getPickData(pickSet,staLoc,vdInfo,mapProj)
     # If there are too few picks, do not try to locate
     if len(data)<4:
         return np.empty((0,5)),traceBgPenAssign,mapStaPenAssign
@@ -97,4 +107,7 @@ def simpleLocator(pickSet,staLoc,mapCurEve,staSort,sourceDict,staProjStyle):
     mapStaPenAssign['goodMap']=list(goodResidStas)
     # Add back the time offset
     t0=Tref+t0
-    return np.array([[0,x0,y0,z0,t0]]),traceBgPenAssign,mapStaPenAssign
+    eveLoc=np.array([[0,x0,y0,z0,t0]])
+    # Convert back to Lon,Lat from X,Y
+    eveLoc[:,1:4]=mapProj['funcInv'](eveLoc[:,1:4])
+    return eveLoc,traceBgPenAssign,mapStaPenAssign

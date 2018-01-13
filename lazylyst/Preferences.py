@@ -5,11 +5,13 @@ from future.utils import iteritems
 
 from PyQt5 import QtWidgets,QtGui,QtCore
 from PyQt5.QtCore import Qt
+import pyproj
 
 from CustomFunctions import dict2Text, text2Dict
 from CustomPen import Ui_customPenDialog
 from BasePen import Ui_basePenDialog
 from ComboDialog import Ui_comboBoxDialog
+from MapProjDialog import Ui_mapProjDialog
 
 # Default Preferences
 def defaultPreferences(main):
@@ -33,9 +35,18 @@ def defaultPreferences(main):
     'remExcessPicksStyle':Pref(tag='remExcessPicksStyle',val='oldest',dataType=str,
                         dialog='ComboBoxDialog',condition={'isOneOf':['oldest','closest','furthest']},
                         tip='Which excess pick(s) will be deleted when manually adding picks'),
-    'staProjStyle':Pref(tag='staProjStyle',val='AEA Conic',dataType=str,
-                        dialog='ComboBoxDialog',func=main.updateStaLoc,condition={'isOneOf':['None','AEA Conic','UTM']},
-                        tip='Projection method to be applied when converting Lat,Lon to X,Y'),
+    'mapProj':Pref(tag='mapProj',
+                   val={'type':'Simple',
+                        'epsg':'4326',
+                        'simpleType':'AEA Conic',
+                        'zDir':'end',
+                        'units':'km',
+                        'func':None,
+                        'funcInv':None},
+                    dataType=dict,
+                    dialog='MapProjDialog',func=main.updateMapProj,#,func=main.updateStaLoc,
+                    tip='Projection to be applied when converting Lat,Lon,Ele to X,Y,Z'),
+                       ## Will have to edit Location function to only accept if "simple and AEA or UTM w/e" ##
     'pickTypesMaxCountPerSta':Pref(tag='pickTypesMaxCountPerSta',val={'P':1,'S':1},dataType=dict,
                                    func=main.updatePagePicks,condition={'bound':[1,999]},
                                    tip='Max number of picks of a given phase type allowed on any individual trace widget'),
@@ -118,6 +129,9 @@ class Pref(object):
                 CustomPenDialog(self.val,self.tag).exec_()
                 # The checks and updates to the preference value are done within the dialog
                 val,ok=self.val,True
+            # ...defining the map projection
+            elif self.dialog=='MapProjDialog':
+                val,ok=ProjDialog.returnValue(self.val)
             else:
                 print('New dialog?')
                 val,ok=None,False
@@ -476,6 +490,123 @@ class ComboBoxDialog(QtWidgets.QDialog, Ui_comboBoxDialog):
     # Static method to create the dialog and return the selected value
     @staticmethod
     def returnValue(curVal,acceptVals,tag,parent=None):
-        dialog = ComboBoxDialog(parent,curVal,acceptVals,tag)
-        result = dialog.exec_()
+        dialog=ComboBoxDialog(parent,curVal,acceptVals,tag)
+        result=dialog.exec_()
         return dialog.comboBox.currentText(), result==QtWidgets.QDialog.Accepted
+    
+# Dialog window for selecting the projection to be used on the map
+class ProjDialog(QtWidgets.QDialog,Ui_mapProjDialog):
+    def __init__(self,projDict,parent=None):
+        QtWidgets.QDialog.__init__(self,parent)
+        self.setupUi(self)
+        self.projDict=projDict
+        # Fill the dialog with current values
+        self.fillDialog()
+        # Give the dialog some functionality
+        self.setFunctionality()
+    
+    # Set up some functionality to the action set up dialog
+    def setFunctionality(self):
+        self.epsgLineEdit.editingFinished.connect(self.checkValidEpsg)
+        self.simpleProjComboBox.currentIndexChanged.connect(self.toggleUnitCombo)
+        self.simpleProjRadio.clicked.connect(self.toggleProjType)
+        self.customProjRadio.clicked.connect(self.toggleProjType)
+        
+    # Fill the dialog with info relating to the current map projection
+    def fillDialog(self):
+        # Fill combo boxes
+        self.simpleProjComboBox.addItems(['None','AEA Conic','UTM'])
+        # Set values with current projection...
+        # ...current epsg code
+        self.epsgLineEdit.setText(str(self.projDict['epsg']))
+        # ...type of the projection (simple/custom)
+        if self.projDict['type']=='Simple':
+            self.simpleProjRadio.setChecked(True)
+        else:
+            self.customProjRadio.setChecked(True)
+        self.setComboValue(self.simpleProjComboBox,self.projDict['simpleType'])
+        # ...direction of the z-axis (positive up/down)
+        self.zDirCheckBox.setChecked(self.projDict['zDir']=='end')
+        # ...projection type and units
+        self.toggleProjType()
+        self.setComboValue(self.unitsComboBox,self.projDict['units'])
+    
+    # Set a combo lists value
+    def setComboValue(self,comboBox,value):
+        # Set the current text to be the current preference value
+        index = comboBox.findText(value)
+        if index >= 0:
+            comboBox.setCurrentIndex(index)
+        else:
+            comboBox.setCurrentIndex(0)
+    
+    # Ensure EPSG code is valid
+    def checkValidEpsg(self):
+        if not self.epsgLineEdit.isEnabled():
+            return
+        curText=str(self.epsgLineEdit.text())
+        # Ensure the code is an integer value
+        try:
+            int(curText)
+            # Check if the EPSG code exists
+            try:
+                self.getProjFunc(curText)
+                # If possible to get the code, toggle the units
+                self.toggleUnitCombo()
+                return
+            except:
+                print('The EPSG code was not valid')
+        except:
+            print('The EPSG code must be an integer value')
+        # If got an invalid code revert to old value
+        print('Reverting to intial EPSG')
+        self.epsgLineEdit.setText(str(self.projDict['epsg']))
+    
+    # Get the projection function for a given EPSG code
+    def getProjFunc(self,epsg):
+        return pyproj.Proj(init='EPSG:'+epsg)
+    
+    # Get the current map projection dictionary
+    def getCurProjDict(self):
+        curDict={'type':'Simple' if self.simpleProjRadio.isChecked() else 'Custom',
+                 'epsg':self.epsgLineEdit.text(),
+                 'simpleType':self.simpleProjComboBox.currentText(),
+                 'zDir':'end' if self.zDirCheckBox.isChecked() else 'enu',
+                 'units':self.unitsComboBox.currentText(),
+                 'func':None,
+                 'funcInv':None}
+        return curDict
+    
+    # Toggle between simple and custom projection types
+    def toggleProjType(self):
+        isSimple=self.simpleProjRadio.isChecked()
+        self.epsgLineEdit.setEnabled(not isSimple)
+        self.simpleProjComboBox.setEnabled(isSimple)
+        # Toggle the available units (as can change between simple/custom)
+        self.toggleUnitCombo()
+        
+    # Toggle which units are available for the current projection
+    def toggleUnitCombo(self):
+        curDict=self.getCurProjDict()
+        self.unitsComboBox.clear()
+        # If the projection is in degrees only
+        if ((curDict['type']=='Simple' and curDict['simpleType']=='None') or
+            (curDict['type']=='Custom' and self.getProjFunc(curDict['epsg']).is_latlong())):
+            self.unitsComboBox.addItems(['deg'])
+        else:
+            self.unitsComboBox.addItems(['m','km','ft','yd','mi'])
+            
+    # Static method to create the dialog and return the selected value
+    @staticmethod
+    def returnValue(projDict):
+        dialog=ProjDialog(projDict)
+        result=dialog.exec_()
+        # Recheck the projection
+        dialog.checkValidEpsg()
+        return dialog.getCurProjDict(),result==QtWidgets.QDialog.Accepted
+        
+        
+        
+        
+        
+        

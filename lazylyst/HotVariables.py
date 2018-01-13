@@ -5,8 +5,8 @@ import os
 import sys
 from copy import deepcopy
 from future.utils import iteritems
-if sys.version_info.major == 3:
-    unicode = str
+if sys.version_info.major==3:
+    unicode=str
     
 import numpy as np
 from obspy import Stream, read_inventory
@@ -64,10 +64,10 @@ def initHotVar():
                             tip='Colors assigned to stations'),
     'mapCurEve':HotVar(tag='mapCurEve',val=np.empty((0,5)),dataType=type(np.array([0.0])),
                        funcName='updateMapCurEve',checkName='checkEveArr',
-                       tip='Events plotted in the foreground of the map widget'),
+                       tip='Events in the foreground of the map widget (ID,Lon,Lat,Elev(m asl),timestamp(s))'),
     'mapPrevEve':HotVar(tag='mapPrevEve',val=np.empty((0,5)),dataType=type(np.array([0.0])),
                        funcName='updateMapPrevEve',checkName='checkEveArr',
-                       tip='Events plotted in the background of the map widget'),
+                       tip='Events in the background of the map widget (ID,Lon,Lat,Elev(m asl),timestamp(s))'),
     'mapPolygon':HotVar(tag='mapPolygon',val=np.empty((0,2),dtype=float),dataType=type(np.array([0.0])),
                        funcName='updateMapPolygon',checkName='checkMapPolygon',
                        tip='Vertices of the polygon on the map widget'),
@@ -86,7 +86,7 @@ def initHotVar():
                      funcName='updateStaMeta',checkName='checkStaFile',
                      tip='Station file path'),
     'staLoc':HotVar(tag='staLoc',val=np.empty((0,4)),dataType=type(np.array([0.0])),returnable=False,
-                     tip='Station locations'),
+                     tip='Station locations (N.S.L,Lon,Lat,Elev(m asl))'),
     'staXml':HotVar(tag='staXml',val=Inventory(networks=[],source='Lazylyst'),
                     dataType=type(Inventory(networks=[],source='Lazylyst')),returnable=False,
                      tip='Station metadata'),
@@ -365,6 +365,13 @@ def checkStaColAssign(main,colAssign):
             if not checkNSL(entry):
                 return False
     return True
+
+# Check to see if all longitudes and latitudes are in the wanted range
+def checkArrLonLat(lons,lats):
+    if np.max(np.abs(lons))>180 or np.max(np.abs(lats))>90:
+        print('Lon,Lat must be in the range [-180,180],[-90,90]')
+        return False
+    return True
     
 # Ensure that the current/previous event array is of the proper dimensions and datatype
 def checkEveArr(main,eveArr):
@@ -377,8 +384,11 @@ def checkEveArr(main,eveArr):
     try:
         eveArr.astype(float)
     except:
-        print('The current/previous event array contains [ID,X,Y,Z,Timestamp(s)], which must all be numbers')
+        print('The current/previous event array contains [ID,Lon,Lat,Z,Timestamp(s)], which must all be numbers')
         return False
+    # Check to ensure the lon/lat are in the appropriate range
+    if 0 not in eveArr.shape:
+        return checkArrLonLat(*eveArr[:,1:3].T.astype(float))
     return True
 
 # Ensure that the mapPolygon array is of the proper dimensions and datatype
@@ -392,8 +402,11 @@ def checkMapPolygon(main,mapPolygon):
     try:
         mapPolygon.astype(float)
     except:
-        print('The mapPolygon array contains a list of vertices [[X1,Y1],[X2,Y2],...], which must all be numbers')
+        print('The mapPolygon array contains a list of vertices [[Lon1,Lat1],[Lon2,Lat2],...], which must all be numbers')
         return False
+    # Check to ensure the lon/lat are in the appropriate range
+    if 0 not in mapPolygon.shape:
+        return checkArrLonLat(*mapPolygon.T.astype(float))
     return True
 
 # Ensure that the archive directory exists  

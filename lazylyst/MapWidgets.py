@@ -119,6 +119,9 @@ class MapWidget(pg.GraphicsLayoutWidget):
         # Holder for editable polygon
         self.polygon=None
         self.handleMenuTime=0
+        # Projection functions for converting Lon/Lat to X,Y and back
+        self.projFunc=None
+        self.projFuncInv=None
 
     # Track where the mouse was pressed down
     def mousePressEvent(self, event):
@@ -170,8 +173,14 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.menu.show()
     
     # Load the polygon onto the map
-    def loadPolygon(self,vertices):
-        self.polygon=RoiPolyLine(vertices, closed=True)
+    def loadPolygon(self,vertices,alreadyProj=False):
+        # If already projected, do nothing
+        if alreadyProj:
+            verticesProj=vertices
+        # Project Lon,Lat to X,Y
+        else:
+            verticesProj=self.projFunc(vertices)
+        self.polygon=RoiPolyLine(verticesProj, closed=True)
         self.polygon.handleMenuSignal.connect(self.setHandleMenuTime)
         self.map.addItem(self.polygon)
         
@@ -184,8 +193,8 @@ class MapWidget(pg.GraphicsLayoutWidget):
         # Get the map axis lengths
         xLen,yLen=np.diff(np.array(viewBox.viewRange(),dtype=float),axis=1)*0.2
         xLen,yLen=xLen[0],yLen[0]
-        vertices=[clickPos+np.array(extra) for extra in [[0,0],[0,yLen],[xLen,yLen],[xLen,0]]]
-        self.loadPolygon(vertices)
+        vertices=np.array([clickPos+np.array(extra) for extra in [[0,0],[0,yLen],[xLen,yLen],[xLen,0]]],dtype=float)
+        self.loadPolygon(vertices,alreadyProj=True)
         # Send off signal for the polygons pen to be updated
         self.updatePolygonPenSignal.emit()
         
@@ -201,6 +210,8 @@ class MapWidget(pg.GraphicsLayoutWidget):
             return np.empty((0,2),dtype=float)
         positions=[handle['pos'] for handle in self.polygon.handles]
         vertices=np.array([[entry.x(),entry.y()] for entry in positions])
+        # Convert from X,Y to Lon,Lat
+        vertices=self.projFuncInv(vertices)
         return vertices
     
     # Set the time the handle menu was created
@@ -217,8 +228,8 @@ class MapWidget(pg.GraphicsLayoutWidget):
             return None
         
     # Load the new station meta data
-    def loadStaLoc(self,staLoc,colorAssign,
-                   staSize,staDep,init):
+    def loadStaLoc(self,staLoc,
+                   colorAssign,staSize,staDep,init):
         # Enable the autoscaling temporarily
         self.map.vb.enableAutoRange(enable=True)
         # Hide the hovered station label
@@ -229,8 +240,6 @@ class MapWidget(pg.GraphicsLayoutWidget):
         # Reset the double clicked station, if reloading the station file entirely
         if init:
             self.selectSta=None
-        # Remove the old polygon
-        self.removePolygon()
         # Generate the station items
         if len(staLoc)==0:
             self.stas=[]
@@ -243,9 +252,11 @@ class MapWidget(pg.GraphicsLayoutWidget):
             brushArr.append(pg.mkBrush(color.red(),color.green(),color.blue(),200))
         staScatter=CustScatter(size=staSize*2,symbol='t1',pen=pg.mkPen(None))
         staScatter.setZValue(staDep)
+        # Project the lon,lat into x,y
+        staLocProj=self.projFunc(staLoc[:,1:4])
         # Add in the points
         if len(staLoc)!=0:
-            staScatter.addPoints(x=staLoc[:,1], y=staLoc[:,2], brush=brushArr)
+            staScatter.addPoints(x=staLocProj[:,0], y=staLocProj[:,1], brush=brushArr)
         # Give some clicking ability to the stations
         staScatter.doubleClicked.connect(self.dblClicked) # For any point being clicked
         # Add the station scatter items
@@ -263,9 +274,11 @@ class MapWidget(pg.GraphicsLayoutWidget):
         # Remove the previous item
         if item is not None:
             self.map.removeItem(item)
+        # Project the lon,lat into x,y
+        eveLocProj=self.projFunc(eveMeta[:,1:4])
         # Add in all of the new points, size & color set in different function
         scatter=pg.ScatterPlotItem(size=1,symbol='o',pen=pg.mkPen(None),brush=pg.mkBrush(0,0,0,alpha))
-        scatter.addPoints(x=eveMeta[:,1],y=eveMeta[:,2])
+        scatter.addPoints(x=eveLocProj[:,0],y=eveLocProj[:,1])
         self.map.addItem(scatter)
         # Update the scatter item reference
         if eveType=='cur':

@@ -29,7 +29,7 @@ from HotVariables import initHotVar
 from Preferences import defaultPreferences,DateDialog
 from Actions import defaultActions,defaultPassiveOrder,QueueThread
 from Archive import getArchiveAvail,extractDataFromArchive
-from StationMeta import staXml2Loc,readInventory,projStaLoc
+from StationMeta import staXml2Loc,readInventory,setProjFunc
 from ConfigurationDialog import ConfDialog
 from SaveSource import CsDialog,defaultSource
 
@@ -917,8 +917,8 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.mapStaColors=self.getStaColors('mapSta')
         staSize,staDep=self.pref['basePen'].val['mapStaDefault'][1:3]
         # Add the spots to the map
-        self.mapWidget.loadStaLoc(self.hotVar['staLoc'].val,self.mapStaColors,
-                                  staSize,staDep,init)
+        self.mapWidget.loadStaLoc(self.hotVar['staLoc'].val,
+                                  self.mapStaColors,staSize,staDep,init)
         
     # Update the polygon on the mapWidget
     def updateMapPolygon(self):
@@ -1066,22 +1066,29 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             self.hotVar['staXml'].val=initHotVar()['staXml'].val
         else:
             self.hotVar['staXml'].val=readInventory(self.hotVar['staFile'].val)
-        self.updateStaLoc()
+        self.hotVar['staLoc'].val=staXml2Loc(self.hotVar['staXml'].val)
+        self.updateMapProj() ## ##
         # Reset any additional map related visuals
         defaultHot=initHotVar()
         for key in ['mapCurEve','mapPrevEve','curMapSta','curMapPos']:
             self.hotVar[key].val=defaultHot[key].val
             self.hotVar[key].update()
     
-    # Update staLoc along with the map widget
-    def updateStaLoc(self,init=False):
-        staLoc=staXml2Loc(self.hotVar['staXml'].val)
-        # Project if desired
-        if self.pref['staProjStyle'].val=='None' or init:
-            self.hotVar['staLoc'].val=staLoc
-        else:
-            self.hotVar['staLoc'].val=projStaLoc(staLoc,self.pref['staProjStyle'].val)
-        self.updateMapStations(init=True)
+    # Update the map projection
+    def updateMapProj(self,init=False):
+        # Save the current map polygon
+        self.hotVar['mapPolygon'].val=self.mapWidget.getPolygonVertices()
+        # Set the new projections
+        setProjFunc(self.pref['mapProj'].val,self.hotVar['staLoc'].val,init=init)
+        self.mapWidget.projFunc=self.pref['mapProj'].val['func']
+        self.mapWidget.projFuncInv=self.pref['mapProj'].val['funcInv']
+        # Replot the items on the map widget with new projection
+        self.updateMapStations(init=init)
+        self.updateMapCurEve()
+        self.updateMapPrevEve()
+        self.updateMapPolygon()
+        # Resize to plotted items
+        self.mapWidget.map.autoRange()
         
     # Update the map variables to be set when double clicking on it
     def updateMapDblClickedVars(self):
@@ -1320,6 +1327,10 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         # Preferences
         prefVals={}
         for aKey in self.pref.keys():
+            # Cannot save the projection function directly
+            if aKey=='mapProj':
+                self.pref[aKey].val['func']=None
+                self.pref[aKey].val['funcInv']=None
             prefVals[str(self.pref[aKey].tag)]=self.pref[aKey].val
         self.setPref.setValue('prefVals',prefVals)
         # Saved sources
@@ -1329,6 +1340,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         if not closing:
             for key in self.act.keys():
                 self.act[key].linkToFunction(self)
+            setProjFunc(self.pref['mapProj'].val,self.hotVar['staLoc'].val,init=True)
         
     # For actions which are triggered via built-in qt events
     def passAction(self):

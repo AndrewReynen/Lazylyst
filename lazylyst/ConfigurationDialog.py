@@ -63,6 +63,7 @@ class ConfDialog(QtWidgets.QDialog, Ui_ConfDialog):
     def addDelClicked(self,whichList,addDel):
         # Set the appropriate current list
         self.curList=self.confActiveList if whichList=='active' else self.confPassiveList
+        print(whichList=='active')
         # Set the current lists button press
         self.curList.key=Qt.Key_Insert if addDel=='add' else Qt.Key_Delete
         # Forward this to the key press event handles
@@ -168,7 +169,7 @@ class ConfDialog(QtWidgets.QDialog, Ui_ConfDialog):
     # Open the action set-up dialog with a blank new action
     def createAction(self):
         # Make the new action
-        if self.confActiveList.hasFocus():
+        if self.confActiveList==self.curList:
             action=self.openActionSetup(Action(passive=False,trigger='Set Trigger'))
         else:
             action=self.openActionSetup(Action(passive=True,trigger=[]))

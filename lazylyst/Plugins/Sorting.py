@@ -30,16 +30,19 @@ def staSortPickTime(staSort,pickSet,pickMode):
     return staSort[np.argsort(pos)]
 
 # Return the station based on the distance from the current event
-def staSortDist(staSort,staLoc,mapCurEve,staProjStyle):
+def staSortDist(staSort,staLoc,mapCurEve,mapProj):
     # If no event has been located, do not change anything
-    if len(mapCurEve)==0:
+    if len(mapCurEve)==0 or len(staLoc)==0:
         return '$pass'
+    # Project the station and event locations
+    staLoc[:,1:4]=mapProj['func'](staLoc[:,1:4])
+    mapCurEve[:,1:4]=mapProj['func'](mapCurEve[:,1:4])
     # Secondary sorting is alphabetical
     staSort=np.sort(staSort)
-    # Replace Lons,Lats,Elev with X,Y,Z on sphere if no projection...
+    # Replace Lons,Lats,Elev with X,Y,Z on sphere if units in degrees...
     # ...also split array into the string and float components
     staNames=list(staLoc[:,0])
-    if staProjStyle=='None':
+    if mapProj['units']=='deg':
         staLoc=sph2xyz(staLoc[:,1:3].astype(float))
         eveLoc=sph2xyz(mapCurEve[:,1:3].astype(float))[0]
     else:
@@ -51,7 +54,7 @@ def staSortDist(staSort,staLoc,mapCurEve,staProjStyle):
         if sta in staNames:
             staXyz=staLoc[staNames.index(sta),:]   
             # ...if projected, then calculate euclidean distance
-            if staProjStyle!='None':
+            if mapProj['units']!='deg':
                 dist=np.sum((staXyz-eveLoc)**2)**0.5
             # ...otherwise calculate the angle between stations and the event (depth ignored)
             else:
@@ -67,16 +70,19 @@ def staSortDist(staSort,staLoc,mapCurEve,staProjStyle):
    
 # Return the station based on the residual (largest first)...
 # ...currently works only with SimpleLocator
-def staSortResidual(staSort,staLoc,sourceDict,pickSet,mapCurEve,staProjStyle):
+def staSortResidual(staSort,staLoc,sourceDict,pickSet,mapCurEve,mapProj):
     # Secondary sorting is alphabetical
     staSort=np.sort(staSort)
     # Get the velocity and delay info
     vdInfo=getVelDelay(sourceDict)
     # If there was no vpInfo defined, or no event has been located, return alphabetical
     # Also return if not using a projection (simpleLocator requires it)
-    if vdInfo=='$pass' or len(mapCurEve)==0 or staProjStyle=='None':
+    if vdInfo=='$pass' or len(mapCurEve)==0 or mapProj['units']=='deg' or len(staSort)==0:
         return staSort
-    data,stas=getPickData(pickSet,staLoc,vdInfo)
+    # Reproject event and station locations
+    staLoc[:,1:4]=mapProj['func'](staLoc[:,1:4])
+    mapCurEve[:,1:4]=mapProj['func'](mapCurEve[:,1:4])
+    data,stas=getPickData(pickSet,staLoc,vdInfo,mapProj)
     # If there was none of the wanted pick types, return alphabetical
     if len(data)==0:
         return staSort

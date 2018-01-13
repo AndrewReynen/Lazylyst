@@ -1,0 +1,95 @@
+# -*- coding: utf-8 -*-
+
+# Form implementation generated from reading ui file 'MapProjDialog.ui'
+#
+# Created by: PyQt5 UI code generator 5.6
+#
+# WARNING! All changes made in this file will be lost!
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+class Ui_mapProjDialog(object):
+    def setupUi(self, mapProjDialog):
+        mapProjDialog.setObjectName("mapProjDialog")
+        mapProjDialog.resize(260, 131)
+        self.verticalLayout = QtWidgets.QVBoxLayout(mapProjDialog)
+        self.verticalLayout.setSpacing(1)
+        self.verticalLayout.setObjectName("verticalLayout")
+        self.upperProjLayout = QtWidgets.QGridLayout()
+        self.upperProjLayout.setSpacing(1)
+        self.upperProjLayout.setObjectName("upperProjLayout")
+        self.simpleProjComboBox = QtWidgets.QComboBox(mapProjDialog)
+        self.simpleProjComboBox.setObjectName("simpleProjComboBox")
+        self.upperProjLayout.addWidget(self.simpleProjComboBox, 0, 1, 1, 1)
+        self.simpleProjRadio = QtWidgets.QRadioButton(mapProjDialog)
+        self.simpleProjRadio.setObjectName("simpleProjRadio")
+        self.upperProjLayout.addWidget(self.simpleProjRadio, 0, 0, 1, 1)
+        self.customProjRadio = QtWidgets.QRadioButton(mapProjDialog)
+        self.customProjRadio.setObjectName("customProjRadio")
+        self.upperProjLayout.addWidget(self.customProjRadio, 1, 0, 1, 1)
+        self.epsgLineEdit = HoverLineEdit(mapProjDialog)
+        self.epsgLineEdit.setObjectName("epsgLineEdit")
+        self.upperProjLayout.addWidget(self.epsgLineEdit, 1, 1, 1, 1)
+        self.verticalLayout.addLayout(self.upperProjLayout)
+        self.lowerProjLayout = QtWidgets.QHBoxLayout()
+        self.lowerProjLayout.setSpacing(1)
+        self.lowerProjLayout.setObjectName("lowerProjLayout")
+        self.zDirCheckBox = QtWidgets.QCheckBox(mapProjDialog)
+        self.zDirCheckBox.setObjectName("zDirCheckBox")
+        self.lowerProjLayout.addWidget(self.zDirCheckBox)
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.lowerProjLayout.addItem(spacerItem)
+        self.unitsLabel = QtWidgets.QLabel(mapProjDialog)
+        font = QtGui.QFont()
+        font.setBold(False)
+        font.setWeight(50)
+        self.unitsLabel.setFont(font)
+        self.unitsLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.unitsLabel.setObjectName("unitsLabel")
+        self.lowerProjLayout.addWidget(self.unitsLabel)
+        self.unitsComboBox = QtWidgets.QComboBox(mapProjDialog)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.unitsComboBox.sizePolicy().hasHeightForWidth())
+        self.unitsComboBox.setSizePolicy(sizePolicy)
+        self.unitsComboBox.setObjectName("unitsComboBox")
+        self.lowerProjLayout.addWidget(self.unitsComboBox)
+        self.verticalLayout.addLayout(self.lowerProjLayout)
+        self.epsgFindLabel = QtWidgets.QLabel(mapProjDialog)
+        font = QtGui.QFont()
+        font.setBold(False)
+        font.setWeight(50)
+        self.epsgFindLabel.setFont(font)
+        self.epsgFindLabel.setToolTip("")
+        self.epsgFindLabel.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignVCenter)
+        self.epsgFindLabel.setOpenExternalLinks(True)
+        self.epsgFindLabel.setObjectName("epsgFindLabel")
+        self.verticalLayout.addWidget(self.epsgFindLabel)
+        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout.addItem(spacerItem1)
+        self.completeBox = QtWidgets.QDialogButtonBox(mapProjDialog)
+        self.completeBox.setOrientation(QtCore.Qt.Horizontal)
+        self.completeBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel|QtWidgets.QDialogButtonBox.Ok)
+        self.completeBox.setObjectName("completeBox")
+        self.verticalLayout.addWidget(self.completeBox)
+
+        self.retranslateUi(mapProjDialog)
+        self.completeBox.accepted.connect(mapProjDialog.accept)
+        self.completeBox.rejected.connect(mapProjDialog.reject)
+        QtCore.QMetaObject.connectSlotsByName(mapProjDialog)
+
+    def retranslateUi(self, mapProjDialog):
+        _translate = QtCore.QCoreApplication.translate
+        mapProjDialog.setWindowTitle(_translate("mapProjDialog", "Map Projection"))
+        self.simpleProjRadio.setToolTip(_translate("mapProjDialog", "Use a projection based on station locations"))
+        self.simpleProjRadio.setText(_translate("mapProjDialog", "Simple"))
+        self.customProjRadio.setToolTip(_translate("mapProjDialog", "Use an EPSG code to set the projection"))
+        self.customProjRadio.setText(_translate("mapProjDialog", "Custom"))
+        self.zDirCheckBox.setToolTip(_translate("mapProjDialog", "Vertical direction is to be positive downwards "))
+        self.zDirCheckBox.setText(_translate("mapProjDialog", "Positive Downwards"))
+        self.unitsLabel.setToolTip(_translate("mapProjDialog", "Output units of projection"))
+        self.unitsLabel.setText(_translate("mapProjDialog", "Units"))
+        self.epsgFindLabel.setText(_translate("mapProjDialog", "<a href=\"http://spatialreference.org/ref/epsg/\">Find an EPSG code</a>"))
+
+from CustomWidgets import HoverLineEdit

@@ -32,36 +32,51 @@ def staXml2Loc(staXml):
 def readInventory(staFile):
     return read_inventory(staFile,format='stationxml')
 
-# Project the stations from Lon/Lat to desired system   
-def projStaLoc(staLoc,projStyle):
-    # If no entries, nothing to change
-    if 0 in staLoc.shape:
-        return staLoc
-    # Generate the projection object to do the conversions...
-    # ...Universal Transverse Mercator
-    if projStyle=='UTM':
-        UTM_Zone=int(np.floor((np.median(staLoc[:,1].astype(float)) + 180.0)/6) % 60) + 1
-        wantProj = pyproj.Proj(proj='utm',zone=UTM_Zone,datum='WGS84')
-    # ...Albers Equal Area (Conic)
-    elif projStyle=='AEA Conic':
-        # Use the bounds of the stations for guidelines
-        staLons,staLats=staLoc[:,1].astype(float),staLoc[:,2].astype(float)
-        minLat,maxLat=np.min(staLats),np.max(staLats)
-        minLon,maxLon=np.min(staLons),np.max(staLons)
-        # Latitudes where the cone intersects the ellipsoid
-        lat1,lat2=(maxLat-minLat)*1.0/6+minLat,(maxLat-minLat)*5.0/6+minLat
-        # The origin of the projection
-        lat0,lon0=(maxLat-minLat)*1.0/2+minLat,(maxLon-minLon)*1.0/2+minLon
-        wantProj = pyproj.Proj(proj='aea',lat_1=lat1,lat_2=lat2,lat_0=lat0,lon_0=lon0,datum='WGS84',ellps='WGS84')
+# Conversion factor between meters and given unit
+def unitConversionDict():
+    return {'m':1.0,
+            'km':1000.0,
+            'ft':0.3048,
+            'yd':0.9144,
+            'mi':1609.344}
+
+# Set the projection function
+def setProjFunc(mapProj,staLoc,init=False):
+    inProj=pyproj.Proj(init='EPSG:4326')
+    # Extra key word arguments to be passed to the new projection
+    extraKwargs={'axis':mapProj['zDir'],'preserve_units':True}
+    if mapProj['units']!='deg':
+        extraKwargs['units']=mapProj['units']
+    
+    # If using a projection defined on station locations...
+    if mapProj['type']=='Simple':
+        # ...no projection
+        if mapProj['simpleType']=='None' or 0 in staLoc.shape:
+            outProj=pyproj.Proj(init='EPSG:4326',**extraKwargs)
+            if 0 in staLoc.shape and mapProj['simpleType']!='None' and not init:
+                print('Cannot determine projection as no stations given, using no projection')
+        # ...Universal Transverse Mercator
+        elif mapProj['simpleType']=='UTM':
+            UTM_Zone=int(np.floor((np.median(staLoc[:,1].astype(float)) + 180.0)/6) % 60) + 1
+            outProj = pyproj.Proj(proj='utm',zone=UTM_Zone,
+                                  datum='WGS84',**extraKwargs)
+        # ...Albers Equal Area (Conic)
+        elif mapProj['simpleType']=='AEA Conic':
+            # Use the bounds of the stations for guidelines
+            staLons,staLats=staLoc[:,1].astype(float),staLoc[:,2].astype(float)
+            minLat,maxLat=np.min(staLats),np.max(staLats)
+            minLon,maxLon=np.min(staLons),np.max(staLons)
+            # Latitudes where the cone intersects the ellipsoid
+            lat1,lat2=(maxLat-minLat)*1.0/6+minLat,(maxLat-minLat)*5.0/6+minLat
+            # The origin of the projection
+            lat0,lon0=(maxLat-minLat)*1.0/2+minLat,(maxLon-minLon)*1.0/2+minLon
+            outProj=pyproj.Proj(proj='aea',lat_1=lat1,lat_2=lat2,lat_0=lat0,lon_0=lon0,
+                                datum='WGS84',ellps='WGS84',**extraKwargs)
+        # ...catch
+        else:
+            print('Simple projection not defined, how did we get here?')
+    # If using a EPSG code
     else:
-        print('projStyle '+projStyle+' not yet supported, skipped')
-        return staLoc
-    # Calculate the new X and Y values
-    staLoc[:,1:3]=np.array([wantProj(float(lon),float(lat),inverse=False) for lon,lat in staLoc[:,1:3]],dtype=str)
-    # Convert units from m to km
-    staLoc[:,1:4]=staLoc[:,1:4].astype(float)/1000.0
-    # Make the Z values positive downwards
-    staLoc[:,3]=staLoc[:,3].astype(float)*-1.0
-    return staLoc
-    
-    
+        outProj=pyproj.Proj(init='EPSG:'+mapProj['epsg'],**extraKwargs)
+    mapProj['func']=lambda xyzArr:np.array(pyproj.transform(inProj,outProj,*xyzArr.T)).T
+    mapProj['funcInv']=lambda xyzArr:np.array(pyproj.transform(outProj,inProj,*xyzArr.T)).T
