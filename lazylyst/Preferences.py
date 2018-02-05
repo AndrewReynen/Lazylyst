@@ -12,6 +12,7 @@ from CustomPen import Ui_customPenDialog
 from BasePen import Ui_basePenDialog
 from ComboDialog import Ui_comboBoxDialog
 from MapProjDialog import Ui_mapProjDialog
+from ListEntryDialog import Ui_listEntryDialog
 
 # Default Preferences
 def defaultPreferences(main):
@@ -46,6 +47,9 @@ def defaultPreferences(main):
                     dataType=dict,
                     dialog='MapProjDialog',func=main.updateMapProj,
                     tip='Projection to be applied when converting Lat,Lon,Ele to X,Y,Z'),
+    'pythonPathAdditions':Pref(tag='pythonPathAdditions',val=[],dataType=list,
+                               dialog='ListEntryDialog',tip='Directories to add to the python path',
+                               func=main.updatePythonPath),
     'pickTypesMaxCountPerSta':Pref(tag='pickTypesMaxCountPerSta',val={'P':1,'S':1},dataType=dict,
                                    func=main.updatePagePicks,condition={'bound':[1,999]},
                                    tip='Max number of picks of a given phase type allowed on any individual trace widget'),
@@ -131,6 +135,9 @@ class Pref(object):
             # ...defining the map projection
             elif self.dialog=='MapProjDialog':
                 val,ok=ProjDialog.returnValue(self.val)
+            # ...editing items on a list
+            elif self.dialog=='ListEntryDialog':
+                val,ok=ListDialog.returnValue(self.tag,self.val)
             else:
                 print('New dialog?')
                 val,ok=None,False
@@ -492,6 +499,71 @@ class ComboBoxDialog(QtWidgets.QDialog, Ui_comboBoxDialog):
         dialog=ComboBoxDialog(parent,curVal,acceptVals,tag)
         result=dialog.exec_()
         return dialog.comboBox.currentText(), result==QtWidgets.QDialog.Accepted
+
+# Dialog to hold a list of strings
+class ListDialog(QtWidgets.QDialog, Ui_listEntryDialog):
+    def __init__(self,tag,initList,parent=None):
+        QtWidgets.QDialog.__init__(self,parent)
+        self.setupUi(self)
+        # Set name of the preference being changed
+        self.setWindowTitle(tag)
+        self.setFunctionality()
+        self.fillDialog(initList)
+        
+    # Set up some functionality to the list entry dialog
+    def setFunctionality(self):
+        self.entryAddButton.clicked.connect(lambda x:self.addEntry())
+        self.entryDelButton.clicked.connect(self.removeEntry)
+        self.entryListWidget.keyPressedSignal.connect(self.doKeyPress)
+        
+    # Fill the list with current preference entries
+    def fillDialog(self,initList):
+        for entry in initList:
+            self.addEntry(entry)
+        
+    # Handle the keys given by the list widget
+    def doKeyPress(self):
+        if self.entryListWidget.key==Qt.Key_Insert:
+            self.addEntry()
+        elif self.entryListWidget.key==Qt.Key_Delete:
+            self.removeEntry()
+        elif self.entryListWidget.key==Qt.Key_Backspace:
+            self.editEntry()
+        
+    # Remove an entry from the list
+    def removeEntry(self):
+        try:
+            if not self.entryListWidget.currentItem().isSelected():
+                return
+            self.entryListWidget.takeItem(self.entryListWidget.currentRow())
+        except:
+            pass
+    
+    # Add an item to the list
+    def addEntry(self,text='#NewEntry'):
+        if text in self.entryListWidget.visualListOrder():
+            return
+        item=QtWidgets.QListWidgetItem()
+        item.setText(text)
+        # Allow the item to be edited by clicking on it
+        item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable)
+        self.entryListWidget.addItem(item)
+    
+    # Edit an entry in the list
+    def editEntry(self):
+        index = self.entryListWidget.currentIndex()
+        if index.isValid():
+            item = self.entryListWidget.itemFromIndex(index)
+            if not item.isSelected():
+                item.setSelected(True)
+            self.entryListWidget.edit(index)
+    
+    # Return the lists unique entries
+    @staticmethod
+    def returnValue(tag,initList):
+        dialog=ListDialog(tag,initList)
+        result=dialog.exec_()
+        return list(set(dialog.entryListWidget.visualListOrder())),result==QtWidgets.QDialog.Accepted
     
 # Dialog window for selecting the projection to be used on the map
 class ProjDialog(QtWidgets.QDialog,Ui_mapProjDialog):

@@ -1253,6 +1253,24 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             outName=time.strftime('%Y%m%d.%H%M%S.png',time.gmtime())
             print('Screenshot: '+outName)
             pixMap.save(aDir+'/'+outName, 'png')
+    
+    # Add/remove entries from the python path
+    def updatePythonPath(self,init=False):
+        pathsToAdd=self.pref['pythonPathAdditions'].val
+        # Add the new entries
+        for path in pathsToAdd:
+            if path not in sys.path:
+                sys.path.insert(0,path)
+                self.pythonPathInsertions.append(path)
+        # Remove any previous additions which are no longer present
+        idxs=[]
+        for path in self.pythonPathInsertions:
+            if path not in pathsToAdd+self.pythonPathOriginal and path in sys.path:
+                idxs.append(sys.path.index(path))
+        for idx in sorted(idxs)[::-1]:
+            sys.path.pop(idx)
+        # Make note of the paths which were added
+        self.pythonPathInsertions=pathsToAdd
         
     # Load setting from previous run, and initialize base variables
     def loadSettings(self):
@@ -1311,6 +1329,9 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.qThreads={}
         self.traceSplitSizes=None
         self.setUserSeenAtTime()
+        self.pythonPathInsertions=[]
+        # Make a note of the original python path so items are not removed
+        self.pythonPathOriginal=deepcopy(sys.path)
         
     # Save all settings from current run
     def saveSettings(self,closing=True):
