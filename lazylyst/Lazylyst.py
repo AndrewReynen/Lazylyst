@@ -1260,7 +1260,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         # Add the new entries
         for path in pathsToAdd:
             if path not in sys.path:
-                sys.path.insert(0,path)
+                sys.path.append(path)
                 self.pythonPathInsertions.append(path)
         # Remove any previous additions which are no longer present
         idxs=[]
@@ -1281,6 +1281,15 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         self.hotVar['mainPath'].val=mainPath
         for key,hotVar in iteritems(self.hotVar):
             hotVar.linkToFunction(self)
+        # Create empty variables
+        self.staWidgets=[]
+        self.qTimers={}
+        self.qThreads={}
+        self.traceSplitSizes=None
+        self.setUserSeenAtTime()
+        self.pythonPathInsertions=[]
+        # Make a note of the original python path so items are not removed
+        self.pythonPathOriginal=deepcopy(sys.path)
         # Get all values from settings
         self.setGen=QSettings(mainPath+'/setGen.ini', QSettings.IniFormat)
         self.setAct=QSettings(mainPath+'/setAct.ini', QSettings.IniFormat)
@@ -1291,6 +1300,18 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             self.restoreGeometry(self.setGen.value("geometry"))
         if self.setGen.value("windowState") is not None:
             self.restoreState(self.setGen.value("windowState"))
+        # Preferences
+        self.pref=defaultPreferences(self)
+        prefVals=self.setPref.value('prefVals',{})
+        for aKey in prefVals.keys():
+            # Skip if this preference was removed in a newer version
+            if aKey not in self.pref.keys():
+                continue
+            # Add default base color preferences not previously seen
+            if aKey=='basePen':
+                prefVals[aKey].update({oKey:self.pref[aKey].val[oKey] for oKey in self.pref[aKey].val.keys() if oKey not in prefVals[aKey].keys()})
+            self.pref[aKey].val=prefVals[aKey]
+        self.updatePythonPath()
         # Actions...
         self.act=self.setAct.value('actions', defaultActions())
         # ...reload locked actions from the defaults (may have been edited in a new version)
@@ -1310,28 +1331,9 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         for key,action in iteritems(self.act):
             action.linkToFunction(self)
             action.fillMissingAttrib()
-        # Preferences
-        self.pref=defaultPreferences(self)
-        prefVals=self.setPref.value('prefVals',{})
-        for aKey in prefVals.keys():
-            # Skip if this preference was removed in a newer version
-            if aKey not in self.pref.keys():
-                continue
-            # Add default base color preferences not previously seen
-            if aKey=='basePen':
-                prefVals[aKey].update({oKey:self.pref[aKey].val[oKey] for oKey in self.pref[aKey].val.keys() if oKey not in prefVals[aKey].keys()})
-            self.pref[aKey].val=prefVals[aKey]
+
         # Saved sources
         self.saveSource=self.setSource.value('savedSources',defaultSource())
-        # Create empty variables
-        self.staWidgets=[]
-        self.qTimers={}
-        self.qThreads={}
-        self.traceSplitSizes=None
-        self.setUserSeenAtTime()
-        self.pythonPathInsertions=[]
-        # Make a note of the original python path so items are not removed
-        self.pythonPathOriginal=deepcopy(sys.path)
         
     # Save all settings from current run
     def saveSettings(self,closing=True):
