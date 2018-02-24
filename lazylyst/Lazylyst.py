@@ -54,9 +54,11 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
      
     # Go through all preferences, and call their update functions
     def applyPreferences(self):
-        curPrefs=[aPref for key, aPref in iteritems(self.pref)]
-        for aPref in curPrefs:
-            aPref.update(self,init=True)
+        # Load preferences by their priority
+        prefKeys=np.array(list(self.pref.keys()))
+        prio=np.array([self.pref[key].loadOrder for key in prefKeys],dtype=int)
+        for key in prefKeys[np.argsort(prio)]:
+            self.pref[key].update(self,init=True)
         # Also check initial image widget visibility, has to be called after staWidgets are added
         if self.setGen.value('imageHidden','false')=='true':
             self.toggleImageWidget(init=True)
@@ -788,6 +790,9 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.staWidgets[i].removeItem(curve)
             self.staWidgets[i].traceCurves=[]
             self.staWidgets[i].pltItem.setLabel(axis='left',text='empty')
+            ## Attempts to fix label positioning
+#            self.staWidgets[i].pltItem.getAxis('left')
+            ##
             self.staWidgets[i].sta=''
         # Add in the trace data for the current page
         i=0

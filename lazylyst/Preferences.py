@@ -42,11 +42,12 @@ def defaultPreferences(main):
                         'simpleType':'AEA Conic',
                         'zDir':'end',
                         'units':'km',
-                        'func':None,
-                        'funcInv':None},
+                        'func':None,#lambda x:x,
+                        'funcInv':None},#lambda x:x},
                     dataType=dict,
                     dialog='MapProjDialog',func=main.updateMapProj,
-                    tip='Projection to be applied when converting Lat,Lon,Ele to X,Y,Z'),
+                    tip='Projection to be applied when converting Lat,Lon,Ele to X,Y,Z',
+                    loadOrder=0),
     'pythonPathAdditions':Pref(tag='pythonPathAdditions',val=[],dataType=list,
                                dialog='ListEntryDialog',tip='Directories to add to the python path',
                                func=main.updatePythonPath),
@@ -91,7 +92,7 @@ def defaultPreferences(main):
 class Pref(object):
     def __init__(self,tag=None,val=None,dataType=str,
                  dialog='LineEditDialog',
-                 func=None,condition={},tip=''):
+                 func=None,condition={},tip='',loadOrder=999):
         self.tag=tag # The preference key, and user visible name
         self.val=val # The preference value
         self.dataType=dataType # What kind of data is expected upon update
@@ -99,6 +100,7 @@ class Pref(object):
         self.func=func # Function which is called on successful updates
         self.condition=condition # Key-word conditionals (see "LineEditDialog" in this file) 
         self.tip=tip # Short description of the preference
+        self.loadOrder=loadOrder # Priority in loading the preferencing (lower value loaded first)
     
     # Return a deep copy of the objects value
     def getVal(self):
