@@ -42,8 +42,8 @@ def defaultPreferences(main):
                         'simpleType':'AEA Conic',
                         'zDir':'end',
                         'units':'km',
-                        'func':None,#lambda x:x,
-                        'funcInv':None},#lambda x:x},
+                        'func':None,
+                        'funcInv':None},
                     dataType=dict,
                     dialog='MapProjDialog',func=main.updateMapProj,
                     tip='Projection to be applied when converting Lat,Lon,Ele to X,Y,Z',
@@ -601,7 +601,7 @@ class ProjDialog(QtWidgets.QDialog,Ui_mapProjDialog):
         # ...direction of the z-axis (positive up/down)
         self.zDirCheckBox.setChecked(self.projDict['zDir']=='end')
         # ...projection type and units
-        self.toggleProjType()
+        self.toggleProjType() # Toggle type first to fill unit combo box
         self.setComboValue(self.unitsComboBox,self.projDict['units'])
     
     # Set a combo lists value
@@ -668,6 +668,8 @@ class ProjDialog(QtWidgets.QDialog,Ui_mapProjDialog):
             self.unitsComboBox.addItems(['deg'])
         else:
             self.unitsComboBox.addItems(['m','km','ft','yd','mi'])
+        # Set the units to original if still present
+        self.setComboValue(self.unitsComboBox,curDict['units'])
             
     # Static method to create the dialog and return the selected value
     @staticmethod
