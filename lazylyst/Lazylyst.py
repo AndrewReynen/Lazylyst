@@ -789,10 +789,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             for curve in self.staWidgets[i].traceCurves:
                 self.staWidgets[i].removeItem(curve)
             self.staWidgets[i].traceCurves=[]
-            self.staWidgets[i].pltItem.setLabel(axis='left',text='empty')
-            ## Attempts to fix label positioning
-#            self.staWidgets[i].pltItem.getAxis('left')
-            ##
+            self.staWidgets[i].pltItem.setLabel(axis='left',text='__._____.__')
             self.staWidgets[i].sta=''
         # Add in the trace data for the current page
         i=0
@@ -810,7 +807,10 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
             self.staWidgets[i].setYRange(ymin,ymax)
             # Assign the widget a station code
             self.staWidgets[i].sta=thisSta
-            self.staWidgets[i].pltItem.setLabel(axis='left',text=thisSta)
+            # Add on extra spacers to ensure label is of same size (bug work around)
+            label='.'.join(['{s:{c}<{n}}'.format(s=text,c='_',n=length) for text,length in
+                            zip(thisSta.split('.'),[2,5,2])])
+            self.staWidgets[i].pltItem.setLabel(axis='left',text=label)
             # Plot the data
             for idx in wantIdxs:
                 trace=self.hotVar['pltSt'].val[idx]
@@ -821,6 +821,13 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         # Set the background color
         for widget in self.staWidgets:                        
             widget.setBackground(self.traceBgColors[widget.sta])
+#        # Initiate resize of trace widgets to work around label positioning bug
+#        aSize=self.traceViewLayout.size()
+#        oSize=QtCore.QSize(aSize.width(),aSize.height()-5)
+#        aResizeEvent=QtGui.QResizeEvent(aSize,oSize)
+#        QtCore.QCoreApplication.postEvent(self.traceViewLayout,aResizeEvent)
+#        self.traceViewLayout.resizeEvent(aResizeEvent)
+#        self.traceViewLayout.update()
     
     # Update all custom pens
     def updateCustomPen(self,init=False):
@@ -1004,6 +1011,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         while len(self.staWidgets)<self.pref['staPerPage'].val:
             self.staWidgets.append(TraceWidget(self.mainLayout))
             self.staWidgets[-1].setXLink('timeAxis')
+            self.staWidgets[-1].pltItem.setLabel(axis='left',text='__._____.__')
             self.traceLayout.addWidget(self.staWidgets[-1])
             # Connect the double click signal to the add pick signal
             self.staWidgets[-1].doubleClickSignal.connect(self.traceDoubleClickEvent)

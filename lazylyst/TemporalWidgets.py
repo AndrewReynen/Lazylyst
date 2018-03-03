@@ -260,21 +260,16 @@ class TimeAxisItem(pg.AxisItem):
     def __init__(self, *args, **kwargs):
         super(TimeAxisItem, self).__init__(*args, **kwargs)
         # Some nice units with respect to time
-        self.units=np.array([10**-6,10**-5,10**-4,10**-3,10**-2,10**-1,
+        self.units=np.array([10**-4,10**-3,10**-2,10**-1,
                              1,2,5,10,30,60,
                              120,300,600,1800,3600,7200,
                              3600*6,3600*24,3600*48,3600*24*5,3600*24*31,3600*24*180],dtype=float)
         self.unitIdxs=np.arange(len(self.units))
         # What the above units should be displayed as
-        self.unitStrs=['%S.%fs','%S.%fs','%S.%fs','%S.%fs','%S.%fs','%S.%fs',
-                       '%S.%fs','%S.%fs','%Mm%Ss','%Mm%Ss','%Mm%Ss','%Mm%Ss',
+        self.unitStrs=['%S.%fs','%S.%fs','%S.%fs','%S.%fs',
+                       '%Mm%Ss','%Mm%Ss','%Mm%Ss','%Mm%Ss','%Mm%Ss','%Mm%Ss',
                        '%Mm%Ss','%Hh%Mm','%Hh%Mm','%dd %Hh%Mm','%dd %Hh%Mm','%dd %Hh%Mm',
                        '%m-%d %Hh','%m-%d %Hh','%m-%d %Hh','%Y-%m-%d','%Y-%m-%d','%Y-%m-%d']
-        # How many characters to trim off the end of the above string
-        self.strTrim=[0,0,0,0,1,2,
-                      3,3,0,0,0,0,
-                      0,0,0,0,0,0,
-                      0,0,0,0,0,0]
         self.unitIdx=0
 
     # Customize the locations of the ticks
@@ -298,14 +293,19 @@ class TimeAxisItem(pg.AxisItem):
             ticks.append(val)
             val+=unit
         return [(unit,ticks)]
+    
+    # Round the time to the nearest ten-thousandth (minimum unit)
+    def formatTime(self,val,fmt):
+        string=UTCDateTime(val).strftime(fmt)
+        if '%fs' in fmt:
+            temp='{:.4f}'.format(round(float(string[-8:-1]),4))
+            string=string[:-8]+temp[1:]+'s'
+        return string
 
     # Customize what string are being shown
     def tickStrings(self, values, scale, spacing):
-        x=self.strTrim[self.unitIdx]
-        if x==0:
-            return [UTCDateTime(value).strftime(self.unitStrs[self.unitIdx]) for value in values]
-        else:
-            return [UTCDateTime(value).strftime(self.unitStrs[self.unitIdx])[:-(x+1)]+'s' for value in values]
+        fmt=self.unitStrs[self.unitIdx]
+        return [self.formatTime(val,fmt) for val in values]
 
 # Widget to nicely show the time axis, which is in sync with the trace data
 class TimeWidget(pg.PlotWidget):
