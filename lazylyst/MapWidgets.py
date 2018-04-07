@@ -230,23 +230,6 @@ class MapWidget(pg.GraphicsLayoutWidget):
         else:
             return None
 
-    # # Decorator to allow particular function to automatically resize the map widgets limits
-    # def _allowResize(func):
-    #     def wrapper(*args,**kwargs):
-    #         # Enable auto resizing
-    #         args[0].map.vb.enableAutoRange()
-    #         print('hihihi')
-    #         # Run the given function
-    #         out=func(*args,**kwargs)
-    #         # Disable auto resizing
-    #         args[0].map.vb.disableAutoRange()
-    #         return out
-    #     return wrapper
-    #
-    # @_allowResize
-    # def loadStaLoc(self,staLoc,
-    #                colorAssign,staSize,staDep,init):
-
     # Load the new station meta data
     def loadStaLoc(self,staLoc,init):
         # Enable the autoscaling temporarily
