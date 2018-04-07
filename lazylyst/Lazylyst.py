@@ -12,7 +12,7 @@ from fnmatch import fnmatch
 from copy import deepcopy
 sip.setapi('QVariant', 2)
 sip.setapi('QString', 2)
-sys.path.insert(0,os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0,os.path.abspath(os.path.join(os.path.dirname( __file__ ), os.pardir)))
 from __init__ import __version__
 
 import numpy as np
