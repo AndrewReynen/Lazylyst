@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'ListEntryDialog.ui'
+# Form implementation generated from reading ui file 'ListEntry.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -64,4 +64,4 @@ class Ui_listEntryDialog(object):
         self.entryAddButton.setText(_translate("listEntryDialog", "+"))
         self.entryDelButton.setText(_translate("listEntryDialog", "-"))
 
-from CustomWidgets import MixListWidget
+from lazylyst.CustomWidgets import MixListWidget

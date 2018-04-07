@@ -60,7 +60,7 @@ def initHotVar():
                             funcName='updateTraceBackground',checkName='checkStaColAssign',
                             tip='Colors assigned to trace data widget backgrounds, station basis'),
     'mapStaPenAssign':HotVar(tag='mapStaPenAssign',val={},dataType=dict,
-                            funcName='updateMapStations',checkName='checkStaColAssign',
+                            funcName='updateMapStationPen',checkName='checkStaColAssign',
                             tip='Colors assigned to stations'),
     'mapCurEve':HotVar(tag='mapCurEve',val=np.empty((0,5)),dataType=type(np.array([0.0])),
                        funcName='updateMapCurEve',checkName='checkEveArr',

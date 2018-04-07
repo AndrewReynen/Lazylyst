@@ -7,7 +7,7 @@ from future.utils import iteritems
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtCore import Qt
 
-from ActionSetup import Ui_actionDialog
+from lazylyst.UI.ActionSetup import Ui_actionDialog
 from CustomFunctions import dict2Text, text2Dict
 
 # Default Actions
@@ -295,25 +295,16 @@ class ActionSetupDialog(QtWidgets.QDialog, Ui_actionDialog):
         self.passiveTriggers=[action.tag for key,action in iteritems(self.actDict) if not action.passive]
         self.actAvailTriggerList.addItems(sorted(self.passiveTriggers))
         # Set the appropriate radio button on
-        if self.action.passive:
-            self.actPassiveRadio.setChecked(True)
-        else:
-            self.actActiveRadio.setChecked(True)
+        self.actPassiveRadio.setChecked(self.action.passive)
         # Set the state of the beforeTrigger check box (used for passive only)
-        if self.action.passive and self.action.beforeTrigger:
-            self.passiveBeforeCheck.setChecked(True)
-        else:
-            self.passiveBeforeCheck.setChecked(False)
+        self.passiveBeforeCheck.setChecked(self.action.passive and self.action.beforeTrigger)
         # Set the state of the activeTimer check box (used for active only)
         if not self.action.passive and self.action.timer:
             self.activeTimerCheck.setChecked(True)
         else:
             self.activeTimerCheck.setChecked(False)
         # Set the state of the activeThreaded check box
-        if self.action.threaded:
-            self.activeThreadedCheck.setChecked(True)
-        else:
-            self.activeThreadedCheck.setChecked(False)
+        self.activeThreadedCheck.setChecked(self.action.threaded)
         # Set the timer interval value
         self.actIntervalLineEdit.setText(str(self.action.timerInterval))
         # Toggle the appropriate radio button
@@ -499,8 +490,7 @@ class ActionSetupDialog(QtWidgets.QDialog, Ui_actionDialog):
         # Set info from radio buttons (passive/active) 
         self.action.passive=self.actPassiveRadio.isChecked()
         # If the action should be applied before the trigger (used for passive only)
-        if self.passiveBeforeCheck.isChecked():
-            self.action.beforeTrigger=True
+        self.action.beforeTrigger=self.passiveBeforeCheck.isChecked()
         # If the action should set off with a given interval
         if self.activeTimerCheck.isChecked():
             self.action.timer=True

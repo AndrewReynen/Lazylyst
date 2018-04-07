@@ -21,7 +21,7 @@ from PyQt5.QtCore import QSettings
 from pyqtgraph import mkPen, mkBrush
 from obspy import UTCDateTime
 
-from MainWindow import Ui_MainWindow
+from lazylyst.UI.MainWindow import Ui_MainWindow
 from CustomWidgets import keyPressToString
 from TemporalWidgets import TraceWidget
 from CustomFunctions import getTimeFromFileName,getStaStr
@@ -720,7 +720,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
                 print('customPen tag '+key+ ' is not currently defined in preference customPen, applying default')
         # Loop through each unique channel and add its pen to penRef
         for cha in unqChas:
-            colorInt,width=None,None
+            colorInt,width,depth=None,None,0
             matched=False
             # Check each of the entries for this key for a match
             for key,aList in [[aKey,self.hotVar['tracePenAssign'].val[aKey]] for aKey in useKeys]:
@@ -821,19 +821,12 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
         # Set the background color
         for widget in self.staWidgets:                        
             widget.setBackground(self.traceBgColors[widget.sta])
-#        # Initiate resize of trace widgets to work around label positioning bug
-#        aSize=self.traceViewLayout.size()
-#        oSize=QtCore.QSize(aSize.width(),aSize.height()-5)
-#        aResizeEvent=QtGui.QResizeEvent(aSize,oSize)
-#        QtCore.QCoreApplication.postEvent(self.traceViewLayout,aResizeEvent)
-#        self.traceViewLayout.resizeEvent(aResizeEvent)
-#        self.traceViewLayout.update()
     
     # Update all custom pens
     def updateCustomPen(self,init=False):
         self.updateTracePen()
         self.updateTraceBackground()
-        self.updateMapStations()
+        self.updateMapStationPen()
     
     # Update just the trace pens on the current page
     def updateTracePen(self):
@@ -857,7 +850,7 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
                          ['imageBackground',self.updateImageBackground],
                          ['imageBorder',self.updateImageBorderPen],
                          ['mapBackground',self.updateMapBackground],
-                         ['mapStaDefault',self.updateMapStations],
+                         ['mapStaDefault',self.updateMapStationPen],
                          ['mapCurEve',self.updateMapCurEvePen],
                          ['mapPrevEve',self.updateMapPrevEvePen],
                          ['mapPolygon',self.updateMapPolygonPen],
@@ -925,13 +918,16 @@ class LazylystMain(QtWidgets.QMainWindow, Ui_MainWindow):
     
     # Update the color of all of the station spots, with user specified colors
     def updateMapStations(self,init=False):
-        # Assign the station colors for the stations in staLoc
+        # Add the spots to the map
+        self.mapWidget.loadStaLoc(self.hotVar['staLoc'].val,init)
+        self.updateMapStationPen()
+
+    # Assign the station colors, size, and depth
+    def updateMapStationPen(self):
         self.mapStaColors=self.getStaColors('mapSta')
         staSize,staDep=self.pref['basePen'].val['mapStaDefault'][1:3]
-        # Add the spots to the map
-        self.mapWidget.loadStaLoc(self.hotVar['staLoc'].val,
-                                  self.mapStaColors,staSize,staDep,init)
-        
+        self.mapWidget.updateStaPen(self.mapStaColors,staSize,staDep)
+
     # Update the polygon on the mapWidget
     def updateMapPolygon(self):
         # Remove old polygon

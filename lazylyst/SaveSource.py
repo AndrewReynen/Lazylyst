@@ -5,7 +5,7 @@ import os
 from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
 
-from ChangeSource import Ui_CsDialog
+from lazylyst.UI.ChangeSource import Ui_CsDialog
 
 # Saved sources class, for reading in old (or adding new) archive/pick/station information
 class SaveSource(object):

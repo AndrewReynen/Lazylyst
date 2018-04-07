@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'MapProjDialog.ui'
+# Form implementation generated from reading ui file 'MapProj.ui'
 #
 # Created by: PyQt5 UI code generator 5.6
 #
@@ -92,4 +92,4 @@ class Ui_mapProjDialog(object):
         self.unitsLabel.setText(_translate("mapProjDialog", "Units"))
         self.epsgFindLabel.setText(_translate("mapProjDialog", "<a href=\"http://spatialreference.org/ref/epsg/\">Find an EPSG code</a>"))
 
-from CustomWidgets import HoverLineEdit
+from lazylyst.CustomWidgets import HoverLineEdit

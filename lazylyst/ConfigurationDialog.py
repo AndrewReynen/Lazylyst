@@ -5,7 +5,7 @@ from future.utils import iteritems
 from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtCore import Qt
 
-from Configuration import Ui_ConfDialog
+from lazylyst.UI.Configuration import Ui_ConfDialog
 from Actions import Action, ActionSetupDialog
 
 # Configuration dialog

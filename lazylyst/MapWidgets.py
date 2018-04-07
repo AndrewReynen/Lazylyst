@@ -24,7 +24,7 @@ class CustScatter(pg.ScatterPlotItem):
             self.doubleClicked.emit(self)
             ev.accept()
             
-# Verticies on the polygon
+# Verticies on the polygon for the map polygon
 class RoiHandle(pg.graphicsItems.ROI.Handle):
     handleMenuSignal=QtCore.Signal(float)
     def __init__(self, *args, **kwargs):
@@ -103,6 +103,9 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.map=self.addPlot()
         self.map.setMenuEnabled(enableMenu=False)
         self.map.hideButtons()
+        # Disable any resizing
+        self.map.vb.disableAutoRange()
+        # Initialize extra variables
         self.stas=[] # The station names for the station spot items
         self.staItem=None # The station scatter item
         self.selectSta=None # Which station is currently selected
@@ -226,10 +229,26 @@ class MapWidget(pg.GraphicsLayoutWidget):
             return str(self.stas[np.where(self.staItem.points()==selPoint)[0][0]])
         else:
             return None
-        
+
+    # # Decorator to allow particular function to automatically resize the map widgets limits
+    # def _allowResize(func):
+    #     def wrapper(*args,**kwargs):
+    #         # Enable auto resizing
+    #         args[0].map.vb.enableAutoRange()
+    #         print('hihihi')
+    #         # Run the given function
+    #         out=func(*args,**kwargs)
+    #         # Disable auto resizing
+    #         args[0].map.vb.disableAutoRange()
+    #         return out
+    #     return wrapper
+    #
+    # @_allowResize
+    # def loadStaLoc(self,staLoc,
+    #                colorAssign,staSize,staDep,init):
+
     # Load the new station meta data
-    def loadStaLoc(self,staLoc,
-                   colorAssign,staSize,staDep,init):
+    def loadStaLoc(self,staLoc,init):
         # Enable the autoscaling temporarily
         self.map.vb.enableAutoRange(enable=True)
         # Hide the hovered station label
@@ -245,18 +264,12 @@ class MapWidget(pg.GraphicsLayoutWidget):
             self.stas=[]
         else:
             self.stas=staLoc[:,0]
-        # Get the brush values to be assigned
-        brushArr=[]
-        for sta in self.stas:
-            color=colorAssign[sta]
-            brushArr.append(pg.mkBrush(color.red(),color.green(),color.blue(),200))
-        staScatter=CustScatter(size=staSize*2,symbol='t1',pen=pg.mkPen(None))
-        staScatter.setZValue(staDep)
+        staScatter=CustScatter(size=1,symbol='t1',pen=pg.mkPen(None))
         # Project the lon,lat into x,y
         staLocProj=self.projFunc(staLoc[:,1:4])
         # Add in the points
         if len(staLoc)!=0:
-            staScatter.addPoints(x=staLocProj[:,0], y=staLocProj[:,1], brush=brushArr)
+            staScatter.addPoints(x=staLocProj[:,0], y=staLocProj[:,1])
         # Give some clicking ability to the stations
         staScatter.doubleClicked.connect(self.dblClicked) # For any point being clicked
         # Add the station scatter items
@@ -264,6 +277,21 @@ class MapWidget(pg.GraphicsLayoutWidget):
         self.staItem=staScatter
         # Disable autoscaling the for map items
         self.map.vb.enableAutoRange(enable=False)
+
+    # Update the station markers pen values
+    def updateStaPen(self,colorAssign,size,dep):
+        # Do nothing if no stations to edit
+        if len(self.stas)==0:
+            return
+        # Get the brush values to be assigned
+        brushArr=[]
+        for sta in self.stas:
+            color=colorAssign[sta]
+            brushArr.append(pg.mkBrush(color.red(),color.green(),color.blue(),200))
+        self.staItem.setBrush(brushArr)
+        # Set depth and size
+        self.staItem.setSize(2*size)
+        self.staItem.setZValue(dep)
         
     # Load a set of event points
     def loadEvePoints(self,eveMeta,eveType):
@@ -311,7 +339,6 @@ class MapWidget(pg.GraphicsLayoutWidget):
         # Set the depth of the handles to be slightly higher
         for handle in self.polygon.handles:
             handle['item'].setZValue(dep+2)
-        
     
     # Change the pen of the axis and axis labels
     def setPen(self,pen):

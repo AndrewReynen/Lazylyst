@@ -8,11 +8,11 @@ from PyQt5.QtCore import Qt
 import pyproj
 
 from CustomFunctions import dict2Text, text2Dict
-from CustomPen import Ui_customPenDialog
-from BasePen import Ui_basePenDialog
-from ComboDialog import Ui_comboBoxDialog
-from MapProjDialog import Ui_mapProjDialog
-from ListEntryDialog import Ui_listEntryDialog
+from lazylyst.UI.CustomPen import Ui_customPenDialog
+from lazylyst.UI.BasePen import Ui_basePenDialog
+from lazylyst.UI.ComboBox import Ui_comboBoxDialog
+from lazylyst.UI.MapProj import Ui_mapProjDialog
+from lazylyst.UI.ListEntry import Ui_listEntryDialog
 
 # Default Preferences
 def defaultPreferences(main):
