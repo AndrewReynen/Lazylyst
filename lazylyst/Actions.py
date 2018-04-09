@@ -295,7 +295,10 @@ class ActionSetupDialog(QtWidgets.QDialog, Ui_actionDialog):
         self.passiveTriggers=[action.tag for key,action in iteritems(self.actDict) if not action.passive]
         self.actAvailTriggerList.addItems(sorted(self.passiveTriggers))
         # Set the appropriate radio button on
-        self.actPassiveRadio.setChecked(self.action.passive)
+        if self.action.passive:
+            self.actPassiveRadio.setChecked(True)
+        else:
+            self.actActiveRadio.setChecked(True)
         # Set the state of the beforeTrigger check box (used for passive only)
         self.passiveBeforeCheck.setChecked(self.action.passive and self.action.beforeTrigger)
         # Set the state of the activeTimer check box (used for active only)
